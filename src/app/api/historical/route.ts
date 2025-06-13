@@ -19,7 +19,18 @@ interface HistoricalDataPoint {
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbols, interval = '4h' } = await request.json();
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch (jsonError) {
+      console.error('Invalid JSON in request body:', jsonError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    const { symbols, interval = '4h' } = requestBody;
     
     if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
       return NextResponse.json({ error: 'Symbols array is required' }, { status: 400 });
@@ -50,10 +61,20 @@ export async function POST(request: NextRequest) {
             start: startTime,
             end: endTime,
             limit: points
-          }
+          },
+          timeout: 30000
         });
 
-        const klineData: KlineData[] = response.data.result.list.map((item: string[]) => ({
+        // Check if the response is valid
+        if (!response.data || response.data.retCode !== 0) {
+          console.error(`API error for ${symbol}:`, response.data?.retMsg || 'Unknown error');
+          return {
+            symbol,
+            data: []
+          };
+        }
+
+        const klineData: KlineData[] = (response.data.result?.list || []).map((item: string[]) => ({
           startTime: item[0],
           openPrice: item[1],
           highPrice: item[2],

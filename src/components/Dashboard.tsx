@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CoinAnalysis } from '@/types';
 import { TrendChart } from './TrendChart';
 import { DataTable } from './DataTable';
@@ -75,40 +75,76 @@ const CandleCountdown: React.FC = () => {
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<AnalysisResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'analysis' | 'chart'>('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
 
-  const fetchData = async (interval: '4h' | '1d' = chartInterval) => {
+  const fetchData = useCallback(async (interval: '4h' | '1d' = chartInterval) => {
     setLoading(true);
     try {
+      console.log('Starting fetch request to /api/analyze with interval:', interval);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ limit: 50, interval }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+      console.log('Fetch response received:', response.status, response.statusText);
+
+      // Check if response is ok before parsing JSON
       if (!response.ok) {
-        throw new Error('Failed to fetch data');
+        const errorText = await response.text();
+        console.error('API Response Error:', response.status, errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response received:', responseText);
+        throw new Error('Server returned non-JSON response');
+      }
+
       const result = await response.json();
+      console.log('API result received:', result.success ? 'Success' : 'Failed', result.data ? `${result.data.totalCoins} coins` : 'No data');
       
       if (result.success && result.data) {
         setData(result.data);
         setLastUpdated(new Date());
+        console.log('Data updated successfully');
       } else {
+        console.error('API Error:', result.error);
         throw new Error(result.error || 'Failed to fetch data');
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.error('Request timed out after 60 seconds');
+        } else {
+          console.error('Error details:', error.message);
+        }
+      }
+      // You could add a toast notification here or set an error state
     } finally {
       setLoading(false);
     }
-  };
+  }, [chartInterval]);
 
   useEffect(() => {
+    console.log('Dashboard useEffect triggered with interval:', chartInterval);
     fetchData(chartInterval);
-  }, [chartInterval]);
+  }, [chartInterval, fetchData]);
 
   const formatLastUpdated = (date: Date) => {
     return date.toLocaleString('en-US', {

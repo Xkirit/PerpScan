@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, TooltipProps } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon } from 'lucide-react';
@@ -30,15 +30,15 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
 
   // Take top 20 coins by default
-  const topCoins = data.slice(0, 20);
+  const topCoins = useMemo(() => data.slice(0, 20), [data]);
+  const topCoinSymbols = useMemo(() => topCoins.map(coin => coin.symbol), [topCoins]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (topCoins.length > 0) {
-      setSelectedCoins(topCoins.map(coin => coin.symbol));
-      fetchHistoricalData(topCoins.map(coin => coin.symbol), interval);
+      setSelectedCoins(topCoinSymbols);
+      fetchHistoricalData(topCoinSymbols, interval);
     }
-  }, [JSON.stringify(topCoins.map(coin => coin.symbol)), interval]);
+  }, [topCoinSymbols, interval, topCoins.length]);
 
   const fetchHistoricalData = async (symbols: string[], interval: string) => {
     setLoading(true);
@@ -51,14 +51,26 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         body: JSON.stringify({ symbols, interval }),
       });
 
+      // Check if response is ok before parsing JSON
       if (!response.ok) {
-        throw new Error('Failed to fetch historical data');
+        const errorText = await response.text();
+        console.error('Historical API Response Error:', response.status, errorText);
+        throw new Error(`Historical API Error: ${response.status} - ${errorText}`);
+      }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response received from historical API:', responseText);
+        throw new Error('Historical API returned non-JSON response');
       }
 
       const histData = await response.json();
       setHistoricalData(histData);
     } catch (error) {
       console.error('Error fetching historical data:', error);
+      setHistoricalData([]); // Set empty data on error
     } finally {
       setLoading(false);
     }
@@ -85,9 +97,9 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       return (
         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
           <p className="text-sm text-gray-600 dark:text-gray-400">{`Time: ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
-              {`${entry.dataKey}: ${formatPercent(entry.value)}`}
+              {`${entry.dataKey}: ${formatPercent(entry.value || 0)}`}
             </p>
           ))}
         </div>

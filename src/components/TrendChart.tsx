@@ -22,7 +22,16 @@ const getBarColor = (value: number, dataKey: string) => {
   }
 };
 
-const CustomTooltip = ({ active, payload, label, dataKey }: any) => {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: CoinAnalysis;
+    value: number;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -89,7 +98,7 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
                 dataKey === 'trendScore' ? value.toFixed(1) : `${value.toFixed(1)}%`
               }
             />
-            <Tooltip content={<CustomTooltip dataKey={dataKey} />} />
+            <Tooltip content={<CustomTooltip />} />
             <Bar 
               dataKey={dataKey} 
               radius={[2, 2, 0, 0]}

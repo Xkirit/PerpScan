@@ -31,12 +31,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { limit = 10, symbols = [], interval = '4h' } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error('Invalid JSON in request body:', jsonError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid JSON in request body'
+        },
+        { status: 400 }
+      );
+    }
+
+    const { limit = 10, interval = '4h' } = body;
 
     console.log('Starting custom Bybit analysis...', 'interval:', interval);
     
-    // If specific symbols are requested, we could add custom logic here
     const result = await bybitService.runCompleteAnalysis(limit, interval);
 
     return NextResponse.json({

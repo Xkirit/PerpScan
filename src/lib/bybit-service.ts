@@ -13,17 +13,37 @@ export class BybitService {
           params: {
             category: 'linear'
           },
-          timeout: 30000
+          timeout: 30000,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         }
       );
+
+      // Check if response is valid JSON and has expected structure
+      if (!response.data || typeof response.data !== 'object') {
+        throw new Error('Invalid response format from Bybit API');
+      }
 
       if (response.data.retCode !== 0) {
         throw new Error(`API Error: ${response.data.retMsg}`);
       }
 
-      return response.data.result.list || [];
+      return response.data.result?.list || [];
     } catch (error) {
       console.error('Error fetching tickers:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request timeout - Bybit API is not responding');
+        }
+        if (error.response && error.response.status === 429) {
+          throw new Error('Rate limit exceeded - please try again later');
+        }
+        if (error.response && error.response.status >= 500) {
+          throw new Error('Bybit API server error - please try again later');
+        }
+      }
       throw error;
     }
   }
@@ -39,16 +59,27 @@ export class BybitService {
             interval,
             limit
           },
-          timeout: 30000
+          timeout: 30000,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         }
       );
 
+      // Check if response is valid JSON and has expected structure
+      if (!response.data || typeof response.data !== 'object') {
+        console.error(`Invalid response format for ${symbol}`);
+        return [];
+      }
+
       if (response.data.retCode !== 0) {
-        throw new Error(`API Error for ${symbol}: ${response.data.retMsg}`);
+        console.error(`API Error for ${symbol}: ${response.data.retMsg}`);
+        return [];
       }
 
       // Convert string array to KlineData objects
-      return (response.data.result.list || []).map(candle => ({
+      return (response.data.result?.list || []).map(candle => ({
         timestamp: candle[0],
         open: candle[1],
         high: candle[2],
@@ -58,6 +89,14 @@ export class BybitService {
       }));
     } catch (error) {
       console.error(`Error fetching kline data for ${symbol}:`, error);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          console.error(`Timeout fetching data for ${symbol}`);
+        }
+        if (error.response && error.response.status === 429) {
+          console.error(`Rate limit exceeded for ${symbol}`);
+        }
+      }
       return [];
     }
   }
