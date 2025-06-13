@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, TooltipProps } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,12 +32,12 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   // Take top 20 coins by default
   const topCoins = data.slice(0, 20);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (topCoins.length > 0) {
       setSelectedCoins(topCoins.map(coin => coin.symbol));
       fetchHistoricalData(topCoins.map(coin => coin.symbol), interval);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(topCoins.map(coin => coin.symbol)), interval]);
 
   const fetchHistoricalData = async (symbols: string[], interval: string) => {
@@ -79,7 +79,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = (props: TooltipProps<number, string>) => {
+    const { active, payload, label } = props;
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
