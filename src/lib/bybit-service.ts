@@ -5,100 +5,149 @@ export class BybitService {
   private baseUrl = 'https://api.bybit.com';
   private excludedStableCoins = ['USDC', 'BUSD', 'DAI', 'TUSD', 'FDUSD'];
   
-  async getPerpetualFuturesTickers(): Promise<BybitTicker[]> {
-    try {
-      const response = await axios.get<BybitAPIResponse<BybitTicker>>(
-        `${this.baseUrl}/v5/market/tickers`,
-        {
-          params: {
-            category: 'linear'
-          },
-          timeout: 30000,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+  private getHeaders() {
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    };
+  }
+
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async retryRequest<T>(requestFn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delayMs = Math.pow(2, attempt) * 1000;
+          console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delayMs}ms delay`);
+          await this.delay(delayMs);
+        }
+        
+        return await requestFn();
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : error);
+        
+        if (axios.isAxiosError(error)) {
+          // Don't retry on certain error codes
+          if (error.response?.status === 404 || error.response?.status === 401) {
+            throw error;
           }
         }
-      );
-
-      // Check if response is valid JSON and has expected structure
-      if (!response.data || typeof response.data !== 'object') {
-        throw new Error('Invalid response format from Bybit API');
       }
-
-      if (response.data.retCode !== 0) {
-        throw new Error(`API Error: ${response.data.retMsg}`);
-      }
-
-      return response.data.result?.list || [];
-    } catch (error) {
-      console.error('Error fetching tickers:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error('Request timeout - Bybit API is not responding');
-        }
-        if (error.response && error.response.status === 429) {
-          throw new Error('Rate limit exceeded - please try again later');
-        }
-        if (error.response && error.response.status >= 500) {
-          throw new Error('Bybit API server error - please try again later');
-        }
-      }
-      throw error;
     }
+    
+    throw lastError!;
+  }
+  
+  async getPerpetualFuturesTickers(): Promise<BybitTicker[]> {
+    return this.retryRequest(async () => {
+      try {
+        const response = await axios.get<BybitAPIResponse<BybitTicker>>(
+          `${this.baseUrl}/v5/market/tickers`,
+          {
+            params: {
+              category: 'linear'
+            },
+            timeout: 30000,
+            headers: this.getHeaders()
+          }
+        );
+
+        // Check if response is valid JSON and has expected structure
+        if (!response.data || typeof response.data !== 'object') {
+          throw new Error('Invalid response format from Bybit API');
+        }
+
+        if (response.data.retCode !== 0) {
+          throw new Error(`API Error: ${response.data.retMsg}`);
+        }
+
+        return response.data.result?.list || [];
+      } catch (error) {
+        console.error('Error fetching tickers:', error);
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNABORTED') {
+            throw new Error('Request timeout - Bybit API is not responding');
+          }
+          if (error.response && error.response.status === 429) {
+            throw new Error('Rate limit exceeded - please try again later');
+          }
+          if (error.response && error.response.status === 403) {
+            throw new Error('Access denied - API may be blocking requests from this server');
+          }
+          if (error.response && error.response.status >= 500) {
+            throw new Error('Bybit API server error - please try again later');
+          }
+        }
+        throw error;
+      }
+    });
   }
 
   async getKlineData(symbol: string, interval: string = '1', limit: number = 240): Promise<KlineData[]> {
-    try {
-      const response = await axios.get<BybitAPIResponse<string[]>>(
-        `${this.baseUrl}/v5/market/kline`,
-        {
-          params: {
-            category: 'linear',
-            symbol,
-            interval,
-            limit
-          },
-          timeout: 30000,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+    return this.retryRequest(async () => {
+      try {
+        const response = await axios.get<BybitAPIResponse<string[]>>(
+          `${this.baseUrl}/v5/market/kline`,
+          {
+            params: {
+              category: 'linear',
+              symbol,
+              interval,
+              limit
+            },
+            timeout: 30000,
+            headers: this.getHeaders()
+          }
+        );
+
+        // Check if response is valid JSON and has expected structure
+        if (!response.data || typeof response.data !== 'object') {
+          console.error(`Invalid response format for ${symbol}`);
+          return [];
+        }
+
+        if (response.data.retCode !== 0) {
+          console.error(`API Error for ${symbol}: ${response.data.retMsg}`);
+          return [];
+        }
+
+        // Convert string array to KlineData objects
+        return (response.data.result?.list || []).map(candle => ({
+          timestamp: candle[0],
+          open: candle[1],
+          high: candle[2],
+          low: candle[3],
+          close: candle[4],
+          volume: candle[5]
+        }));
+      } catch (error) {
+        console.error(`Error fetching kline data for ${symbol}:`, error);
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNABORTED') {
+            console.error(`Timeout fetching data for ${symbol}`);
+          }
+          if (error.response && error.response.status === 429) {
+            console.error(`Rate limit exceeded for ${symbol}`);
+          }
+          if (error.response && error.response.status === 403) {
+            console.error(`Access denied for ${symbol} - API may be blocking requests`);
           }
         }
-      );
-
-      // Check if response is valid JSON and has expected structure
-      if (!response.data || typeof response.data !== 'object') {
-        console.error(`Invalid response format for ${symbol}`);
         return [];
       }
-
-      if (response.data.retCode !== 0) {
-        console.error(`API Error for ${symbol}: ${response.data.retMsg}`);
-        return [];
-      }
-
-      // Convert string array to KlineData objects
-      return (response.data.result?.list || []).map(candle => ({
-        timestamp: candle[0],
-        open: candle[1],
-        high: candle[2],
-        low: candle[3],
-        close: candle[4],
-        volume: candle[5]
-      }));
-    } catch (error) {
-      console.error(`Error fetching kline data for ${symbol}:`, error);
-      if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          console.error(`Timeout fetching data for ${symbol}`);
-        }
-        if (error.response && error.response.status === 429) {
-          console.error(`Rate limit exceeded for ${symbol}`);
-        }
-      }
-      return [];
-    }
+    }, 2); // Fewer retries for kline data
   }
 
   calculate4hMetrics(klineData: KlineData[]): { priceChange4h: number; volumeChange4h: number } {

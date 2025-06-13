@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, TooltipProps } from 'recharts';
 import { CoinAnalysis } from '@/types';
-import { RefreshCwIcon } from 'lucide-react';
+import { RefreshCwIcon, AlertTriangleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HistoricalDataPoint {
@@ -28,20 +28,113 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
+  const [usingClientSide, setUsingClientSide] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Take top 20 coins by default
   const topCoins = useMemo(() => data.slice(0, 20), [data]);
   const topCoinSymbols = useMemo(() => topCoins.map(coin => coin.symbol), [topCoins]);
 
-  useEffect(() => {
-    if (topCoins.length > 0) {
-      setSelectedCoins(topCoinSymbols);
-      fetchHistoricalData(topCoinSymbols, interval);
-    }
-  }, [topCoinSymbols, interval, topCoins.length]);
+  const fetchHistoricalDataClientSide = useCallback(async (symbols: string[], interval: string) => {
+    console.log('Falling back to client-side historical data...');
+    setUsingClientSide(true);
+    setError(null);
+    
+    try {
+      // Determine Bybit interval and number of points
+      let bybitInterval = '60'; // 1 hour
+      let points = 24; // 24 hours
+      if (interval === 'D') {
+        bybitInterval = 'D';
+        points = 30; // 30 days
+      }
 
-  const fetchHistoricalData = async (symbols: string[], interval: string) => {
+      const historicalPromises = symbols.slice(0, 10).map(async (symbol: string) => { // Limit to 10 for client-side
+        try {
+          const endTime = Date.now();
+          const startTime = endTime - (points * (interval === 'D' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
+          
+          const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            },
+            cache: 'no-cache',
+          });
+
+          if (!response.ok) {
+            console.error(`Failed to fetch client-side data for ${symbol}: ${response.status}`);
+            return { symbol, data: [] };
+          }
+
+          const data = await response.json();
+          if (data.retCode !== 0) {
+            console.error(`API error for ${symbol}: ${data.retMsg}`);
+            return { symbol, data: [] };
+          }
+
+          const klineData = data.result?.list || [];
+          const sortedData = klineData.reverse(); // Chronological order
+          
+          // Calculate percentage changes from the first price
+          const basePrice = parseFloat(sortedData[0]?.[4] || '0'); // close price
+          
+          const percentageData = sortedData.map((point: string[]) => ({
+            timestamp: parseInt(point[0]),
+            percentage: basePrice > 0 ? ((parseFloat(point[4]) - basePrice) / basePrice) * 100 : 0
+          }));
+
+          return { symbol, data: percentageData };
+        } catch (error) {
+          console.error(`Client-side error fetching data for ${symbol}:`, error);
+          return { symbol, data: [] };
+        }
+      });
+
+      const allHistoricalData = await Promise.all(historicalPromises);
+
+      // Transform data into chart format
+      const timePoints = new Set<number>();
+      allHistoricalData.forEach(({ data }) => {
+        data.forEach((point: { timestamp: number; percentage: number }) => {
+          timePoints.add(point.timestamp);
+        });
+      });
+
+      const sortedTimePoints = Array.from(timePoints).sort((a, b) => a - b);
+
+      const chartData: HistoricalDataPoint[] = sortedTimePoints.map(timestamp => {
+        const dataPoint: HistoricalDataPoint = {
+          timestamp,
+          time: new Date(timestamp).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+          })
+        };
+
+        allHistoricalData.forEach(({ symbol, data }) => {
+          const pointAtTime = data.find((d: { timestamp: number; percentage: number }) => d.timestamp === timestamp);
+          if (pointAtTime) {
+            dataPoint[symbol] = pointAtTime.percentage;
+          }
+        });
+
+        return dataPoint;
+      });
+
+      setHistoricalData(chartData);
+      console.log('Client-side historical data loaded successfully');
+    } catch (error) {
+      console.error('Client-side historical data failed:', error);
+      setError('Failed to load historical data');
+    }
+  }, []);
+
+  const fetchHistoricalData = useCallback(async (symbols: string[], interval: string) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/historical', {
         method: 'POST',
@@ -55,6 +148,14 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Historical API Response Error:', response.status, errorText);
+        
+        // If it's a 500 error or 403, try client-side fallback
+        if (response.status === 500 || response.status === 403) {
+          console.log('Server-side historical API failed, trying client-side fallback...');
+          await fetchHistoricalDataClientSide(symbols, interval);
+          return;
+        }
+        
         throw new Error(`Historical API Error: ${response.status} - ${errorText}`);
       }
 
@@ -63,18 +164,35 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
         console.error('Non-JSON response received from historical API:', responseText);
-        throw new Error('Historical API returned non-JSON response');
+        await fetchHistoricalDataClientSide(symbols, interval);
+        return;
       }
 
       const histData = await response.json();
       setHistoricalData(histData);
+      setUsingClientSide(false);
+      console.log('Server-side historical data loaded successfully');
     } catch (error) {
       console.error('Error fetching historical data:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('500') || error.message.includes('403')) {
+          await fetchHistoricalDataClientSide(symbols, interval);
+          return;
+        }
+        setError(error.message);
+      }
       setHistoricalData([]); // Set empty data on error
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchHistoricalDataClientSide]);
+
+  useEffect(() => {
+    if (topCoins.length > 0) {
+      setSelectedCoins(topCoinSymbols);
+      fetchHistoricalData(topCoinSymbols, interval);
+    }
+  }, [topCoinSymbols, interval, topCoins.length, fetchHistoricalData]);
 
   const toggleCoin = (symbol: string) => {
     const newSelected = selectedCoins.includes(symbol)
@@ -111,9 +229,23 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Multi-Ticker Price Chart ({interval === 'D' ? '1d' : '4h'} % Change)
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Multi-Ticker Price Chart ({interval === 'D' ? '1d' : '4h'} % Change)
+          </h2>
+          {usingClientSide && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs rounded-full">
+              <AlertTriangleIcon className="w-3 h-3" />
+              Client Mode
+            </span>
+          )}
+          {error && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs rounded-full">
+              <AlertTriangleIcon className="w-3 h-3" />
+              Error
+            </span>
+          )}
+        </div>
         <Button
           onClick={refreshData}
           disabled={loading}

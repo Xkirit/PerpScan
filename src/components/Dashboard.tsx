@@ -7,7 +7,8 @@ import { DataTable } from './DataTable';
 import MultiTickerChart from './MultiTickerChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, AlertTriangleIcon } from 'lucide-react';
+import { BybitClientService } from '@/lib/bybit-client-service';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -79,9 +80,28 @@ const Dashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'analysis' | 'chart'>('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
+  const [usingClientSide, setUsingClientSide] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDataClientSide = useCallback(async () => {
+    console.log('Falling back to client-side analysis...');
+    setUsingClientSide(true);
+    try {
+      const clientService = new BybitClientService();
+      const result = await clientService.runCompleteAnalysis(50);
+      setData(result);
+      setLastUpdated(new Date());
+      setError(null);
+      console.log('Client-side analysis completed successfully');
+    } catch (error) {
+      console.error('Client-side analysis failed:', error);
+      setError('Both server and client-side analysis failed. Please try again later.');
+    }
+  }, []);
 
   const fetchData = useCallback(async (interval: '4h' | '1d' = chartInterval) => {
     setLoading(true);
+    setError(null);
     try {
       console.log('Starting fetch request to /api/analyze with interval:', interval);
       
@@ -104,6 +124,14 @@ const Dashboard: React.FC = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Response Error:', response.status, errorText);
+        
+        // If it's a 403 or 500 error, try client-side fallback
+        if (response.status === 403 || response.status === 500) {
+          console.log('Server-side API blocked, trying client-side fallback...');
+          await fetchDataClientSide();
+          return;
+        }
+        
         throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
 
@@ -112,7 +140,10 @@ const Dashboard: React.FC = () => {
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
         console.error('Non-JSON response received:', responseText);
-        throw new Error('Server returned non-JSON response');
+        
+        // Try client-side fallback
+        await fetchDataClientSide();
+        return;
       }
 
       const result = await response.json();
@@ -121,9 +152,17 @@ const Dashboard: React.FC = () => {
       if (result.success && result.data) {
         setData(result.data);
         setLastUpdated(new Date());
+        setUsingClientSide(false);
         console.log('Data updated successfully');
       } else {
         console.error('API Error:', result.error);
+        
+        // If API fails, try client-side fallback
+        if (result.error && result.error.includes('403')) {
+          await fetchDataClientSide();
+          return;
+        }
+        
         throw new Error(result.error || 'Failed to fetch data');
       }
     } catch (error) {
@@ -131,15 +170,23 @@ const Dashboard: React.FC = () => {
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           console.error('Request timed out after 60 seconds');
+          setError('Request timed out. Trying alternative method...');
+          await fetchDataClientSide();
+          return;
         } else {
           console.error('Error details:', error.message);
+          // Try client-side fallback for any error
+          if (error.message.includes('Failed to fetch') || error.message.includes('403')) {
+            await fetchDataClientSide();
+            return;
+          }
+          setError(error.message);
         }
       }
-      // You could add a toast notification here or set an error state
     } finally {
       setLoading(false);
     }
-  }, [chartInterval]);
+  }, [chartInterval, fetchDataClientSide]);
 
   useEffect(() => {
     console.log('Dashboard useEffect triggered with interval:', chartInterval);
@@ -186,11 +233,24 @@ const Dashboard: React.FC = () => {
                 {lastUpdated && (
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Last updated: {formatLastUpdated(lastUpdated)}
+                    {usingClientSide && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs rounded-full">
+                        <AlertTriangleIcon className="w-3 h-3" />
+                        Client Mode
+                      </span>
+                    )}
                   </p>
                 )}
                 {data && (
                   <p className="text-xs text-gray-500 dark:text-gray-500">
                     {data.totalCoins} coins analyzed
+                    {usingClientSide && " (reduced dataset)"}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertTriangleIcon className="w-4 h-4" />
+                    {error}
                   </p>
                 )}
               </div>
