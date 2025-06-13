@@ -339,12 +339,15 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                 const value = lastDataPoint?.[symbol];
                 if (typeof value === 'number' && !isNaN(value)) {
                   // Calculate position based on the value relative to the chart range
-                  const minVal = Math.min(...historicalData.flatMap(d => 
-                    selectedCoins.map(s => d[s]).filter(v => typeof v === 'number' && !isNaN(v))
-                  ));
-                  const maxVal = Math.max(...historicalData.flatMap(d => 
-                    selectedCoins.map(s => d[s]).filter(v => typeof v === 'number' && !isNaN(v))
-                  ));
+                  const numericValues = historicalData.flatMap(d => 
+                    selectedCoins.map(s => {
+                      const val = d[s];
+                      return typeof val === 'number' && !isNaN(val) ? val : null;
+                    }).filter((v): v is number => v !== null)
+                  );
+                  
+                  const minVal = Math.min(...numericValues);
+                  const maxVal = Math.max(...numericValues);
                   const range = maxVal - minVal;
                   const normalizedValue = range > 0 ? (value - minVal) / range : 0.5;
                   const topPosition = `${(1 - normalizedValue) * 80 + 10}%`;
