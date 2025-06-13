@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, TooltipProps } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, TooltipProps, ReferenceLine } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon, AlertTriangleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,44 @@ const chartColors = [
   '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080',
   '#000000', '#42d4f4', '#bfef45', '#dcbeff', '#a9a9a9', '#ffb347', '#bada55', '#ff69b4', '#c0c0c0', '#ff6347',
 ];
+
+// Custom component to render labels at the end of lines
+const CustomLineLabels = ({ selectedCoins, historicalData, chartColors }: {
+  selectedCoins: string[];
+  historicalData: any[];
+  chartColors: string[];
+}) => {
+  if (!historicalData.length) return null;
+
+  const lastDataPoint = historicalData[historicalData.length - 1];
+
+  return (
+    <g>
+      {selectedCoins.map((symbol, index) => {
+        const value = lastDataPoint?.[symbol];
+        if (typeof value === 'number' && !isNaN(value)) {
+          return (
+            <text
+              key={`label-${symbol}`}
+              x="98%"
+              y={`${50 - (value * 1.5)}%`}
+              fill={chartColors[index % chartColors.length]}
+              fontSize="11"
+              fontWeight="600"
+              textAnchor="start"
+              dominantBaseline="middle"
+              style={{ cursor: 'pointer' }}
+              onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${symbol}.P`, '_blank')}
+            >
+              {symbol.replace('USDT', '')}
+            </text>
+          );
+        }
+        return null;
+      })}
+    </g>
+  );
+};
 
 const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) => {
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
@@ -246,50 +284,96 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             </div>
           </div>
         ) : historicalData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={historicalData} margin={{ top: 30, right: 40, left: 10, bottom: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#444" className="dark:stroke-gray-700" />
-              <XAxis 
-                dataKey="time" 
-                stroke="#666"
-                className="dark:stroke-gray-400"
-                tick={{ fontSize: 12 }}
-                minTickGap={20}
-              />
-              <YAxis 
-                stroke="#666"
-                className="dark:stroke-gray-400"
-                tick={{ fontSize: 12 }}
-                tickFormatter={formatPercent}
-                domain={['dataMin - 2', 'dataMax + 2']}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36} wrapperStyle={{ overflowX: 'auto', maxWidth: '90vw' }} />
-              {/* Add a horizontal line at 0% */}
-              <Line
-                dataKey={() => 0}
-                stroke="#6b7280"
-                strokeWidth={1}
-                strokeDasharray="2 2"
-                dot={false}
-                connectNulls={false}
-                name="0% baseline"
-                legendType="none"
-              />
-              {selectedCoins.map((symbol, index) => (
-                <Line
-                  key={symbol}
-                  type="monotone"
-                  dataKey={symbol}
-                  stroke={chartColors[index % chartColors.length]}
-                  strokeWidth={2.5}
-                  dot={false}
-                  connectNulls={false}
-                  isAnimationActive={false}
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={historicalData} margin={{ top: 30, right: 80, left: 10, bottom: 30 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#444" className="dark:stroke-gray-700" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#666"
+                  className="dark:stroke-gray-400"
+                  tick={{ fontSize: 12 }}
+                  minTickGap={20}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <YAxis 
+                  stroke="#666"
+                  className="dark:stroke-gray-400"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={formatPercent}
+                  domain={['dataMin - 2', 'dataMax + 2']}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                {/* Add a horizontal line at 0% */}
+                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="2 2" strokeWidth={1} />
+                {selectedCoins.map((symbol, index) => (
+                  <Line
+                    key={symbol}
+                    type="monotone"
+                    dataKey={symbol}
+                    stroke={chartColors[index % chartColors.length]}
+                    strokeWidth={2.5}
+                    dot={false}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+            
+            {/* Overlay labels positioned at the end of lines */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              height: '100%',
+              width: '80px',
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-around',
+              paddingTop: '30px',
+              paddingBottom: '30px'
+            }}>
+              {selectedCoins.map((symbol, index) => {
+                const lastDataPoint = historicalData[historicalData.length - 1];
+                const value = lastDataPoint?.[symbol];
+                if (typeof value === 'number' && !isNaN(value)) {
+                  // Calculate position based on the value relative to the chart range
+                  const minVal = Math.min(...historicalData.flatMap(d => 
+                    selectedCoins.map(s => d[s]).filter(v => typeof v === 'number' && !isNaN(v))
+                  ));
+                  const maxVal = Math.max(...historicalData.flatMap(d => 
+                    selectedCoins.map(s => d[s]).filter(v => typeof v === 'number' && !isNaN(v))
+                  ));
+                  const range = maxVal - minVal;
+                  const normalizedValue = range > 0 ? (value - minVal) / range : 0.5;
+                  const topPosition = `${(1 - normalizedValue) * 80 + 10}%`;
+
+                  return (
+                    <div
+                      key={`overlay-label-${symbol}`}
+                      style={{
+                        position: 'absolute',
+                        top: topPosition,
+                        right: '5px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: chartColors[index % chartColors.length],
+                        cursor: 'pointer',
+                        pointerEvents: 'auto',
+                        transform: 'translateY(-50%)',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${symbol}.P`, '_blank')}
+                    >
+                      {symbol.replace('USDT', '')}
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500 dark:text-gray-400">No historical data available</p>
