@@ -7,7 +7,7 @@ import { DataTable } from './DataTable';
 import MultiTickerChart from './MultiTickerChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
 
 interface AnalysisResult {
@@ -262,62 +262,63 @@ const Dashboard: React.FC = () => {
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Gainer</p>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Trending</p>
                         <button
                           onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.trending[0]?.symbol}.P`, '_blank')}
-                          className="text-2xl font-bold text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 cursor-pointer underline"
-                        >
-                          {data.trending[0]?.symbol || 'N/A'}
-                        </button>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
-                          +{data.trending[0]?.priceChange4h.toFixed(2)}% (4h)
-                        </p>
-                      </div>
-                      <TrendingUpIcon className="h-8 w-8 text-green-500" />
-                    </div>
-                  </div>
-
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Highest Volume</p>
-                        <button
-                          onClick={() => {
-                            const highestVol = [...data.trending].sort((a, b) => b.volume24h - a.volume24h)[0];
-                            window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${highestVol?.symbol}.P`, '_blank');
-                          }}
                           className="text-2xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer underline"
                         >
-                          {[...data.trending].sort((a, b) => b.volume24h - a.volume24h)[0]?.symbol || 'N/A'}
+                          {data.trending[0]?.symbol.replace('USDT', '') || 'N/A'}
                         </button>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                          ${([...data.trending].sort((a, b) => b.volume24h - a.volume24h)[0]?.volume24h / 1000000).toFixed(1)}M vol
+                          Score: {data.trending[0]?.trendScore.toFixed(2) || 'N/A'}
                         </p>
                       </div>
-                      <BarChart3Icon className="h-8 w-8 text-blue-500" />
+                      <TrendingUpIcon className="h-8 w-8 text-blue-500" />
                     </div>
                   </div>
 
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Analyzed</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {data.totalCoins}
-                        </p>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Gainer</p>
+                        <button
+                          onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.strongest[0]?.symbol}.P`, '_blank')}
+                          className="text-2xl font-bold text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 cursor-pointer underline"
+                        >
+                          {data.strongest[0]?.symbol.replace('USDT', '') || 'N/A'}
+                        </button>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                          Futures pairs
+                          +{data.strongest[0]?.priceChange4h.toFixed(2)}% (4h)
                         </p>
                       </div>
-                      <RefreshCwIcon className="h-8 w-8 text-gray-500" />
+                      <ArrowUpIcon className="h-8 w-8 text-green-500" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Loser</p>
+                        <button
+                          onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.weakest[0]?.symbol}.P`, '_blank')}
+                          className="text-2xl font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer underline"
+                        >
+                          {data.weakest[0]?.symbol.replace('USDT', '') || 'N/A'}
+                        </button>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          {data.weakest[0]?.priceChange4h.toFixed(2)}% (4h)
+                        </p>
+                      </div>
+                      <ArrowDownIcon className="h-8 w-8 text-red-500" />
                     </div>
                   </div>
                 </div>
 
                 {/* Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <TrendChart data={data.trending} title="Top Trending" dataKey="trendScore" />
                   <TrendChart data={data.strongest} title="Strongest Performers" dataKey="priceChange4h" />
+                  <TrendChart data={data.weakest} title="Weakest Performers" dataKey="priceChange4h" />
                 </div>
 
                 {/* Data Tables */}
