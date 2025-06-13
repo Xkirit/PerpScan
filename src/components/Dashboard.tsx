@@ -7,7 +7,7 @@ import { DataTable } from './DataTable';
 import MultiTickerChart from './MultiTickerChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, AlertTriangleIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon } from 'lucide-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
 
 interface AnalysisResult {
@@ -80,113 +80,26 @@ const Dashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'analysis' | 'chart'>('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
-  const [usingClientSide, setUsingClientSide] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchDataClientSide = useCallback(async () => {
-    console.log('Falling back to client-side analysis...');
-    setUsingClientSide(true);
-    try {
-      const clientService = new BybitClientService();
-      const result = await clientService.runCompleteAnalysis(50);
-      setData(result);
-      setLastUpdated(new Date());
-      setError(null);
-      console.log('Client-side analysis completed successfully');
-    } catch (error) {
-      console.error('Client-side analysis failed:', error);
-      setError('Both server and client-side analysis failed. Please try again later.');
-    }
-  }, []);
 
   const fetchData = useCallback(async (interval: '4h' | '1d' = chartInterval) => {
     setLoading(true);
     setError(null);
+    
     try {
-      console.log('Starting fetch request to /api/analyze with interval:', interval);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-      
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ limit: 50, interval }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      console.log('Fetch response received:', response.status, response.statusText);
-
-      // Check if response is ok before parsing JSON
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Response Error:', response.status, errorText);
-        
-        // If it's a 403 or 500 error, try client-side fallback
-        if (response.status === 403 || response.status === 500) {
-          console.log('Server-side API blocked, trying client-side fallback...');
-          await fetchDataClientSide();
-          return;
-        }
-        
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Non-JSON response received:', responseText);
-        
-        // Try client-side fallback
-        await fetchDataClientSide();
-        return;
-      }
-
-      const result = await response.json();
-      console.log('API result received:', result.success ? 'Success' : 'Failed', result.data ? `${result.data.totalCoins} coins` : 'No data');
-      
-      if (result.success && result.data) {
-        setData(result.data);
-        setLastUpdated(new Date());
-        setUsingClientSide(false);
-        console.log('Data updated successfully');
-      } else {
-        console.error('API Error:', result.error);
-        
-        // If API fails, try client-side fallback
-        if (result.error && result.error.includes('403')) {
-          await fetchDataClientSide();
-          return;
-        }
-        
-        throw new Error(result.error || 'Failed to fetch data');
-      }
+      console.log('Starting client-side analysis with interval:', interval);
+      const clientService = new BybitClientService();
+      const result = await clientService.runCompleteAnalysis(50);
+      setData(result);
+      setLastUpdated(new Date());
+      console.log('Client-side analysis completed successfully');
     } catch (error) {
-      console.error('Error fetching data:', error);
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          console.error('Request timed out after 60 seconds');
-          setError('Request timed out. Trying alternative method...');
-          await fetchDataClientSide();
-          return;
-        } else {
-          console.error('Error details:', error.message);
-          // Try client-side fallback for any error
-          if (error.message.includes('Failed to fetch') || error.message.includes('403')) {
-            await fetchDataClientSide();
-            return;
-          }
-          setError(error.message);
-        }
-      }
+      console.error('Client-side analysis failed:', error);
+      setError('Failed to fetch data. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }
-  }, [chartInterval, fetchDataClientSide]);
+  }, [chartInterval]);
 
   useEffect(() => {
     console.log('Dashboard useEffect triggered with interval:', chartInterval);
@@ -233,219 +146,194 @@ const Dashboard: React.FC = () => {
                 {lastUpdated && (
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Last updated: {formatLastUpdated(lastUpdated)}
-                    {usingClientSide && (
-                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs rounded-full">
-                        <AlertTriangleIcon className="w-3 h-3" />
-                        Client Mode
-                      </span>
-                    )}
+                    <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs rounded-full">
+                      Client Mode
+                    </span>
                   </p>
                 )}
                 {data && (
                   <p className="text-xs text-gray-500 dark:text-gray-500">
                     {data.totalCoins} coins analyzed
-                    {usingClientSide && " (reduced dataset)"}
-                  </p>
-                )}
-                {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                    <AlertTriangleIcon className="w-4 h-4" />
-                    {error}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+
+            <div className="flex items-center gap-3">
               <CandleCountdown />
-              <div className="flex items-center gap-3">
-                <ThemeToggle />
-                <Button
-                  onClick={() => fetchData(chartInterval)}
-                  disabled={loading}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  {loading ? 'Updating...' : 'Refresh Data'}
-                </Button>
-              </div>
+              <ThemeToggle />
+              <Button
+                onClick={() => fetchData(chartInterval)}
+                disabled={loading}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
           </div>
 
-          {/* Interval Selector - always visible */}
-          <div className="flex items-center gap-2 mt-6 mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Interval:</span>
-            <button
-              className={`px-3 py-1 rounded-l-full border border-r-0 ${chartInterval === '4h' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'} transition-colors`}
-              onClick={() => setChartInterval('4h')}
-            >
-              4h
-            </button>
-            <button
-              className={`px-3 py-1 rounded-r-full border ${chartInterval === '1d' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'} transition-colors`}
-              onClick={() => setChartInterval('1d')}
-            >
-              1d
-            </button>
+          {/* Interval Selector */}
+          <div className="mt-4 flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Analysis Interval:</span>
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setChartInterval('4h')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  chartInterval === '4h'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                4H
+              </button>
+              <button
+                onClick={() => setChartInterval('1d')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  chartInterval === '1d'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                1D
+              </button>
+            </div>
           </div>
 
           {/* Tab Navigation */}
-          <div className="mt-2 border-b border-gray-200 dark:border-gray-700">
-            <nav className="-mb-px flex space-x-8">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </nav>
+          <div className="mt-4">
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <nav className="-mb-px flex space-x-8">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === tab.id
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-6">
-        {loading && !data ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <RefreshCwIcon className="h-8 w-8 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
-              <p className="mt-2 text-gray-600 dark:text-gray-400">Analyzing market data...</p>
+      {/* Main Content */}
+      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8">
+        {error ? (
+          <div className="text-center py-12">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-red-900 dark:text-red-300 mb-2">
+                Failed to Load Data
+              </h3>
+              <p className="text-red-700 dark:text-red-400 mb-4">{error}</p>
+              <Button onClick={() => fetchData(chartInterval)} variant="outline">
+                Try Again
+              </Button>
             </div>
           </div>
-        ) : (
+        ) : loading ? (
+          <div className="text-center py-12">
+            <RefreshCwIcon className="h-12 w-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
+            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+              Analyzing Market Data
+            </h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Fetching data directly from Bybit API...
+            </p>
+          </div>
+        ) : data ? (
           <>
-            {activeTab === 'analysis' && data && (
-              <div className="space-y-6">
+            {activeTab === 'analysis' && (
+              <div className="space-y-8">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div 
-                    className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => {
-                      if (data.trending[0]?.symbol) {
-                        const symbol = data.trending[0].symbol.replace('USDT', '');
-                        const tradingViewUrl = `https://www.tradingview.com/chart/?symbol=BYBIT:${symbol}USDT.P`;
-                        window.open(tradingViewUrl, '_blank');
-                      }
-                    }}
-                    title={`Open ${data.trending[0]?.symbol || ''} chart on TradingView`}
-                  >
-                    <h3 className="text-sm text-gray-500 dark:text-gray-400 mb-2">Top Trending</h3>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {data.trending[0]?.symbol.replace('USDT', '') || 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Score: {data.trending[0]?.trendScore.toFixed(2) || 'N/A'}
-                    </p>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Gainer</p>
+                        <button
+                          onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.trending[0]?.symbol}.P`, '_blank')}
+                          className="text-2xl font-bold text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 cursor-pointer underline"
+                        >
+                          {data.trending[0]?.symbol || 'N/A'}
+                        </button>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          +{data.trending[0]?.priceChange4h.toFixed(2)}% (4h)
+                        </p>
+                      </div>
+                      <TrendingUpIcon className="h-8 w-8 text-green-500" />
+                    </div>
                   </div>
-                  
-                  <div 
-                    className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => {
-                      if (data.strongest[0]?.symbol) {
-                        const symbol = data.strongest[0].symbol.replace('USDT', '');
-                        const tradingViewUrl = `https://www.tradingview.com/chart/?symbol=BYBIT:${symbol}USDT.P`;
-                        window.open(tradingViewUrl, '_blank');
-                      }
-                    }}
-                    title={`Open ${data.strongest[0]?.symbol || ''} chart on TradingView`}
-                  >
-                    <h3 className="text-sm text-gray-500 dark:text-gray-400 mb-2">Biggest Gainer</h3>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {data.strongest[0]?.symbol.replace('USDT', '') || 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      +{data.strongest[0]?.priceChange4h.toFixed(2) || 'N/A'}%
-                    </p>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Highest Volume</p>
+                        <button
+                          onClick={() => {
+                            const highestVol = [...data.trending].sort((a, b) => b.volume24h - a.volume24h)[0];
+                            window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${highestVol?.symbol}.P`, '_blank');
+                          }}
+                          className="text-2xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer underline"
+                        >
+                          {[...data.trending].sort((a, b) => b.volume24h - a.volume24h)[0]?.symbol || 'N/A'}
+                        </button>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          ${([...data.trending].sort((a, b) => b.volume24h - a.volume24h)[0]?.volume24h / 1000000).toFixed(1)}M vol
+                        </p>
+                      </div>
+                      <BarChart3Icon className="h-8 w-8 text-blue-500" />
+                    </div>
                   </div>
-                  
-                  <div 
-                    className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => {
-                      if (data.weakest[0]?.symbol) {
-                        const symbol = data.weakest[0].symbol.replace('USDT', '');
-                        const tradingViewUrl = `https://www.tradingview.com/chart/?symbol=BYBIT:${symbol}USDT.P`;
-                        window.open(tradingViewUrl, '_blank');
-                      }
-                    }}
-                    title={`Open ${data.weakest[0]?.symbol || ''} chart on TradingView`}
-                  >
-                    <h3 className="text-sm text-gray-500 dark:text-gray-400 mb-2">Biggest Loser</h3>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      {data.weakest[0]?.symbol.replace('USDT', '') || 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {data.weakest[0]?.priceChange4h.toFixed(2) || 'N/A'}%
-                    </p>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Analyzed</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {data.totalCoins}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          Futures pairs
+                        </p>
+                      </div>
+                      <RefreshCwIcon className="h-8 w-8 text-gray-500" />
+                    </div>
                   </div>
                 </div>
 
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <TrendChart 
-                    data={data.trending.slice(0, 10)} 
-                    title="🔥 Trending Coins (Trend Score)"
-                    dataKey="trendScore"
-                  />
-                  <TrendChart 
-                    data={data.strongest.slice(0, 10)} 
-                    title="📈 Strongest Performers (4H)"
-                    dataKey="priceChange4h"
-                  />
-                  <TrendChart 
-                    data={data.weakest.slice(0, 10)} 
-                    title="📉 Weakest Performers (4H)"
-                    dataKey="priceChange4h"
-                  />
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <TrendChart data={data.trending} title="Top Trending" dataKey="trendScore" />
+                  <TrendChart data={data.strongest} title="Strongest Performers" dataKey="priceChange4h" />
                 </div>
 
                 {/* Data Tables */}
-                <div className="space-y-8">
-                  <DataTable 
-                    data={data.trending} 
-                    title="🔥 Trending Coins (Past 4 Hours)"
-                    category="trending"
-                  />
-                  
-                  <DataTable 
-                    data={data.strongest} 
-                    title="📈 Strongest Performers (Past 4 Hours)"
-                    category="strongest"
-                  />
-                  
-                  <DataTable 
-                    data={data.weakest} 
-                    title="📉 Weakest Performers (Past 4 Hours)"
-                    category="weakest"
-                  />
+                <div className="space-y-6">
+                  <DataTable data={data.trending} title="🔥 Trending Coins" category="trending" />
+                  <DataTable data={data.strongest} title="💪 Strongest Performers" category="strongest" />
+                  <DataTable data={data.weakest} title="📉 Weakest Performers" category="weakest" />
                 </div>
               </div>
             )}
 
             {activeTab === 'chart' && (
-              <div>
-                {allCoins.length > 0 ? (
-                  <MultiTickerChart data={allCoins} interval={chartInterval === '1d' ? 'D' : '4h'} />
-                ) : (
-                  <div className="flex items-center justify-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400">
-                      No data available. Please refresh to load market data.
-                    </p>
-                  </div>
-                )}
-              </div>
+              <MultiTickerChart data={allCoins} interval={chartInterval} />
             )}
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

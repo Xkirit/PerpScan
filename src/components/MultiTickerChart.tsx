@@ -28,7 +28,6 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
-  const [usingClientSide, setUsingClientSide] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Take top 20 coins by default
@@ -36,15 +35,14 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const topCoinSymbols = useMemo(() => topCoins.map(coin => coin.symbol), [topCoins]);
 
   const fetchHistoricalDataClientSide = useCallback(async (symbols: string[], interval: string) => {
-    console.log('Falling back to client-side historical data...');
-    setUsingClientSide(true);
+    console.log('Fetching historical data client-side...');
     setError(null);
     
     try {
       // Determine Bybit interval and number of points
       let bybitInterval = '60'; // 1 hour
       let points = 24; // 24 hours
-      if (interval === 'D') {
+      if (interval === '1d') {
         bybitInterval = 'D';
         points = 30; // 30 days
       }
@@ -52,7 +50,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       const historicalPromises = symbols.slice(0, 10).map(async (symbol: string) => { // Limit to 10 for client-side
         try {
           const endTime = Date.now();
-          const startTime = endTime - (points * (interval === 'D' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
+          const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
           
           const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
           const response = await fetch(url, {
@@ -135,53 +133,12 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const fetchHistoricalData = useCallback(async (symbols: string[], interval: string) => {
     setLoading(true);
     setError(null);
+    
     try {
-      const response = await fetch('/api/historical', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ symbols, interval }),
-      });
-
-      // Check if response is ok before parsing JSON
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Historical API Response Error:', response.status, errorText);
-        
-        // If it's a 500 error or 403, try client-side fallback
-        if (response.status === 500 || response.status === 403) {
-          console.log('Server-side historical API failed, trying client-side fallback...');
-          await fetchHistoricalDataClientSide(symbols, interval);
-          return;
-        }
-        
-        throw new Error(`Historical API Error: ${response.status} - ${errorText}`);
-      }
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Non-JSON response received from historical API:', responseText);
-        await fetchHistoricalDataClientSide(symbols, interval);
-        return;
-      }
-
-      const histData = await response.json();
-      setHistoricalData(histData);
-      setUsingClientSide(false);
-      console.log('Server-side historical data loaded successfully');
+      await fetchHistoricalDataClientSide(symbols, interval);
     } catch (error) {
       console.error('Error fetching historical data:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch') || error.message.includes('500') || error.message.includes('403')) {
-          await fetchHistoricalDataClientSide(symbols, interval);
-          return;
-        }
-        setError(error.message);
-      }
-      setHistoricalData([]); // Set empty data on error
+      setError('Failed to fetch data. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -231,14 +188,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Multi-Ticker Price Chart ({interval === 'D' ? '1d' : '4h'} % Change)
+            Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)
           </h2>
-          {usingClientSide && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs rounded-full">
-              <AlertTriangleIcon className="w-3 h-3" />
-              Client Mode
-            </span>
-          )}
           {error && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs rounded-full">
               <AlertTriangleIcon className="w-3 h-3" />
