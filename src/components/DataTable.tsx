@@ -57,10 +57,11 @@ export function DataTable({ data, title, category }: DataTableProps) {
 
   return (
     <div 
-      className="rounded-lg overflow-hidden transition-colors" 
+      className="rounded-lg overflow-hidden transition-colors backdrop-blur-[2px]" 
       style={{ 
         border: '1px solid rgba(255, 255, 255, 0.2)',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(30, 63, 32, 0.1)'
       }}
     >
       <div className="px-6 py-4" style={getCategoryColor(category)}>

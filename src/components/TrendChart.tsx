@@ -12,13 +12,21 @@ interface TrendChartProps {
 
 const getBarColor = (value: number, dataKey: string) => {
   if (dataKey === 'trendScore') {
-    if (value > 5) return '#ffffff'; // White for highest
-    if (value > 0) return '#4a7c59'; // Light green
-    if (value > -5) return '#2d5a31'; // Medium green
-    return '#1A1F16'; // Dark green
+    if (value > 7) return '#00ff88'; // Bright green for highest
+    if (value > 5) return '#4ade80'; // Light green
+    if (value > 3) return '#22c55e'; // Medium green
+    if (value > 1) return '#16a34a'; // Dark green
+    if (value > 0) return '#15803d'; // Darker green
+    if (value > -3) return '#374151'; // Gray for low negative
+    return '#1f2937'; // Dark gray for very low
   } else {
-    if (value > 0) return '#4a7c59'; // Light green for positive
-    return '#1A1F16'; // Dark green for negative
+    if (value > 15) return '#00ff88'; // Bright green for very high positive
+    if (value > 10) return '#4ade80'; // Light green for high positive
+    if (value > 5) return '#22c55e'; // Medium green for positive
+    if (value > 0) return '#16a34a'; // Green for small positive
+    if (value > -5) return '#ef4444'; // Red for small negative
+    if (value > -10) return '#dc2626'; // Dark red for negative
+    return '#991b1b'; // Very dark red for very negative
   }
 };
 
@@ -68,10 +76,11 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
 
   return (
     <div 
-      className="p-6 rounded-lg transition-colors" 
+      className="p-6 rounded-lg transition-colors backdrop-blur-[2px]" 
       style={{ 
         border: '1px solid rgba(255, 255, 255, 0.2)',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(30, 63, 32, 0.1)'
       }}
     >
       <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>{title}</h3>

@@ -160,8 +160,8 @@ const OpenInterestChart: React.FC = () => {
 
       {/* Top Open Interest Chart */}
       {openInterestData.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">📊 Top Open Interest Assets</h3>
+        <div className="rounded-lg p-6 backdrop-blur-[2px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>📊 Top Open Interest Assets</h3>
           <div style={{ height: '600px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={openInterestData.slice(0, 30)} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>

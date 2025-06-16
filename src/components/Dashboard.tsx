@@ -12,6 +12,7 @@ import { Button } from './ui/button';
 import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon } from 'lucide-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
 import BtcPriceChange from './BtcPriceChange';
+import LiquidGlass from 'liquid-glass-react';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -29,31 +30,31 @@ const CandleCountdown: React.FC = () => {
     const updateCountdown = () => {
       const now = new Date();
       const currentHour = now.getUTCHours();
-      
+
       // Find next 4-hour candle close (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
       const candleHours = [0, 4, 8, 12, 16, 20];
       let nextCandleHour = candleHours.find(hour => hour > currentHour);
-      
+
       // If no hour found today, use first hour of next day
       if (!nextCandleHour) {
         nextCandleHour = 0;
       }
-      
+
       const nextCandle = new Date(now);
       nextCandle.setUTCHours(nextCandleHour, 0, 0, 0);
-      
+
       // If next candle is tomorrow
       if (nextCandleHour === 0 && currentHour >= 20) {
         nextCandle.setUTCDate(nextCandle.getUTCDate() + 1);
       }
-      
+
       const timeDiff = nextCandle.getTime() - now.getTime();
-      
+
       if (timeDiff > 0) {
         const hours = Math.floor(timeDiff / (1000 * 60 * 60));
         const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-        
+
         setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
       } else {
         setTimeLeft('00:00:00');
@@ -88,7 +89,7 @@ const Dashboard: React.FC = () => {
   const fetchData = useCallback(async (interval: '4h' | '1d' = chartInterval) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('Starting client-side analysis with interval:', interval);
       const clientService = new BybitClientService();
@@ -146,15 +147,15 @@ const Dashboard: React.FC = () => {
   const allCoins = data?.trending || [];
 
   return (
-    <div 
-      className="min-h-screen transition-colors relative" 
-      style={{ 
+    <div
+      className="min-h-screen transition-colors relative"
+      style={{
         backgroundColor: '#0F1411',
         backgroundImage: `
           linear-gradient(rgba(26, 31, 22, 0.8) 1px, transparent 1px),
           linear-gradient(90deg, rgba(26, 31, 22, 0.8) 1px, transparent 1px)
         `,
-        backgroundSize: '20px 20px'
+        backgroundSize: '40px 40px'
       }}
     >
       {/* Header */}
@@ -181,10 +182,11 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
             </div>
+           
 
             <div className="flex items-center gap-3">
               <BtcPriceChange interval={chartInterval} />
-              <CandleCountdown />
+              <CandleCountdown /> 
               <ThemeToggle />
               <Button
                 onClick={() => fetchData(chartInterval)}
@@ -257,9 +259,9 @@ const Dashboard: React.FC = () => {
       <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8 relative z-10">
         {error ? (
           <div className="text-center py-12">
-            <div 
-              className="rounded-lg p-6" 
-              style={{ 
+            <div
+              className="rounded-lg p-6"
+              style={{
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
               }}
@@ -289,13 +291,14 @@ const Dashboard: React.FC = () => {
               <div className="space-y-8">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                      <div 
-                      className="rounded-lg p-6" 
-                      style={{ 
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                      }}
-                    >
+                  <div
+                    className="rounded-lg p-6 backdrop-blur-[2px]"
+                    style={{
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                      backgroundColor: 'rgba(30, 63, 32, 0.1)'
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Trending</p>
@@ -314,11 +317,12 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div 
-                    className="rounded-lg p-6" 
-                    style={{ 
+                  <div
+                    className="rounded-lg p-6 backdrop-blur-[2px]"
+                    style={{
                       border: '1px solid rgba(255, 255, 255, 0.2)',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                      backgroundColor: 'rgba(30, 63, 32, 0.1)'
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -332,8 +336,8 @@ const Dashboard: React.FC = () => {
                           {data.strongest[0]?.symbol.replace('USDT', '') || 'N/A'}
                         </button>
                         <p className="text-xs" style={{ color: '#4a7c59' }}>
-                          +{chartInterval === '4h' 
-                            ? data.strongest[0]?.priceChange4h.toFixed(2) 
+                          +{chartInterval === '4h'
+                            ? data.strongest[0]?.priceChange4h.toFixed(2)
                             : data.strongest[0]?.priceChange24h.toFixed(2)
                           }% ({chartInterval})
                         </p>
@@ -342,11 +346,12 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div 
-                    className="rounded-lg p-6" 
-                    style={{ 
+                  <div
+                    className="rounded-lg p-6 backdrop-blur-[2px]"
+                    style={{
                       border: '1px solid rgba(255, 255, 255, 0.2)',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                      backgroundColor: 'rgba(30, 63, 32, 0.1)'
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -360,8 +365,8 @@ const Dashboard: React.FC = () => {
                           {data.weakest[0]?.symbol.replace('USDT', '') || 'N/A'}
                         </button>
                         <p className="text-xs" style={{ color: '#4a7c59' }}>
-                          {chartInterval === '4h' 
-                            ? data.weakest[0]?.priceChange4h.toFixed(2) 
+                          {chartInterval === '4h'
+                            ? data.weakest[0]?.priceChange4h.toFixed(2)
                             : data.weakest[0]?.priceChange24h.toFixed(2)
                           }% ({chartInterval})
                         </p>
@@ -374,15 +379,15 @@ const Dashboard: React.FC = () => {
                 {/* Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <TrendChart data={data.trending} title="Top Trending" dataKey="trendScore" />
-                  <TrendChart 
-                    data={data.strongest} 
-                    title="Strongest Performers" 
-                    dataKey={chartInterval === '4h' ? 'priceChange4h' : 'priceChange24h'} 
+                  <TrendChart
+                    data={data.strongest}
+                    title="Strongest Performers"
+                    dataKey={chartInterval === '4h' ? 'priceChange4h' : 'priceChange24h'}
                   />
-                  <TrendChart 
-                    data={data.weakest} 
-                    title="Weakest Performers" 
-                    dataKey={chartInterval === '4h' ? 'priceChange4h' : 'priceChange24h'} 
+                  <TrendChart
+                    data={data.weakest}
+                    title="Weakest Performers"
+                    dataKey={chartInterval === '4h' ? 'priceChange4h' : 'priceChange24h'}
                   />
                 </div>
 

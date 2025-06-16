@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { BarChart, Bar, ComposedChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CardContainer, CardBody, CardItem } from '@/components/ui/3d-card';
 // Custom SVG Icons - Modern Financial Theme
 const RefreshIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,127 +118,158 @@ const calculatePriorityScore = (item: OpenInterestData, lowVolumeThreshold: numb
 // Manipulation confidence calculator for edge detectionƒ
 // Memoized ticker component to prevent unnecessary re-renders
 const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: number }) => {
+  // Determine if flow is bullish (positive OI change) or bearish (negative OI change)
+  const isBullish = coin.oiChangePercent > 0;
+  const isNeutral = Math.abs(coin.oiChangePercent) < 0.1; // Very small changes are neutral
+  
+  // Color scheme based on sentiment
+  const colorScheme = isNeutral ? {
+    background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%)',
+    border: '1px solid rgba(107, 114, 128, 0.3)',
+    boxShadow: '0 4px 6px -1px rgba(107, 114, 128, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+  } : isBullish ? {
+    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%)',
+    border: '1px solid rgba(6, 182, 212, 0.3)',
+    boxShadow: '0 4px 6px -1px rgba(6, 182, 212, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+  } : {
+    background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(147, 51, 234, 0.1) 100%)',
+    border: '1px solid rgba(147, 51, 234, 0.3)',
+    boxShadow: '0 4px 6px -1px rgba(147, 51, 234, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+  };
+
   return (
-    <div 
-      key={coin.symbol}
-      className="group relative bg-gradient-to-br from-white/80 to-white/40 dark:from-gray-800/80 dark:to-gray-900/40 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 rounded-2xl p-6 cursor-pointer hover:from-red-50/90 hover:to-red-100/50 dark:hover:from-red-900/30 dark:hover:to-red-800/20 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 shadow-2xl hover:shadow-red-500/20 overflow-hidden"
-      onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${coin.symbol}.P`, '_blank')}
-    >
-      {/* Glass effect decorations */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent dark:from-white/5 rounded-2xl"></div>
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-      <div className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-white/30 via-transparent to-transparent"></div>
-      
-      {/* Floating orbs for glass effect */}
-      <div className="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-xl group-hover:scale-110 transition-transform duration-500"></div>
-      <div className="absolute -bottom-6 -left-6 w-16 h-16 bg-gradient-to-tr from-purple-400/15 to-blue-400/15 rounded-full blur-lg group-hover:scale-125 transition-transform duration-700"></div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg">
-                <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                  {coin.symbol.replace('USDT', '').slice(0, 2)}
+    <CardContainer className="inter-var">
+      <CardBody 
+        className="relative group/card hover:shadow-2xl rounded-xl p-4 border cursor-pointer h-full w-full"
+        onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${coin.symbol}.P`, '_blank')}
+        style={{ 
+          background: colorScheme.background,
+          border: colorScheme.border,
+          boxShadow: colorScheme.boxShadow
+        }}
+      >
+        
+        <CardItem translateZ="50" className="relative z-10 w-full">
+          <div className="flex items-start justify-between mb-8 w-full">
+            <div className="flex items-center gap-4">
+              <CardItem translateZ="60" rotateX={5} rotateY={5}>
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg">
+                    <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                      {coin.symbol.replace('USDT', '').slice(0, 2)}
+                    </span>
+                  </div>
+                </div>
+              </CardItem>
+              <div>
+                <CardItem translateZ="50">
+                  <span className="font-bold text-xl text-gray-900 dark:text-white">
+                    {coin.symbol.replace('USDT', '')}
+                  </span>
+                </CardItem>
+                <CardItem translateZ="40">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Detected {new Date(coin.timestamp).toLocaleTimeString()}
+                  </div>
+                </CardItem>
+              </div>
+            </div>
+            <CardItem translateZ="60">
+              <div className="flex items-center gap-1">
+                <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                  coin.volumeCategory === 'low' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' :
+                  coin.volumeCategory === 'medium' ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200' :
+                  'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                }`}>
+                  {coin.volumeCategory === 'low' ? 'L' : coin.volumeCategory === 'medium' ? 'M' : 'H'}
+                </span>
+                <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                  coin.whaleRating === 'mega' ? 'bg-purple-200 text-purple-800 dark:bg-purple-800 dark:text-purple-200' :
+                  coin.whaleRating === 'large' ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' :
+                  coin.whaleRating === 'medium' ? 'bg-orange-200 text-orange-800 dark:bg-orange-800 dark:text-orange-200' :
+                  'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                }`}>
+                  {coin.whaleRating === 'mega' ? 'XL' : coin.whaleRating === 'large' ? 'L' : coin.whaleRating === 'medium' ? 'M' : 'S'}
+                </span>
+                {(coin.abnormalityScore || 0) > 2.5 && (
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-1.5 py-0.5 text-xs rounded font-medium animate-pulse">
+                    🚀
+                  </span>
+                )}
+              </div>
+            </CardItem>
+          </div>
+          
+          {/* Main metrics */}
+          <CardItem translateZ="40">
+            <div className="space-y-2 w- text-sm mb-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">OI Value:</span>
+                <span className="font-bold text-lg">
+                  {coin.openInterestValue > 1e9 
+                    ? `$${(coin.openInterestValue / 1e9).toFixed(2)}B` 
+                    : `$${(coin.openInterestValue / 1e6).toFixed(1)}M`
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">OI Change:</span>
+                <span className={`font-bold text-lg ${
+                  Math.abs(coin.oiChangePercent) < 0.1 ? 'text-gray-500 dark:text-gray-400' :
+                  coin.oiChangePercent > 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {Math.abs(coin.oiChangePercent) < 0.1 ? 'Building data...' : 
+                   `${coin.oiChangePercent > 0 ? '+' : ''}${coin.oiChangePercent.toFixed(1)}%`}
                 </span>
               </div>
             </div>
-            <div>
-              <span className="font-bold text-xl text-gray-900 dark:text-white">
-                {coin.symbol.replace('USDT', '')}
-              </span>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Detected {new Date(coin.timestamp).toLocaleTimeString()}
+          </CardItem>
+          
+          {/* Advanced metrics */}
+          <CardItem translateZ="30">
+            <div className="grid grid-cols-2 gap-3 text-sm mb-2">
+              <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg">
+                <div className="text-green-600 dark:text-green-400 text-xs mb-2">Priority Score</div>
+                <div className="font-bold text-lg text-green-800 dark:text-green-300">
+                  {(coin.priorityScore || 0).toFixed(0)}
+                </div>
+              </div>
+              <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg">
+                <div className="text-blue-600 dark:text-blue-400 text-xs mb-2">Volume/OI</div>
+                <div className="font-bold text-lg text-blue-800 dark:text-blue-300">
+                  {(coin.volume24h / coin.openInterestValue).toFixed(1)}x
+                </div>
+              </div>
+              <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-lg">
+                <div className="text-red-600 dark:text-red-400 text-xs mb-2">Abnormality</div>
+                <div className="font-bold text-lg text-red-800 dark:text-red-300">
+                  {(coin.abnormalityScore || 0).toFixed(1)}
+                </div>
+              </div>
+              <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-lg">
+                <div className="text-purple-600 dark:text-purple-400 text-xs mb-2">24h Volume</div>
+                <div className="font-bold text-lg text-purple-800 dark:text-purple-300">
+                  ${(coin.volume24h / 1e6).toFixed(1)}M
+                </div>
+              </div>
+              <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg col-span-2">
+                <div className="text-green-600 dark:text-green-400 text-xs mb-2">Manipulation</div>
+                <div className="font-bold text-lg text-green-800 dark:text-green-300">
+                  {(coin.manipulationConfidence || 0).toFixed(0)}%
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
-              coin.volumeCategory === 'low' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' :
-              coin.volumeCategory === 'medium' ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200' :
-              'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-            }`}>
-              {coin.volumeCategory === 'low' ? 'L' : coin.volumeCategory === 'medium' ? 'M' : 'H'}
-            </span>
-            <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
-              coin.whaleRating === 'mega' ? 'bg-purple-200 text-purple-800 dark:bg-purple-800 dark:text-purple-200' :
-              coin.whaleRating === 'large' ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' :
-              coin.whaleRating === 'medium' ? 'bg-orange-200 text-orange-800 dark:bg-orange-800 dark:text-orange-200' :
-              'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-            }`}>
-              {coin.whaleRating === 'mega' ? 'XL' : coin.whaleRating === 'large' ? 'L' : coin.whaleRating === 'medium' ? 'M' : 'S'}
-            </span>
-            {(coin.abnormalityScore || 0) > 2.5 && (
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-1.5 py-0.5 text-xs rounded font-medium animate-pulse">
-                🚀
-              </span>
-            )}
-          </div>
-        </div>
-        
-        {/* Main metrics */}
-        <div className="space-y-2 text-sm mb-3">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600 dark:text-gray-400">OI Value:</span>
-            <span className="font-bold text-lg">
-              {coin.openInterestValue > 1e9 
-                ? `$${(coin.openInterestValue / 1e9).toFixed(2)}B` 
-                : `$${(coin.openInterestValue / 1e6).toFixed(1)}M`
-              }
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600 dark:text-gray-400">OI Change:</span>
-            <span className={`font-bold text-lg ${
-              Math.abs(coin.oiChangePercent) < 0.1 ? 'text-gray-500 dark:text-gray-400' :
-              coin.oiChangePercent > 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {Math.abs(coin.oiChangePercent) < 0.1 ? 'Building data...' : 
-               `${coin.oiChangePercent > 0 ? '+' : ''}${coin.oiChangePercent.toFixed(1)}%`}
-            </span>
-          </div>
-        </div>
-        
-        {/* Advanced metrics */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded-lg">
-            <div className="text-green-600 dark:text-green-400 font-medium">Priority Score</div>
-            <div className="font-bold text-green-800 dark:text-green-300">
-              {(coin.priorityScore || 0).toFixed(0)}
+          </CardItem>
+          
+          {/* Time indicator */}
+          <CardItem translateZ="20">
+            <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+              Last seen: {new Date(coin.timestamp).toLocaleTimeString()}
             </div>
-          </div>
-          <div className="bg-blue-100 dark:bg-blue-900/20 p-2 rounded-lg">
-            <div className="text-blue-600 dark:text-blue-400 font-medium">Volume/OI</div>
-            <div className="font-bold text-blue-800 dark:text-blue-300">
-              {(coin.volume24h / coin.openInterestValue).toFixed(1)}x
-            </div>
-          </div>
-          <div className="bg-red-100 dark:bg-red-900/20 p-2 rounded-lg">
-            <div className="text-red-600 dark:text-red-400 font-medium">Abnormality</div>
-            <div className="font-bold text-red-800 dark:text-red-300">
-              {(coin.abnormalityScore || 0).toFixed(1)}σ
-            </div>
-          </div>
-          <div className="bg-purple-100 dark:bg-purple-900/20 p-2 rounded-lg">
-            <div className="text-purple-600 dark:text-purple-400 font-medium">24h Volume</div>
-            <div className="font-bold text-purple-800 dark:text-purple-300">
-              ${(coin.volume24h / 1e6).toFixed(1)}M
-            </div>
-          </div>
-          <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded-lg">
-            <div className="text-green-600 dark:text-green-400 font-medium">Manipulation</div>
-            <div className="font-bold text-green-800 dark:text-green-300">
-              {(coin.manipulationConfidence || 0).toFixed(0)}%
-            </div>
-          </div>
-        </div>
-        
-        {/* Time indicator */}
-        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
-          Last seen: {new Date(coin.timestamp).toLocaleTimeString()}
-        </div>
-      </div>
-    </div>
+          </CardItem>
+        </CardItem>
+      </CardBody>
+    </CardContainer>
   );
 }, (prevProps, nextProps) => {
   // Custom comparison function - only re-render if key display data changed
@@ -1164,7 +1196,11 @@ const InstitutionalActivity: React.FC = () => {
 
       {/* Signal Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
+          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
+          border: '1px solid rgba(74, 124, 89, 0.2)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        }}>
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Institutional Inflows</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             ${suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) > 1e9 
@@ -1174,21 +1210,33 @@ const InstitutionalActivity: React.FC = () => {
           </div>
           
         </div>
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
+          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
+          border: '1px solid rgba(74, 124, 89, 0.2)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        }}>
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>High Priority Alerts</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {suspiciousMovements.filter(coin => (coin.priorityScore || 0) > 80).length}
           </div>
           
         </div>
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
+          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
+          border: '1px solid rgba(74, 124, 89, 0.2)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        }}>
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Manipulation Detected</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {suspiciousMovements.filter(coin => (coin.manipulationConfidence || 0) > 70).length}
           </div>
          
         </div>
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
+          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
+          border: '1px solid rgba(74, 124, 89, 0.2)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        }}>
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Monitored Assets</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.length}
@@ -1198,7 +1246,7 @@ const InstitutionalActivity: React.FC = () => {
       </div>
 
       {/* 🚀 SMART MONEY TRACKER - Institutional Flow Detection */}
-      <div className="min-h-[800px] rounded-lg border-2 p-6" style={{ backgroundColor: '#1E3F20', borderColor: '#2d5a31' }}>
+      <div className="min-h-[800px] rounded-lg border-2 p-6 backdrop-blur-[2px]" style={{ backgroundColor: 'rgba(30, 63, 32, 0.1)', borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
         <div className="flex items-center justify-between mb-6">
                       <h3 className="text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff' }}>
               SMART MONEY TRACKER - Institutional Flow Detection
@@ -1239,7 +1287,7 @@ const InstitutionalActivity: React.FC = () => {
               </div>
             </div> */}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-h-full overflow-y-auto py-4 overflow-x-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-h-full overflow-y-auto py-6 px-2 overflow-x-hidden">
               {suspiciousMovements.map((coin, index) => (
                 <TickerCard key={coin.symbol} coin={coin} index={index} />
               ))}
@@ -1335,10 +1383,10 @@ const InstitutionalActivity: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* 🐋 WHALE ACTIVITY */}
-        <div className="bg-white dark:bg-gray-800/50 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 backdrop-blur-sm max-h-[800px] min-h-[700px]">
+        <div className="rounded-xl p-6 backdrop-blur-[2px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-5">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <h3 className="text-xl font-semibold flex items-center gap-3" style={{ color: '#ffffff' }}>
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#2d5a31' }}>
                 🐋
               </div>
               Whale Activity
@@ -1441,10 +1489,10 @@ const InstitutionalActivity: React.FC = () => {
         </div>
 
         {/* ⚡ FUNDING SQUEEZES */}
-        <div className="bg-white dark:bg-gray-800/50 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 backdrop-blur-sm max-h-[800px] min-h-[700px]">
+        <div className="rounded-xl p-6 backdrop-blur-[2px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-5">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <h3 className="text-xl font-semibold flex items-center gap-3" style={{ color: '#ffffff' }}>
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#2d5a31' }}>
                 ⚡
               </div>
               Funding Squeezes
@@ -1547,10 +1595,10 @@ const InstitutionalActivity: React.FC = () => {
         </div>
 
         {/* 📊 STATISTICAL ANOMALIES */}
-        <div className="bg-white dark:bg-gray-800/50 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 backdrop-blur-sm max-h-[800px] min-h-[700px]">
+        <div className="rounded-xl p-6 backdrop-blur-[2px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-5">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <h3 className="text-xl font-semibold flex items-center gap-3" style={{ color: '#ffffff' }}>
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#2d5a31' }}>
                 📊
               </div>
               Statistical Anomalies
