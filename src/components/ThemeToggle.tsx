@@ -12,7 +12,12 @@ export function ThemeToggle() {
       variant="outline"
       size="sm"
       onClick={toggleTheme}
-      className="flex items-center space-x-1 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+      className="flex items-center space-x-1"
+      style={{
+        borderColor: '#2d5a31',
+        backgroundColor: '#1E3F20',
+        color: '#ffffff'
+      }}
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? (

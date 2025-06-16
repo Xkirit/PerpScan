@@ -156,7 +156,7 @@ export class BybitClientService {
       .sort((a, b) => parseFloat(b.volume24h) - parseFloat(a.volume24h))
       .slice(0, 50); // Limit to 50 for faster client-side processing
 
-    console.log(`Analyzing top ${filteredTickers.length} coins by volume (client-side)...`);
+    console.log(`Analyzing top ${filteredTickers.length} coins by volume for ${interval} interval (client-side)...`);
     
     const coinAnalyses: CoinAnalysis[] = [];
     const batchSize = 5; // Smaller batches for client-side
@@ -167,13 +167,38 @@ export class BybitClientService {
       const batchPromises = batch.map(async (ticker) => {
         try {
           const symbol = ticker.symbol;
-          const klineData = await this.getKlineData(symbol);
           
-          if (!klineData.length) {
-            return null;
+          // Get kline data based on interval
+          let klineData: string[][];
+          let priceChange4h = 0;
+          let volumeChange4h = 0;
+          let priceChange1d = 0;
+          let volumeChange1d = 0;
+          
+          if (interval === '4h') {
+            // For 4h analysis, get 1-minute data for 4 hours
+            klineData = await this.getKlineData(symbol, '1', 240);
+            if (klineData.length) {
+              const metrics = this.calculate4hMetrics(klineData);
+              priceChange4h = metrics.priceChange4h;
+              volumeChange4h = metrics.volumeChange4h;
+            }
+            // Use 24h data from ticker for 1d values
+            priceChange1d = parseFloat(ticker.price24hPcnt) * 100;
+          } else {
+            // For 1d analysis, use the 24h data from ticker
+            priceChange1d = parseFloat(ticker.price24hPcnt) * 100;
+            
+            // For 4h data, get hourly data for last 4 hours
+            klineData = await this.getKlineData(symbol, '60', 4);
+            if (klineData.length >= 2) {
+              const sortedData = [...klineData].sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+              const priceStart = parseFloat(sortedData[0][1]);
+              const priceEnd = parseFloat(sortedData[sortedData.length - 1][4]);
+              priceChange4h = ((priceEnd - priceStart) / priceStart) * 100;
+            }
           }
-
-          const { priceChange4h, volumeChange4h } = this.calculate4hMetrics(klineData);
+          
           const trendScore = this.calculateTrendScore(ticker, priceChange4h, volumeChange4h);
           
           return {
@@ -182,8 +207,8 @@ export class BybitClientService {
             volume24h: parseFloat(ticker.volume24h),
             priceChange4h,
             volumeChange4h,
-            priceChange1d: 0,
-            volumeChange1d: 0,
+            priceChange1d,
+            volumeChange1d,
             currentPrice: parseFloat(ticker.lastPrice),
             trendScore
           };
@@ -210,19 +235,22 @@ export class BybitClientService {
     return coinAnalyses;
   }
 
-  getTopPerformers(analyses: CoinAnalysis[], limit: number = 10): AnalysisResult {
+  getTopPerformers(analyses: CoinAnalysis[], limit: number = 10, interval: '4h' | '1d' = '4h'): AnalysisResult {
     const trending = [...analyses]
       .sort((a, b) => b.trendScore - a.trendScore)
       .slice(0, limit)
       .map((coin, index) => ({ ...coin, rank: index + 1 }));
 
+    // Sort by the appropriate price change field based on interval
+    const priceChangeField = interval === '4h' ? 'priceChange4h' : 'priceChange24h';
+    
     const strongest = [...analyses]
-      .sort((a, b) => b.priceChange4h - a.priceChange4h)
+      .sort((a, b) => b[priceChangeField] - a[priceChangeField])
       .slice(0, limit)
       .map((coin, index) => ({ ...coin, rank: index + 1 }));
 
     const weakest = [...analyses]
-      .sort((a, b) => a.priceChange4h - b.priceChange4h)
+      .sort((a, b) => a[priceChangeField] - b[priceChangeField])
       .slice(0, limit)
       .map((coin, index) => ({ ...coin, rank: index + 1 }));
 
@@ -235,8 +263,8 @@ export class BybitClientService {
     };
   }
 
-  async runCompleteAnalysis(limit: number = 10): Promise<AnalysisResult> {
-    const analyses = await this.analyzeCoins('4h');
-    return this.getTopPerformers(analyses, limit);
+  async runCompleteAnalysis(limit: number = 10, interval: '4h' | '1d' = '4h'): Promise<AnalysisResult> {
+    const analyses = await this.analyzeCoins(interval);
+    return this.getTopPerformers(analyses, limit, interval);
   }
 } 

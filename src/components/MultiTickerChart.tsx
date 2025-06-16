@@ -12,6 +12,8 @@ interface HistoricalDataPoint {
   [symbol: string]: number | string;
 }
 
+
+
 interface MultiTickerChartProps {
   data: CoinAnalysis[];
   interval: string;
@@ -67,10 +69,117 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const [loading, setLoading] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [btcChange, setBtcChange] = useState<number | null>(null);
+  const [coinLimit, setCoinLimit] = useState<20 | 50 | 100>(20);
+  const [filterType, setFilterType] = useState<'trendScore' | 'volume24h'>('trendScore');
+  const [rawVolumeData, setRawVolumeData] = useState<{ symbol: string; volume24h: number; rawVolume: number; rawTurnover: number }[]>([]);
+  const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
 
-  // Take top 20 coins by default
-  const topCoins = useMemo(() => data.slice(0, 20), [data]);
+  // Fetch raw volume data from Bybit
+  const fetchRawVolumeData = useCallback(async () => {
+    try {
+      console.log('Fetching raw volume data from Bybit...');
+      const response = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        cache: 'no-cache',
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch volume data:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.retCode !== 0) {
+        console.error('API error:', data.retMsg);
+        return;
+      }
+
+      console.log('Raw API response sample:', data.result.list.slice(0, 3));
+
+      const volumeData = data.result.list
+        .filter((ticker: any) => ticker.symbol.endsWith('USDT'))
+        .map((ticker: any) => ({
+          symbol: ticker.symbol,
+          volume24h: parseFloat(ticker.turnover24h || '0'), // Use turnover24h for USD value
+          rawVolume: ticker.volume24h,
+          rawTurnover: ticker.turnover24h
+        }))
+        .sort((a: any, b: any) => b.volume24h - a.volume24h);
+
+      console.log('Top 10 volume coins:', volumeData.slice(0, 10));
+      setRawVolumeData(volumeData);
+    } catch (error) {
+      console.error('Error fetching volume data:', error);
+    }
+  }, []);
+
+  // Sort and slice coins based on filterType
+  const topCoins = useMemo(() => {
+    if (filterType === 'volume24h') {
+      return rawVolumeData.slice(0, coinLimit);
+    }
+    
+    let sorted = [...data];
+    if (filterType === 'trendScore') {
+      sorted.sort((a, b) => (b.trendScore ?? 0) - (a.trendScore ?? 0));
+    }
+    return sorted.slice(0, coinLimit);
+  }, [data, coinLimit, filterType, rawVolumeData]);
+
   const topCoinSymbols = useMemo(() => topCoins.map(coin => coin.symbol), [topCoins]);
+
+  // Fetch raw volume data when filter type changes to volume
+  useEffect(() => {
+    if (filterType === 'volume24h') {
+      fetchRawVolumeData();
+    }
+  }, [filterType, fetchRawVolumeData]);
+
+  const fetchBtcChange = useCallback(async (interval: string) => {
+    try {
+      const bybitInterval = interval === '1d' ? 'D' : '60';
+      const points = interval === '1d' ? 30 : 24;
+      
+      const endTime = Date.now();
+      const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
+      
+      const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        cache: 'no-cache',
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch BTC data:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.retCode !== 0) {
+        console.error('API error for BTC:', data.retMsg);
+        return;
+      }
+
+      const klineData = data.result?.list || [];
+      const sortedData = klineData.reverse();
+      
+      if (sortedData.length > 0) {
+        const basePrice = parseFloat(sortedData[0][4]); // First close price
+        const lastPrice = parseFloat(sortedData[sortedData.length - 1][4]); // Last close price
+        const change = ((lastPrice - basePrice) / basePrice) * 100;
+        setBtcChange(change);
+      }
+    } catch (error) {
+      console.error('Error fetching BTC data:', error);
+    }
+  }, []);
 
   const fetchHistoricalDataClientSide = useCallback(async (symbols: string[], interval: string) => {
     console.log('Fetching historical data client-side...');
@@ -85,7 +194,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         points = 30; // 30 days
       }
 
-      const historicalPromises = symbols.slice(0, 10).map(async (symbol: string) => { // Limit to 10 for client-side
+      const historicalPromises = symbols.slice(0, coinLimit).map(async (symbol: string) => {
         try {
           const endTime = Date.now();
           const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
@@ -113,7 +222,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           const klineData = data.result?.list || [];
           const sortedData = klineData.reverse(); // Chronological order
           
-          // Calculate percentage changes from the first price
+          // Always calculate price changes, regardless of filter type
           const basePrice = parseFloat(sortedData[0]?.[4] || '0'); // close price
           
           const percentageData = sortedData.map((point: string[]) => ({
@@ -121,18 +230,27 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             percentage: basePrice > 0 ? ((parseFloat(point[4]) - basePrice) / basePrice) * 100 : 0
           }));
 
-          return { symbol, data: percentageData };
+          return {
+            symbol,
+            data: percentageData
+          };
         } catch (error) {
-          console.error(`Client-side error fetching data for ${symbol}:`, error);
+          console.error(`Error fetching data for ${symbol}:`, error);
           return { symbol, data: [] };
         }
       });
 
-      const allHistoricalData = await Promise.all(historicalPromises);
+      const results = await Promise.all(historicalPromises);
+      const validResults = results.filter(result => result.data.length > 0);
 
-      // Transform data into chart format
+      if (validResults.length === 0) {
+        setError('No valid data available for the selected coins');
+        return;
+      }
+
+      // Transform data for the chart
       const timePoints = new Set<number>();
-      allHistoricalData.forEach(({ data }) => {
+      validResults.forEach(({ data }) => {
         data.forEach((point: { timestamp: number; percentage: number }) => {
           timePoints.add(point.timestamp);
         });
@@ -140,8 +258,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
       const sortedTimePoints = Array.from(timePoints).sort((a, b) => a - b);
 
-      const chartData: HistoricalDataPoint[] = sortedTimePoints.map(timestamp => {
-        const dataPoint: HistoricalDataPoint = {
+      const transformedData = sortedTimePoints.map(timestamp => {
+        const point: HistoricalDataPoint = { 
           timestamp,
           time: new Date(timestamp).toLocaleTimeString('en-US', { 
             hour: '2-digit', 
@@ -149,24 +267,21 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             hour12: false 
           })
         };
-
-        allHistoricalData.forEach(({ symbol, data }) => {
-          const pointAtTime = data.find((d: { timestamp: number; percentage: number }) => d.timestamp === timestamp);
-          if (pointAtTime) {
-            dataPoint[symbol] = pointAtTime.percentage;
+        validResults.forEach(({ symbol, data }) => {
+          const matchingPoint = data.find((p: { timestamp: number; percentage: number }) => p.timestamp === timestamp);
+          if (matchingPoint) {
+            point[symbol] = matchingPoint.percentage;
           }
         });
-
-        return dataPoint;
+        return point;
       });
 
-      setHistoricalData(chartData);
-      console.log('Client-side historical data loaded successfully');
+      setHistoricalData(transformedData);
     } catch (error) {
-      console.error('Client-side historical data failed:', error);
-      setError('Failed to load historical data');
+      console.error('Error in fetchHistoricalDataClientSide:', error);
+      setError('Failed to fetch historical data');
     }
-  }, []);
+  }, [coinLimit]);
 
   const fetchHistoricalData = useCallback(async (symbols: string[], interval: string) => {
     setLoading(true);
@@ -189,6 +304,10 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     }
   }, [topCoinSymbols, interval, topCoins.length, fetchHistoricalData]);
 
+  useEffect(() => {
+    fetchBtcChange(interval);
+  }, [interval, fetchBtcChange]);
+
   const toggleCoin = (symbol: string) => {
     const newSelected = selectedCoins.includes(symbol)
       ? selectedCoins.filter(s => s !== symbol)
@@ -206,17 +325,19 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
   const CustomTooltip = (props: TooltipProps<number, string>) => {
     const { active, payload, label } = props;
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
-          <p className="text-sm text-gray-600 dark:text-gray-400">{`Time: ${label}`}</p>
-          {payload.map((entry, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {`${entry.dataKey}: ${formatPercent(entry.value || 0)}`}
+    if (active && payload && payload.length && hoveredTicker) {
+      // Only show tooltip when a specific ticker line is being hovered
+      const activePayload = payload.find(item => item.dataKey === hoveredTicker);
+      if (activePayload && activePayload.dataKey) {
+        return (
+          <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">{`Time: ${label}`}</p>
+            <p style={{ color: activePayload.color }} className="text-sm font-medium">
+              {`${(activePayload.dataKey as string).replace('USDT', '')}: ${formatPercent(activePayload.value || 0)}`}
             </p>
-          ))}
-        </div>
-      );
+          </div>
+        );
+      }
     }
     return null;
   };
@@ -225,52 +346,57 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)
+            {filterType === 'volume24h' && ' - Top Volume Coins'}
           </h2>
+          {btcChange !== null && (
+            <div 
+              className="px-3 py-1 rounded-lg text-sm font-medium"
+              style={{
+                backgroundColor: btcChange >= 0 ? '#2d5a31' : '#1A1F16',
+                color: btcChange >= 0 ? '#ffffff' : '#ffffff'
+              }}
+            >
+              BTC: {formatPercent(btcChange)}
+            </div>
+          )}
           {error && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs rounded-full">
+            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full" style={{ backgroundColor: '#1E3F20', color: '#ffffff' }}>
               <AlertTriangleIcon className="w-3 h-3" />
               Error
             </span>
           )}
         </div>
-        <Button
-          onClick={refreshData}
-          disabled={loading}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={coinLimit}
+            onChange={(e) => setCoinLimit(Number(e.target.value) as 20 | 50 | 100)}
+            className="px-3 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          >
+            <option value={20}>Top 20 Coins</option>
+            <option value={50}>Top 50 Coins</option>
+            <option value={100}>Top 100 Coins</option>
+          </select>
+          <select
+            value={filterType}
+            onChange={e => setFilterType(e.target.value as 'trendScore' | 'volume24h')}
+            className="px-3 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          >
+            <option value="trendScore">Trend Score</option>
+            <option value="volume24h">24h Volume</option>
+          </select>
 
-      {/* Coin selector - scrollable if many */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Select coins to display (showing top 20 by trend score):
-        </h3>
-        <div className="flex flex-wrap gap-2 overflow-x-auto max-w-full pb-1">
-          {topCoins.map((coin, index) => (
-            <button
-              key={coin.symbol}
-              onClick={() => toggleCoin(coin.symbol)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors whitespace-nowrap ${
-                selectedCoins.includes(coin.symbol)
-                  ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-800 dark:text-blue-200'
-                  : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-              style={
-                selectedCoins.includes(coin.symbol)
-                  ? { borderColor: chartColors[index % chartColors.length] }
-                  : {}
-              }
-            >
-              {coin.symbol}
-            </button>
-          ))}
+          <Button
+            onClick={refreshData}
+            disabled={loading}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -315,6 +441,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                     dot={false}
                     connectNulls={false}
                     isAnimationActive={false}
+                    onMouseEnter={() => setHoveredTicker(symbol)}
+                    onMouseLeave={() => setHoveredTicker(null)}
                   />
                 ))}
               </LineChart>
@@ -382,6 +510,34 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             <p className="text-gray-500 dark:text-gray-400">No historical data available</p>
           </div>
         )}
+      </div>
+
+
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Select coins to display (showing top {coinLimit} by {filterType === 'trendScore' ? 'trend score' : '24h volume'}):
+        </h3>
+        <div className="flex flex-wrap gap-2 overflow-x-auto max-w-full pb-1">
+          {topCoins.map((coin, index) => (
+            <button
+              key={coin.symbol}
+              onClick={() => toggleCoin(coin.symbol)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors whitespace-nowrap ${
+                selectedCoins.includes(coin.symbol)
+                  ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-800 dark:text-blue-200'
+                  : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              style={
+                selectedCoins.includes(coin.symbol)
+                  ? { borderColor: chartColors[index % chartColors.length] }
+                  : {}
+              }
+            >
+              {coin.symbol}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -12,13 +12,13 @@ interface TrendChartProps {
 
 const getBarColor = (value: number, dataKey: string) => {
   if (dataKey === 'trendScore') {
-    if (value > 5) return '#10b981'; // green-500
-    if (value > 0) return '#3b82f6'; // blue-500
-    if (value > -5) return '#f59e0b'; // amber-500
-    return '#ef4444'; // red-500
+    if (value > 5) return '#ffffff'; // White for highest
+    if (value > 0) return '#4a7c59'; // Light green
+    if (value > -5) return '#2d5a31'; // Medium green
+    return '#1A1F16'; // Dark green
   } else {
-    if (value > 0) return '#10b981'; // green-500
-    return '#ef4444'; // red-500
+    if (value > 0) return '#4a7c59'; // Light green for positive
+    return '#1A1F16'; // Dark green for negative
   }
 };
 
@@ -35,21 +35,21 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-900 dark:text-white">{label}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+      <div className="p-4 border rounded-lg shadow-lg" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <p className="font-semibold" style={{ color: '#ffffff' }}>{label}</p>
+        <p className="text-sm" style={{ color: '#ffffff' }}>
           Current Price: ${data.currentPrice.toFixed(6)}
         </p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm" style={{ color: '#ffffff' }}>
           4H Change: {formatPercentage(data.priceChange4h)}
         </p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm" style={{ color: '#ffffff' }}>
           24H Change: {formatPercentage(data.priceChange24h)}
         </p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm" style={{ color: '#ffffff' }}>
           Trend Score: {data.trendScore.toFixed(2)}
         </p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm" style={{ color: '#ffffff' }}>
           Volume Change: {formatPercentage(data.volumeChange4h)}
         </p>
       </div>
@@ -67,8 +67,14 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
   }));
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+    <div 
+      className="p-6 rounded-lg transition-colors" 
+      style={{ 
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+      }}
+    >
+      <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>{title}</h3>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -80,19 +86,17 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
               bottom: 60,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-gray-600" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#2d5a31" />
             <XAxis 
               dataKey="name" 
-              stroke="currentColor"
-              className="text-gray-500 dark:text-gray-400"
+              stroke="#ffffff"
               fontSize={12}
               angle={-45}
               textAnchor="end"
               height={60}
             />
             <YAxis 
-              stroke="currentColor"
-              className="text-gray-500 dark:text-gray-400"
+              stroke="#ffffff"
               fontSize={12}
               tickFormatter={(value) => 
                 dataKey === 'trendScore' ? value.toFixed(1) : `${value.toFixed(1)}%`

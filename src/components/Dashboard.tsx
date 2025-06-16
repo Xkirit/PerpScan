@@ -5,10 +5,13 @@ import { CoinAnalysis } from '@/types';
 import { TrendChart } from './TrendChart';
 import { DataTable } from './DataTable';
 import MultiTickerChart from './MultiTickerChart';
+import InstitutionalActivity from './InstitutionalActivity';
+import OpenInterestChart from './OpenInterestChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon } from 'lucide-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
+import BtcPriceChange from './BtcPriceChange';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -64,11 +67,11 @@ const CandleCountdown: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-700">
-      <ClockIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+      <ClockIcon className="h-4 w-4" style={{ color: '#ffffff' }} />
       <div className="text-sm">
-        <span className="text-blue-600 dark:text-blue-400 font-medium">Next 4H Close:</span>
-        <span className="ml-2 font-mono text-blue-800 dark:text-blue-300">{timeLeft}</span>
+        <span className="font-medium" style={{ color: '#ffffff' }}>Next 4H Close:</span>
+        <span className="ml-2 font-mono" style={{ color: '#ffffff' }}>{timeLeft}</span>
       </div>
     </div>
   );
@@ -78,7 +81,7 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'chart'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'chart' | 'institutional' | 'openinterest'>('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +92,7 @@ const Dashboard: React.FC = () => {
     try {
       console.log('Starting client-side analysis with interval:', interval);
       const clientService = new BybitClientService();
-      const result = await clientService.runCompleteAnalysis(50);
+      const result = await clientService.runCompleteAnalysis(50, interval);
       setData(result);
       setLastUpdated(new Date());
       console.log('Client-side analysis completed successfully');
@@ -126,6 +129,16 @@ const Dashboard: React.FC = () => {
       id: 'chart' as const,
       label: 'Multi-Ticker Chart',
       icon: BarChart3Icon
+    },
+    {
+      id: 'institutional' as const,
+      label: 'Institutional Activity',
+      icon: EyeIcon
+    },
+    {
+      id: 'openinterest' as const,
+      label: 'Open Interest',
+      icon: BarChart3Icon
     }
   ];
 
@@ -133,26 +146,36 @@ const Dashboard: React.FC = () => {
   const allCoins = data?.trending || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div 
+      className="min-h-screen transition-colors relative" 
+      style={{ 
+        backgroundColor: '#0F1411',
+        backgroundImage: `
+          linear-gradient(rgba(26, 31, 22, 0.8) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(26, 31, 22, 0.8) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px'
+      }}
+    >
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div className="shadow-sm border-b relative z-10" style={{ backgroundColor: '#15321a', borderColor: '#2d5a31' }}>
         <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-3xl font-bold" style={{ color: '#ffffff' }}>
                 Bybit Futures Analyzer
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
                 {lastUpdated && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm" style={{ color: '#4a7c59' }}>
                     Last updated: {formatLastUpdated(lastUpdated)}
-                    <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs rounded-full">
+                    <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full" style={{ backgroundColor: '#2d5a31', color: '#ffffff' }}>
                       Client Mode
                     </span>
                   </p>
                 )}
                 {data && (
-                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                  <p className="text-xs" style={{ color: '#4a7c59' }}>
                     {data.totalCoins} coins analyzed
                   </p>
                 )}
@@ -160,6 +183,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              <BtcPriceChange interval={chartInterval} />
               <CandleCountdown />
               <ThemeToggle />
               <Button
@@ -177,25 +201,25 @@ const Dashboard: React.FC = () => {
 
           {/* Interval Selector */}
           <div className="mt-4 flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Analysis Interval:</span>
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <span className="text-sm font-medium" style={{ color: '#4a7c59' }}>Analysis Interval:</span>
+            <div className="flex rounded-lg p-1" style={{ backgroundColor: '#0F1411' }}>
               <button
                 onClick={() => setChartInterval('4h')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  chartInterval === '4h'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
+                className="px-3 py-1 text-sm rounded-md transition-colors"
+                style={{
+                  backgroundColor: chartInterval === '4h' ? '#2d5a31' : 'transparent',
+                  color: chartInterval === '4h' ? '#ffffff' : '#4a7c59'
+                }}
               >
                 4H
               </button>
               <button
                 onClick={() => setChartInterval('1d')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  chartInterval === '1d'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
+                className="px-3 py-1 text-sm rounded-md transition-colors"
+                style={{
+                  backgroundColor: chartInterval === '1d' ? '#2d5a31' : 'transparent',
+                  color: chartInterval === '1d' ? '#ffffff' : '#4a7c59'
+                }}
               >
                 1D
               </button>
@@ -204,7 +228,7 @@ const Dashboard: React.FC = () => {
 
           {/* Tab Navigation */}
           <div className="mt-4">
-            <div className="border-b border-gray-200 dark:border-gray-700">
+            <div className="border-b" style={{ borderColor: '#2d5a31' }}>
               <nav className="-mb-px flex space-x-8">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
@@ -212,11 +236,11 @@ const Dashboard: React.FC = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === tab.id
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
+                      className="flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors"
+                      style={{
+                        borderColor: activeTab === tab.id ? '#ffffff' : 'transparent',
+                        color: activeTab === tab.id ? '#ffffff' : '#4a7c59'
+                      }}
                     >
                       <Icon className="h-4 w-4" />
                       {tab.label}
@@ -230,14 +254,20 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8">
+      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8 relative z-10">
         {error ? (
           <div className="text-center py-12">
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-red-900 dark:text-red-300 mb-2">
+            <div 
+              className="rounded-lg p-6" 
+              style={{ 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <h3 className="text-lg font-medium mb-2" style={{ color: '#ffffff' }}>
                 Failed to Load Data
               </h3>
-              <p className="text-red-700 dark:text-red-400 mb-4">{error}</p>
+              <p className="mb-4" style={{ color: '#4a7c59' }}>{error}</p>
               <Button onClick={() => fetchData(chartInterval)} variant="outline">
                 Try Again
               </Button>
@@ -245,11 +275,11 @@ const Dashboard: React.FC = () => {
           </div>
         ) : loading ? (
           <div className="text-center py-12">
-            <RefreshCwIcon className="h-12 w-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+            <RefreshCwIcon className="h-12 w-12 animate-spin mx-auto" style={{ color: '#4a7c59' }} />
+            <h3 className="mt-4 text-lg font-medium" style={{ color: '#ffffff' }}>
               Analyzing Market Data
             </h3>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p className="mt-2" style={{ color: '#4a7c59' }}>
               Fetching data directly from Bybit API...
             </p>
           </div>
@@ -259,57 +289,84 @@ const Dashboard: React.FC = () => {
               <div className="space-y-8">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                      <div 
+                      className="rounded-lg p-6" 
+                      style={{ 
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                      }}
+                    >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Trending</p>
+                        <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Trending</p>
                         <button
                           onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.trending[0]?.symbol}.P`, '_blank')}
-                          className="text-2xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer underline"
+                          className="text-2xl font-bold cursor-pointer underline hover:opacity-80"
+                          style={{ color: '#ffffff' }}
                         >
                           {data.trending[0]?.symbol.replace('USDT', '') || 'N/A'}
                         </button>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                        <p className="text-xs" style={{ color: '#4a7c59' }}>
                           Score: {data.trending[0]?.trendScore.toFixed(2) || 'N/A'}
                         </p>
                       </div>
-                      <TrendingUpIcon className="h-8 w-8 text-blue-500" />
+                      <TrendingUpIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <div 
+                    className="rounded-lg p-6" 
+                    style={{ 
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Gainer</p>
+                        <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Gainer</p>
                         <button
                           onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.strongest[0]?.symbol}.P`, '_blank')}
-                          className="text-2xl font-bold text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 cursor-pointer underline"
+                          className="text-2xl font-bold cursor-pointer underline hover:opacity-80"
+                          style={{ color: '#ffffff' }}
                         >
                           {data.strongest[0]?.symbol.replace('USDT', '') || 'N/A'}
                         </button>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
-                          +{data.strongest[0]?.priceChange4h.toFixed(2)}% (4h)
+                        <p className="text-xs" style={{ color: '#4a7c59' }}>
+                          +{chartInterval === '4h' 
+                            ? data.strongest[0]?.priceChange4h.toFixed(2) 
+                            : data.strongest[0]?.priceChange24h.toFixed(2)
+                          }% ({chartInterval})
                         </p>
                       </div>
-                      <ArrowUpIcon className="h-8 w-8 text-green-500" />
+                      <ArrowUpIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <div 
+                    className="rounded-lg p-6" 
+                    style={{ 
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    }}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Loser</p>
+                        <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Loser</p>
                         <button
                           onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.weakest[0]?.symbol}.P`, '_blank')}
-                          className="text-2xl font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 cursor-pointer underline"
+                          className="text-2xl font-bold cursor-pointer underline hover:opacity-80"
+                          style={{ color: '#ffffff' }}
                         >
                           {data.weakest[0]?.symbol.replace('USDT', '') || 'N/A'}
                         </button>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
-                          {data.weakest[0]?.priceChange4h.toFixed(2)}% (4h)
+                        <p className="text-xs" style={{ color: '#4a7c59' }}>
+                          {chartInterval === '4h' 
+                            ? data.weakest[0]?.priceChange4h.toFixed(2) 
+                            : data.weakest[0]?.priceChange24h.toFixed(2)
+                          }% ({chartInterval})
                         </p>
                       </div>
-                      <ArrowDownIcon className="h-8 w-8 text-red-500" />
+                      <ArrowDownIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
                     </div>
                   </div>
                 </div>
@@ -317,8 +374,16 @@ const Dashboard: React.FC = () => {
                 {/* Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <TrendChart data={data.trending} title="Top Trending" dataKey="trendScore" />
-                  <TrendChart data={data.strongest} title="Strongest Performers" dataKey="priceChange4h" />
-                  <TrendChart data={data.weakest} title="Weakest Performers" dataKey="priceChange4h" />
+                  <TrendChart 
+                    data={data.strongest} 
+                    title="Strongest Performers" 
+                    dataKey={chartInterval === '4h' ? 'priceChange4h' : 'priceChange24h'} 
+                  />
+                  <TrendChart 
+                    data={data.weakest} 
+                    title="Weakest Performers" 
+                    dataKey={chartInterval === '4h' ? 'priceChange4h' : 'priceChange24h'} 
+                  />
                 </div>
 
                 {/* Data Tables */}
@@ -332,6 +397,14 @@ const Dashboard: React.FC = () => {
 
             {activeTab === 'chart' && (
               <MultiTickerChart data={allCoins} interval={chartInterval} />
+            )}
+
+            {activeTab === 'institutional' && (
+              <InstitutionalActivity />
+            )}
+
+            {activeTab === 'openinterest' && (
+              <OpenInterestChart />
             )}
           </>
         ) : null}
