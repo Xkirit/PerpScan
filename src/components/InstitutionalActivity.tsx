@@ -154,10 +154,21 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
             <div className="flex items-center gap-4">
               <CardItem translateZ="60" rotateX={5} rotateY={5}>
                 <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg">
-                    <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                      {coin.symbol.replace('USDT', '').slice(0, 2)}
-                    </span>
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg overflow-hidden">
+                    <img 
+                      src={`https://assets.coincap.io/assets/icons/${coin.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
+                      alt={coin.symbol.replace('USDT', '')}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => {
+                        // Fallback to letters if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<span class="font-bold text-lg text-blue-600 dark:text-blue-400">${coin.symbol.replace('USDT', '').slice(0, 2)}</span>`;
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </CardItem>
