@@ -1448,7 +1448,7 @@ const InstitutionalActivity: React.FC = () => {
       {/* Signal Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -1464,7 +1464,7 @@ const InstitutionalActivity: React.FC = () => {
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -1477,7 +1477,7 @@ const InstitutionalActivity: React.FC = () => {
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -1490,7 +1490,7 @@ const InstitutionalActivity: React.FC = () => {
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -1517,7 +1517,7 @@ const InstitutionalActivity: React.FC = () => {
                 DB: {dbLastUpdated.toLocaleTimeString()}
               </div>
             )} */}
-            <div className="text-sm text-green-700 dark:text-green-400  px-3 py-1 rounded-full">
+            <div className="text-sm text-green-800 dark:text-green-500  px-3 py-1 rounded-full">
               {`Next scan: ${countdown}`}
             </div>
           </div>
@@ -1652,7 +1652,7 @@ const InstitutionalActivity: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* WHALE ACTIVITY */}
-        <div className="rounded-xl p-6 backdrop-blur-[2px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+        <div className="rounded-xl p-6 backdrop-blur-[3px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-5">
             <h3 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
               Whale Activity
@@ -1677,7 +1677,7 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="group relative p-4 rounded-lg backdrop-blur-[2px] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group relative p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1760,7 +1760,7 @@ const InstitutionalActivity: React.FC = () => {
         </div>
 
         {/* FUNDING SQUEEZES */}
-        <div className="rounded-xl p-6 backdrop-blur-[2px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+        <div className="rounded-xl p-6 backdrop-blur-[3px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-5">
             <h3 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
               Funding Squeezes
@@ -1785,7 +1785,7 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="group relative p-4 rounded-lg backdrop-blur-[2px] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group relative p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1868,7 +1868,7 @@ const InstitutionalActivity: React.FC = () => {
         </div>
 
         {/* STATISTICAL ANOMALIES */}
-        <div className="rounded-xl p-6 backdrop-blur-[2px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+        <div className="rounded-xl p-6 backdrop-blur-[3px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-5">
             <h3 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
               Statistical Anomalies
@@ -1893,7 +1893,7 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="group relative p-4 rounded-lg backdrop-blur-[2px] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group relative p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',

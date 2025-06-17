@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
         }}
       >
       {/* Header */}
-      <div className="shadow-sm border-b relative z-10" style={{ backgroundColor: '#15321a', borderColor: '#2d5a31' }}>
+      <div className="shadow-sm border-b relative z-10" style={{ backgroundColor: '#122817', borderColor: '#2d5a31' }}>
         <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -181,7 +181,7 @@ const Dashboard: React.FC = () => {
                 alt="PerpFlow" 
                 className="h-20 w-auto"
                 style={{ 
-                  filter: 'brightness(1.2)',
+                  filter: 'brightness(1.4)',
                   transform: 'scaleY(0.92)'
                 }}
               />
@@ -311,7 +311,7 @@ const Dashboard: React.FC = () => {
               {/* Summary Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div
-                  className="rounded-lg p-6 backdrop-blur-[2px]"
+                  className="rounded-lg p-6 backdrop-blur-[3px]"
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -337,7 +337,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 <div
-                  className="rounded-lg p-6 backdrop-blur-[2px]"
+                  className="rounded-lg p-6 backdrop-blur-[3px]"
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -366,7 +366,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 <div
-                  className="rounded-lg p-6 backdrop-blur-[2px]"
+                  className="rounded-lg p-6 backdrop-blur-[3px]"
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -436,7 +436,7 @@ const Dashboard: React.FC = () => {
 
         {/* Enhanced Footer */}
         {data && !loading && (
-          <footer className="mt-16 py-8 border-t backdrop-blur-[2px]" style={{ 
+          <footer className="mt-16 py-8 border-t backdrop-blur-[4px]" style={{ 
             borderColor: 'rgba(255, 255, 255, 0.1)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}>
