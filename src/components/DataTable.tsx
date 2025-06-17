@@ -64,28 +64,30 @@ export function DataTable({ data, title, category }: DataTableProps) {
         backgroundColor: 'rgba(30, 63, 32, 0.1)'
       }}
     >
-      <div className="px-6 py-4" style={getCategoryColor(category)}>
+      <div className="px-3 sm:px-6 py-2 sm:py-4" style={getCategoryColor(category)}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {getCategoryIcon(category)}
-            <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>{title}</h3>
+            <h3 className="text-sm sm:text-lg font-semibold" style={{ color: '#ffffff' }}>{title}</h3>
             
           </div>
           {data.length > 10 && (
             <button
               onClick={() => setShowAll(!showAll)}
-              className="flex items-center gap-1 px-3 py-1 text-sm transition-colors"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm transition-colors"
               style={{ color: '#6ca37f', opacity:"50" }}
             >
               {showAll ? (
                 <>
-                  <ChevronUpIcon className="w-4 h-4" />
-                  Show Less
+                  <ChevronUpIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Show Less</span>
+                  <span className="sm:hidden">Less</span>
                 </>
               ) : (
                 <>
-                  <ChevronDownIcon className="w-4 h-4" />
-                  Show All ({data.length})
+                  <ChevronDownIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Show All ({data.length})</span>
+                  <span className="sm:hidden">All</span>
                 </>
               )}
             </button>
@@ -94,31 +96,33 @@ export function DataTable({ data, title, category }: DataTableProps) {
       </div>
       
       <div className={`overflow-x-auto ${showAll ? 'max-h-[1000px] overflow-y-scroll scrollbar-hide' : ''}`}>
-        <table className="w-full">
+        <table className="w-full min-w-[300px] sm:min-w-[600px]">
           <thead className="sticky top-0" style={{ backgroundColor: '#091a0c', borderBottom: '0.5px solid #2d5a31' }}>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
-                Rank
+              <th className="px-2 sm:px-6 py-1.5 sm:py-3 text-left text-xs font-medium uppercase tracking-tight sm:tracking-wider" style={{ color: '#ffffff' }}>
+                <span className="hidden sm:inline">Rank</span>
+                <span className="sm:hidden">#</span>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
+              <th className="px-0 sm:px-6 py-1.5 sm:py-3 text-left text-xs font-medium uppercase tracking-tight sm:tracking-wider" style={{ color: '#ffffff' }}>
                 Symbol
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
+              <th className=" sm:px-6 py-1.5 sm:py-3 text-right text-xs font-medium uppercase tracking-tight sm:tracking-wider" style={{ color: '#ffffff' }}>
                 Price
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
+              <th className="hidden sm:table-cell px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
                 4H Change
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
-                24H Change
+              <th className="px-3 sm:px-6 py-1.5 sm:py-3 text-right text-xs font-medium uppercase tracking-tight sm:tracking-wider" style={{ color: '#ffffff' }}>
+                <span className="hidden sm:inline">24H Change</span>
+                <span className="sm:hidden">24H</span>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
+              <th className="hidden md:table-cell px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
                 Volume Change
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
-                Trend Score
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
+                             <th className="hidden sm:table-cell px-6 py-1.5 sm:py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
+                 Trend Score
+               </th>
+              <th className="hidden lg:table-cell px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
                 24H Volume
               </th>
             </tr>
@@ -132,18 +136,18 @@ export function DataTable({ data, title, category }: DataTableProps) {
                   borderBottom: index < displayData.length - 1 ? '0.8px solid rgba(45, 90, 49, 0.3)' : 'none'
                 }}
               >
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-1 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <span className="text-sm font-medium" style={{ color: '#ffffff' }}>
+                    <span className="text-xs font-medium" style={{ color: '#ffffff' }}>
                       #{coin.rank || index + 1}
                     </span>
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-1 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div 
-                      className="text-sm font-medium cursor-pointer transition-colors"
+                      className="text-xs sm:text-sm font-medium cursor-pointer transition-colors truncate"
                       style={{ color: '#ffffff' }}
                       onClick={() => {
                         const symbol = coin.symbol.replace('USDT', '');
@@ -154,41 +158,40 @@ export function DataTable({ data, title, category }: DataTableProps) {
                     >
                       {coin.symbol.replace('USDT', '')}
                     </div>
-                    {/* <div className="text-xs ml-1" style={{ color: '#4a7c59' }}>USDT</div> */}
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="text-sm font-mono" style={{ color: '#ffffff' }}>
+                <td className="px-1 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right">
+                  <div className="text-xs font-mono" style={{ color: '#ffffff' }}>
                     {formatPrice(coin.currentPrice)}
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-right">
                   <div className={`text-sm font-medium ${getPerformanceColorDark(coin.priceChange4h)}`}>
                     {formatPercentage(coin.priceChange4h)}
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className={`text-sm ${getPerformanceColorDark(coin.priceChange24h)}`}>
+                <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right">
+                  <div className={`text-xs font-medium ${getPerformanceColorDark(coin.priceChange24h)}`}>
                     {formatPercentage(coin.priceChange24h)}
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+                <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right">
                   <div className={`text-sm ${getPerformanceColorDark(coin.volumeChange4h)}`}>
                     {formatPercentage(coin.volumeChange4h)}
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium  ${getPerformanceColorDark(coin.trendScore)}`}>
+                <td className="hidden sm:table-cell px-6 py-2 sm:py-4 whitespace-nowrap text-right">
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPerformanceColorDark(coin.trendScore)}`}>
                     {coin.trendScore.toFixed(2)}
                   </div>
                 </td>
                 
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-right">
                   <div className="text-sm" style={{ color: '#4a7c59' }}>
                     {formatVolume(coin.volume24h)}
                   </div>
@@ -200,8 +203,8 @@ export function DataTable({ data, title, category }: DataTableProps) {
       </div>
       
       {displayData.length === 0 && (
-        <div className="px-6 py-12 text-center">
-          <div style={{ color: '#4a7c59' }}>No data available</div>
+        <div className="px-4 sm:px-6 py-6 sm:py-12 text-center">
+          <div className="text-sm" style={{ color: '#4a7c59' }}>No data available</div>
         </div>
       )}
     </div>

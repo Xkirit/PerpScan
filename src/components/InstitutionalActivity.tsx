@@ -179,8 +179,8 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
 
   return (
     <CardContainer className="inter-var">
-      <CardBody 
-        className="relative group/card hover:shadow-2xl rounded-xl p-4 border cursor-pointer h-full w-full"
+            <CardBody 
+        className="relative group/card hover:shadow-2xl rounded-xl p-2 sm:p-3 md:p-4 border cursor-pointer h-full w-full"
         onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${coin.symbol}.P`, '_blank')}
         style={{ 
           background: colorScheme.background,
@@ -190,22 +190,22 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
       >
         
         <CardItem translateZ="50" className="relative z-10 w-full">
-          <div className="flex items-start justify-between mb-8 w-full">
-            <div className="flex items-center gap-4">
+          <div className="flex items-start justify-between mb-2 sm:mb-4 md:mb-6 w-full">
+             <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
               <CardItem translateZ="60" rotateX={5} rotateY={5}>
                 <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg overflow-hidden">
+                                     <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg overflow-hidden">
                     <img 
                       src={`https://assets.coincap.io/assets/icons/${coin.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
                       alt={coin.symbol.replace('USDT', '')}
-                      className="w-8 h-8 object-contain"
+                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 object-contain"
                       onError={(e) => {
                         // Fallback to letters if image fails to load
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                         const parent = target.parentElement;
                         if (parent) {
-                          parent.innerHTML = `<span class="font-bold text-lg text-blue-600 dark:text-blue-400">${coin.symbol.replace('USDT', '').slice(0, 2)}</span>`;
+                          parent.innerHTML = `<span class="font-bold text-sm sm:text-lg text-blue-600 dark:text-blue-400">${coin.symbol.replace('USDT', '').slice(0, 2)}</span>`;
                         }
                       }}
                     />
@@ -214,27 +214,28 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
               </CardItem>
               <div>
                 <CardItem translateZ="50">
-                  <span className="font-bold text-xl text-gray-900 dark:text-white">
+                  <span className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">
                     {coin.symbol.replace('USDT', '')}
                   </span>
                 </CardItem>
-                <CardItem translateZ="40">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Detected {new Date(coin.timestamp).toLocaleTimeString()}
-                  </div>
-                </CardItem>
+                                  <CardItem translateZ="40">
+                   <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">
+                     <span className="hidden sm:inline">Detected </span>
+                     {new Date(coin.timestamp).toLocaleTimeString()}
+                   </div>
+                 </CardItem>
               </div>
             </div>
             <CardItem translateZ="60">
-              <div className="flex items-center gap-1">
-                <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+              <div className="flex items-center gap-0.5 sm:gap-1">
+                <span className={`px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium ${
                   coin.volumeCategory === 'low' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' :
                   coin.volumeCategory === 'medium' ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200' :
                   'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                 }`}>
                   {coin.volumeCategory === 'low' ? 'L' : coin.volumeCategory === 'medium' ? 'M' : 'H'}
                 </span>
-                <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                <span className={`px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium ${
                   coin.whaleRating === 'mega' ? 'bg-purple-200 text-purple-800 dark:bg-purple-800 dark:text-purple-200' :
                   coin.whaleRating === 'large' ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' :
                   coin.whaleRating === 'medium' ? 'bg-orange-200 text-orange-800 dark:bg-orange-800 dark:text-orange-200' :
@@ -243,7 +244,7 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
                   {coin.whaleRating === 'mega' ? 'XL' : coin.whaleRating === 'large' ? 'L' : coin.whaleRating === 'medium' ? 'M' : 'S'}
                 </span>
                 {(coin.abnormalityScore || 0) > 2.5 && (
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-1.5 py-0.5 text-xs rounded font-medium animate-pulse">
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium animate-pulse">
                     🚀
                   </span>
                 )}
@@ -253,10 +254,10 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
           
           {/* Main metrics */}
           <CardItem translateZ="40">
-            <div className="space-y-2 w- text-sm mb-3">
+            <div className="space-y-1 sm:space-y-1.5 md:space-y-2 text-xs sm:text-sm mb-1.5 sm:mb-2 md:mb-3">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">OI Value:</span>
-                <span className="font-bold text-lg">
+                <span className="font-bold text-sm sm:text-lg">
                   {coin.openInterestValue > 1e9 
                     ? `$${(coin.openInterestValue / 1e9).toFixed(2)}B` 
                     : `$${(coin.openInterestValue / 1e6).toFixed(1)}M`
@@ -265,11 +266,11 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 dark:text-gray-400">OI Change:</span>
-                <span className={`font-bold text-lg ${
+                <span className={`font-bold text-sm sm:text-lg ${
                   Math.abs(coin.oiChangePercent) < 0.1 ? 'text-gray-500 dark:text-gray-400' :
                   coin.oiChangePercent > 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {Math.abs(coin.oiChangePercent) < 0.1 ? 'Building data...' : 
+                  {Math.abs(coin.oiChangePercent) < 0.1 ? 'Building...' : 
                    `${coin.oiChangePercent > 0 ? '+' : ''}${coin.oiChangePercent.toFixed(1)}%`}
                 </span>
               </div>
@@ -279,44 +280,47 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
           
           {/* Advanced metrics */}
           <CardItem translateZ="30">
-            <div className="grid grid-cols-2 gap-3 text-sm mb-2">
-              <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg">
-                <div className="text-green-600 dark:text-green-400 text-xs mb-2">Priority Score</div>
-                <div className="font-bold text-lg text-green-800 dark:text-green-300">
+            <div className="grid grid-cols-2 gap-1 sm:gap-1.5 md:gap-2 text-xs sm:text-sm mb-1.5 sm:mb-2">
+              <div className="bg-green-100 dark:bg-green-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
+                <div className="text-green-600 dark:text-green-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Priority Score</div>
+                <div className="font-bold text-xs sm:text-sm text-green-800 dark:text-green-300">
                   {(coin.priorityScore || 0).toFixed(0)}
                 </div>
               </div>
-              <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg">
-                <div className="text-blue-600 dark:text-blue-400 text-xs mb-2">Volume/OI</div>
-                <div className="font-bold text-lg text-blue-800 dark:text-blue-300">
+              <div className="bg-blue-100 dark:bg-blue-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
+                <div className="text-blue-600 dark:text-blue-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Volume/OI</div>
+                <div className="font-bold text-xs sm:text-sm text-blue-800 dark:text-blue-300">
                   {(coin.volume24h / coin.openInterestValue).toFixed(1)}x
                 </div>
               </div>
-              <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-lg">
-                <div className="text-red-600 dark:text-red-400 text-xs mb-2">Abnormality</div>
-                <div className="font-bold text-lg text-red-800 dark:text-red-300">
+              <div className="bg-red-100 dark:bg-red-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
+                <div className="text-red-600 dark:text-red-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Abnormality</div>
+                <div className="font-bold text-xs sm:text-sm text-red-800 dark:text-red-300">
                   {(coin.abnormalityScore || 0).toFixed(1)}
                 </div>
               </div>
-              <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-lg">
-                <div className="text-purple-600 dark:text-purple-400 text-xs mb-2">24h Volume</div>
-                <div className="font-bold text-lg text-purple-800 dark:text-purple-300">
+              <div className="bg-purple-100 dark:bg-purple-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
+                <div className="text-purple-600 dark:text-purple-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">
+                  <span className="hidden sm:inline">24h Volume</span>
+                  <span className="sm:hidden">Volume</span>
+                </div>
+                <div className="font-bold text-xs sm:text-sm text-purple-800 dark:text-purple-300">
                   ${(coin.volume24h / 1e6).toFixed(1)}M
                 </div>
               </div>
-              <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg">
-                <div className="text-green-600 dark:text-green-400 text-xs mb-2">Manipulation</div>
-                <div className="font-bold text-lg text-green-800 dark:text-green-300">
+              <div className="bg-green-100 dark:bg-green-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
+                <div className="text-green-600 dark:text-green-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Manipulation</div>
+                <div className="font-bold text-xs sm:text-sm text-green-800 dark:text-green-300">
                   {(coin.manipulationConfidence || 0).toFixed(0)}%
                 </div>
               </div>
               {hasDirectionalData && (
-                <div className={`p-3 rounded-lg ${
+                <div className={`p-1 sm:p-1.5 md:p-2 rounded-lg ${
                   directionalBias === 'bullish' ? 'bg-green-100 dark:bg-green-900/20' :
                   directionalBias === 'bearish' ? 'bg-red-100 dark:bg-red-900/20' :
                   'bg-gray-100 dark:bg-gray-900/20'
                 }`}>
-                  <div className={`text-xs mb-2 ${
+                  <div className={`text-[9px] sm:text-[10px] mb-0.5 sm:mb-1 ${
                     directionalBias === 'bullish' ? 'text-green-600 dark:text-green-400' :
                     directionalBias === 'bearish' ? 'text-red-600 dark:text-red-400' :
                     'text-gray-600 dark:text-gray-400'
@@ -324,7 +328,7 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
                     L/S Bias
                   </div>
                   
-                  <div className=" text-sm mt-1  flex items-center gap-1">
+                  <div className="text-xs sm:text-sm mt-0.5 sm:mt-1 flex items-center gap-1">
                     <span className="text-green-600 font-bold">
                       {coin.longShortRatio ? `${(coin.longShortRatio.buyRatio * 100).toFixed(0)}%` : ''}
                     </span>
@@ -340,8 +344,9 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
           
           {/* Time indicator */}
           <CardItem translateZ="20">
-            <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
-              Last seen: {new Date(coin.timestamp).toLocaleTimeString()}
+            <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 text-center">
+              <span className="hidden sm:inline">Last seen: </span>
+              {new Date(coin.timestamp).toLocaleTimeString()}
             </div>
           </CardItem>
         </CardItem>
@@ -506,7 +511,7 @@ const InstitutionalActivity: React.FC = () => {
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
       
       const response = await fetch(
-        `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1&startTime=${oneHourAgo}&endTime=${now}`,
+        `/api/account-ratio?symbol=${symbol}&period=1h&limit=1&startTime=${oneHourAgo}&endTime=${now}`,
         {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
@@ -520,10 +525,12 @@ const InstitutionalActivity: React.FC = () => {
         return null; // Silent fallback
       }
       
-      const data = await response.json();
-      if (data.retCode !== 0 || !data.result?.list?.length) {
+      const result = await response.json();
+      if (!result.success || !result.data?.length) {
         return null;
       }
+
+      const data = { result: { list: result.data } };
       
       const latestData = data.result.list[0];
       const buyRatio = parseFloat(latestData.buyRatio);
@@ -695,7 +702,7 @@ const InstitutionalActivity: React.FC = () => {
       console.log('🔍 Scanning Bybit futures for institutional flows...');
       
       // Get ALL tickers data (includes OI, funding, volume)
-      const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
+      const tickersResponse = await fetch('/api/tickers', {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         cache: 'no-cache',
@@ -710,10 +717,12 @@ const InstitutionalActivity: React.FC = () => {
         setLoadingMessage('Processing market data...');
       }
 
-      const tickersData = await tickersResponse.json();
-      if (tickersData.retCode !== 0) {
-        throw new Error(tickersData.retMsg);
+      const result = await tickersResponse.json();
+      if (!result.success) {
+        throw new Error(result.error);
       }
+
+      const tickersData = { result: { list: result.data } };
 
       // Filter to top volume USDT pairs - optimized for faster loading
       const topUsdtTickers = tickersData.result.list
@@ -1414,49 +1423,37 @@ const InstitutionalActivity: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#ffffff' }}>
-          <AlertCircleIcon className="h-6 w-6" style={{ color: '#4a7c59' }} />
-          Institutional Activity Detection
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: '#ffffff' }}>
+          <AlertCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#4a7c59' }} />
+          <span className="hidden sm:inline">Institutional Activity Detection</span>
+          <span className="sm:hidden">Institutional Activity</span>
         </h2>
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Last updated: {formatLastUpdated(lastUpdated)}
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <span className="hidden sm:inline">Last updated: </span>
+              {formatLastUpdated(lastUpdated)}
             </div>
           )}
-          {/* <Button
-            onClick={fetchOpenInterestData}
-            disabled={loading}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <RefreshCwIcon 
-              className={`h-4 w-4 transition-transform duration-300 ease-in-out ${
-                loading ? 'animate-spin' : ''
-              }`} 
-              style={{
-                animation: loading ? 'spin 2s linear infinite' : 'none'
-              }}
-            />
-            Refresh
-          </Button> */}
         </div>
       </div>
 
       {/* Signal Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div 
-          className="p-4 rounded-lg backdrop-blur-[3px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Institutional Inflows</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Institutional Inflows</span>
+            <span className="sm:hidden">Inflows</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             ${suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) > 1e9 
               ? `${(suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) / 1e9).toFixed(1)}B`
               : `${(suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) / 1e6).toFixed(0)}M`
@@ -1464,61 +1461,70 @@ const InstitutionalActivity: React.FC = () => {
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[3px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>High Priority Alerts</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">High Priority Alerts</span>
+            <span className="sm:hidden">Alerts</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             {suspiciousMovements.filter(coin => (coin.priorityScore || 0) > 80).length}
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[3px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Manipulation Detected</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Manipulation Detected</span>
+            <span className="sm:hidden">Manipulation</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             {suspiciousMovements.filter(coin => (coin.manipulationConfidence || 0) > 70).length}
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[3px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[3px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Monitored Assets</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Monitored Assets</span>
+            <span className="sm:hidden">Assets</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.length}
           </div>
         </div>
       </div>
 
       {/* 🚀 SMART MONEY TRACKER - Institutional Flow Detection */}
-      <div className="min-h-[800px] rounded-lg border-2 p-6 backdrop-blur-[2.5px]" style={{  borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-        <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff' }}>
-              MANIPULATION DETECTOR
-           
-            </h3>
+      <div className="min-h-[600px] sm:min-h-[800px] rounded-lg border-2 p-4 sm:p-6 backdrop-blur-[2.5px]" style={{  borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
+          <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">MANIPULATION DETECTOR</span>
+            <span className="sm:hidden">DETECTOR</span>
+          </h3>
           <div className="flex items-center gap-3">
-            {/* {dbLastUpdated && (
-              <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded">
-                DB: {dbLastUpdated.toLocaleTimeString()}
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-green-800 dark:text-green-500 px-2 sm:px-3 py-1 rounded-full">
+              <div className="relative w-3 h-3 flex items-center justify-center">
+                <div className="absolute w-3 h-3 bg-green-500/30 rounded-full animate-ping"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               </div>
-            )} */}
-            <div className="text-sm text-green-800 dark:text-green-500  px-3 py-1 rounded-full">
-              {`Next scan: ${countdown}`}
+              <span className="hidden sm:inline">LIVE</span>
+              <span className="sm:hidden">LIVE</span>
             </div>
           </div>
         </div>
@@ -1546,7 +1552,7 @@ const InstitutionalActivity: React.FC = () => {
               </div>
             </div> */}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-h-full overflow-y-auto py-6 px-2 overflow-x-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-full overflow-y-auto py-4 sm:py-6 px-1 sm:px-2 overflow-x-hidden">
               {suspiciousMovements.map((coin, index) => (
                 <TickerCard key={coin.symbol} coin={coin} index={index} />
               ))}
@@ -1649,16 +1655,17 @@ const InstitutionalActivity: React.FC = () => {
       </div>
 
       {/* Live Signals - Split into Three Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* WHALE ACTIVITY */}
-        <div className="rounded-xl p-6 backdrop-blur-[3px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
-          <div className="mb-5">
-            <h3 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
-              Whale Activity
+        <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+          <div className="mb-4 sm:mb-5">
+            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: '#ffffff' }}>
+              <span className="hidden sm:inline">Whale Activity</span>
+              <span className="sm:hidden">Whales</span>
             </h3>
           </div>
-          <div className="max-h-[600px] overflow-y-scroll space-y-4 pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="max-h-[450px] sm:max-h-[600px] overflow-y-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style jsx>{`
               div::-webkit-scrollbar {
                 display: none;
@@ -1677,7 +1684,7 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="group relative p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group relative p-3 sm:p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1686,47 +1693,48 @@ const InstitutionalActivity: React.FC = () => {
                   }}
                 >
                   {/* Header Row */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center font-bold text-sm text-purple-600 dark:text-purple-400 overflow-hidden">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400 overflow-hidden">
                         <img 
                           src={`https://assets.coincap.io/assets/icons/${signal.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
                           alt={signal.symbol.replace('USDT', '')}
-                          className="w-6 h-6 object-contain"
+                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
                           onError={(e) => {
                             // Fallback to letters if image fails to load
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
-                              parent.innerHTML = `<span class="font-bold text-sm text-purple-600 dark:text-purple-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
+                              parent.innerHTML = `<span class="font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
                             }
                           }}
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg text-white leading-none">
+                        <h4 className="font-bold text-sm sm:text-lg text-white leading-none">
                           {signal.symbol.replace('USDT', '')}
                         </h4>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
                           {new Date(signal.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
-                    
-
                   </div>
 
                   {/* Metrics Row */}
-                  <div className="flex items-center gap-4 mb-3">
+                  <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-400">Confidence</span>
-                      <span className="text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
+                      <span className="text-[10px] sm:text-xs text-gray-400">
+                        <span className="hidden sm:inline">Confidence</span>
+                        <span className="sm:hidden">Conf</span>
+                      </span>
+                      <span className="text-[10px] sm:text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
                     </div>
                     
                     {sentiment !== 'neutral' && (
                       <div className="flex items-center gap-1">
-                        <span className={`text-xs font-bold ${
+                        <span className={`text-[10px] sm:text-xs font-bold ${
                           sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {sentiment === 'bullish' ? 'BULL' : 'BEAR'}
@@ -1736,15 +1744,16 @@ const InstitutionalActivity: React.FC = () => {
                   </div>
 
                   {/* Message */}
-                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 leading-relaxed line-clamp-3">
                     {signal.message}
                   </p>
 
                   {/* Action Button */}
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-2 text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                      <span>View Chart</span>
-                      <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                      <span className="hidden sm:inline">View Chart</span>
+                      <span className="sm:hidden">Chart</span>
+                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
@@ -1760,13 +1769,14 @@ const InstitutionalActivity: React.FC = () => {
         </div>
 
         {/* FUNDING SQUEEZES */}
-        <div className="rounded-xl p-6 backdrop-blur-[3px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
-          <div className="mb-5">
-            <h3 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
-              Funding Squeezes
+        <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+          <div className="mb-4 sm:mb-5">
+            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: '#ffffff' }}>
+              <span className="hidden sm:inline">Funding Squeezes</span>
+              <span className="sm:hidden">Funding</span>
             </h3>
           </div>
-          <div className="max-h-[600px] overflow-y-scroll space-y-4 pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="max-h-[450px] sm:max-h-[600px] overflow-y-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style jsx>{`
               div::-webkit-scrollbar {
                 display: none;
@@ -1785,7 +1795,7 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="group relative p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group relative p-3 sm:p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1794,47 +1804,48 @@ const InstitutionalActivity: React.FC = () => {
                   }}
                 >
                   {/* Header Row */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center font-bold text-sm text-orange-600 dark:text-orange-400 overflow-hidden">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center font-bold text-xs sm:text-sm text-orange-600 dark:text-orange-400 overflow-hidden">
                         <img 
                           src={`https://assets.coincap.io/assets/icons/${signal.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
                           alt={signal.symbol.replace('USDT', '')}
-                          className="w-6 h-6 object-contain"
+                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
                           onError={(e) => {
                             // Fallback to letters if image fails to load
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
-                              parent.innerHTML = `<span class="font-bold text-sm text-orange-600 dark:text-orange-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
+                              parent.innerHTML = `<span class="font-bold text-xs sm:text-sm text-orange-600 dark:text-orange-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
                             }
                           }}
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg text-white leading-none">
+                        <h4 className="font-bold text-sm sm:text-lg text-white leading-none">
                           {signal.symbol.replace('USDT', '')}
                         </h4>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
                           {new Date(signal.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
-                    
-
                   </div>
 
                   {/* Metrics Row */}
-                  <div className="flex items-center gap-4 mb-3">
+                  <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-400">Confidence</span>
-                      <span className="text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
+                      <span className="text-[10px] sm:text-xs text-gray-400">
+                        <span className="hidden sm:inline">Confidence</span>
+                        <span className="sm:hidden">Conf</span>
+                      </span>
+                      <span className="text-[10px] sm:text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
                     </div>
                     
                     {sentiment !== 'neutral' && (
                       <div className="flex items-center gap-1">
-                        <span className={`text-xs font-bold ${
+                        <span className={`text-[10px] sm:text-xs font-bold ${
                           sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {sentiment === 'bullish' ? ' BULL' : ' BEAR'}
@@ -1844,15 +1855,16 @@ const InstitutionalActivity: React.FC = () => {
                   </div>
 
                   {/* Message */}
-                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 leading-relaxed line-clamp-3">
                     {signal.message}
                   </p>
 
                   {/* Action Button */}
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-2 text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                      <span>View Chart</span>
-                      <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                      <span className="hidden sm:inline">View Chart</span>
+                      <span className="sm:hidden">Chart</span>
+                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
@@ -1868,13 +1880,14 @@ const InstitutionalActivity: React.FC = () => {
         </div>
 
         {/* STATISTICAL ANOMALIES */}
-        <div className="rounded-xl p-6 backdrop-blur-[3px] max-h-[800px] min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
-          <div className="mb-5">
-            <h3 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
-              Statistical Anomalies
+        <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+          <div className="mb-4 sm:mb-5">
+            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: '#ffffff' }}>
+              <span className="hidden sm:inline">Statistical Anomalies</span>
+              <span className="sm:hidden">Anomalies</span>
             </h3>
           </div>
-          <div className="max-h-[600px] overflow-y-scroll space-y-4 pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="max-h-[450px] sm:max-h-[600px] overflow-y-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style jsx>{`
               div::-webkit-scrollbar {
                 display: none;
@@ -1893,7 +1906,7 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className="group relative p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  className="group relative p-3 sm:p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
                   style={{
                     border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1902,47 +1915,48 @@ const InstitutionalActivity: React.FC = () => {
                   }}
                 >
                   {/* Header Row */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-sm text-blue-600 dark:text-blue-400 overflow-hidden">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-xs sm:text-sm text-blue-600 dark:text-blue-400 overflow-hidden">
                         <img 
                           src={`https://assets.coincap.io/assets/icons/${signal.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
                           alt={signal.symbol.replace('USDT', '')}
-                          className="w-6 h-6 object-contain"
+                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
                           onError={(e) => {
                             // Fallback to letters if image fails to load
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
-                              parent.innerHTML = `<span class="font-bold text-sm text-blue-600 dark:text-blue-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
+                              parent.innerHTML = `<span class="font-bold text-xs sm:text-sm text-blue-600 dark:text-blue-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
                             }
                           }}
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg text-white leading-none">
+                        <h4 className="font-bold text-sm sm:text-lg text-white leading-none">
                           {signal.symbol.replace('USDT', '')}
                         </h4>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
                           {new Date(signal.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>
-                    
-
                   </div>
 
                   {/* Metrics Row */}
-                  <div className="flex items-center gap-4 mb-3">
+                  <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-400">Confidence</span>
-                      <span className="text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
+                      <span className="text-[10px] sm:text-xs text-gray-400">
+                        <span className="hidden sm:inline">Confidence</span>
+                        <span className="sm:hidden">Conf</span>
+                      </span>
+                      <span className="text-[10px] sm:text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
                     </div>
                     
                     {sentiment !== 'neutral' && (
                       <div className="flex items-center gap-1">
-                        <span className={`text-xs font-bold ${
+                        <span className={`text-[10px] sm:text-xs font-bold ${
                           sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {sentiment === 'bullish' ? ' BULL' : ' BEAR'}
@@ -1952,15 +1966,16 @@ const InstitutionalActivity: React.FC = () => {
                   </div>
 
                   {/* Message */}
-                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 leading-relaxed line-clamp-3">
                     {signal.message}
                   </p>
 
                   {/* Action Button */}
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-2 text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                      <span>View Chart</span>
-                      <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                      <span className="hidden sm:inline">View Chart</span>
+                      <span className="sm:hidden">Chart</span>
+                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>

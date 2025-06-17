@@ -75,6 +75,23 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const [rawVolumeData, setRawVolumeData] = useState<{ symbol: string; volume24h: number; rawVolume: number; rawTurnover: number }[]>([]);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
   const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track screen size for responsive behavior
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    // Check on mount
+    checkScreenSize();
+
+    // Add event listener for resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Create stable color mapping based on coin symbol
   const getColorForSymbol = useCallback((symbol: string) => {
@@ -92,8 +109,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   // Fetch raw volume data from Bybit
   const fetchRawVolumeData = useCallback(async () => {
     try {
-      console.log('Fetching raw volume data from Bybit...');
-      const response = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
+      console.log('Fetching raw volume data via API...');
+      const response = await fetch('/api/tickers', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -106,11 +123,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         return;
       }
 
-      const data = await response.json();
-      if (data.retCode !== 0) {
-        console.error('API error:', data.retMsg);
+      const result = await response.json();
+      if (!result.success) {
+        console.error('API error:', result.error);
         return;
       }
+
+      const data = { result: { list: result.data } };
 
       console.log('Raw API response sample:', data.result.list.slice(0, 3));
 
@@ -155,14 +174,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
   const fetchBtcChange = useCallback(async (interval: string) => {
     try {
-      const bybitInterval = interval === '1d' ? 'D' : '60';
-      const points = interval === '1d' ? 30 : 24;
-      
-      const endTime = Date.now();
-      const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
-      
-      const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
-      const response = await fetch(url, {
+      const response = await fetch(`/api/btc-price?interval=${interval}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -175,21 +187,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         return;
       }
 
-      const data = await response.json();
-      if (data.retCode !== 0) {
-        console.error('API error for BTC:', data.retMsg);
+      const result = await response.json();
+      if (!result.success) {
+        console.error('API error for BTC:', result.error);
         return;
       }
 
-      const klineData = data.result?.list || [];
-      const sortedData = klineData.reverse();
-      
-      if (sortedData.length > 0) {
-        const basePrice = parseFloat(sortedData[0][4]); // First close price
-        const lastPrice = parseFloat(sortedData[sortedData.length - 1][4]); // Last close price
-        const change = ((lastPrice - basePrice) / basePrice) * 100;
-        setBtcChange(change);
-      }
+      setBtcChange(result.data.priceChange);
     } catch (error) {
       console.error('Error fetching BTC data:', error);
     }
@@ -213,7 +217,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           const endTime = Date.now();
           const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
           
-          const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
+          const url = `/api/kline?symbol=${symbol}&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
           const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -227,11 +231,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             return { symbol, data: [] };
           }
 
-          const data = await response.json();
-          if (data.retCode !== 0) {
-            console.error(`API error for ${symbol}: ${data.retMsg}`);
+          const result = await response.json();
+          if (!result.success) {
+            console.error(`API error for ${symbol}: ${result.error}`);
             return { symbol, data: [] };
           }
+
+          const data = { result: { list: result.data } };
 
           const klineData = data.result?.list || [];
           const sortedData = klineData.reverse(); // Chronological order
@@ -390,8 +396,9 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>
-            Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)
+          <h2 className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)</span>
+            <span className="sm:hidden">Chart ({interval === '1d' ? '1d' : '4h'}%)</span>
           </h2>
           {btcChange !== null && (
             <div 
@@ -411,23 +418,23 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <select
             value={coinLimit}
             onChange={(e) => setCoinLimit(Number(e.target.value) as 20 | 50 | 100)}
-            className="px-3 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           >
-            <option value={20}>Top 20 Coins</option>
-            <option value={50}>Top 50 Coins</option>
-            <option value={100}>Top 100 Coins</option>
+            <option value={20}>Top 20</option>
+            <option value={50}>Top 50</option>
+            <option value={100}>Top 100</option>
           </select>
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value as 'trendScore' | 'volume24h')}
-            className="px-3 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           >
-            <option value="trendScore">Trend Score</option>
-            <option value="volume24h">24h Volume</option>
+            <option value="trendScore">Trend</option>
+            <option value="volume24h">Volume</option>
           </select>
 
           <Button
@@ -438,7 +445,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             className="flex items-center gap-2"
           >
             <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
+          
           </Button>
         </div>
       </div>
@@ -455,20 +463,30 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         ) : historicalData.length > 0 ? (
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historicalData} margin={{ top: 30, right: 80, left: 10, bottom: 30 }}>
+              <LineChart data={historicalData} margin={{ 
+                top: 30, 
+                right: isMobile ? 60 : 80, 
+                left: isMobile ? 5 : 10, 
+                bottom: isMobile ? 40 : 30 
+              }}>
                 <XAxis 
                   dataKey="time" 
                   stroke="#666"
                   className="dark:stroke-gray-400"
-                  tick={{ fontSize: 12 }}
-                  minTickGap={20}
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
+                  minTickGap={isMobile ? 15 : 20}
+                  angle={isMobile ? -45 : 0}
+                  textAnchor={isMobile ? "end" : "middle"}
+                  height={isMobile ? 50 : 30}
+                  interval={isMobile ? 1 : 0}
                 />
                 <YAxis 
                   stroke="#666"
                   className="dark:stroke-gray-400"
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
                   tickFormatter={formatPercent}
                   domain={['dataMin - 2', 'dataMax + 2']}
+                  width={isMobile ? 45 : 60}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 {/* Add a horizontal line at 0% */}
@@ -559,18 +577,19 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
 
 
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Select coins to display:
+      <div className="space-y-1 sm:space-y-2">
+        <h3 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="hidden sm:inline">Select coins to display:</span>
+          <span className="sm:hidden">Select coins:</span>
         </h3>
-        <div className="flex flex-wrap gap-2 overflow-x-auto max-w-full pb-1">
+        <div className="flex flex-wrap gap-1 sm:gap-2 overflow-x-auto max-w-full pb-1">
           {topCoins.map((coin, index) => (
             <button
               key={coin.symbol}
               onClick={() => toggleCoin(coin.symbol)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors whitespace-nowrap ${
+              className={`px-0.5 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-xs rounded-full sm:rounded-full border-[1px] transition-colors whitespace-nowrap font-medium ${
                 selectedCoins.includes(coin.symbol)
-                  ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-800 dark:text-blue-200'
+                  ? 'text-white border-current'
                   : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
               style={
@@ -579,7 +598,8 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                   : {}
               }
             >
-              {coin.symbol}
+              <span className="hidden sm:inline">{coin.symbol}</span>
+              <span className="sm:hidden">{coin.symbol.replace('USDT', '')}</span>
             </button>
           ))}
         </div>

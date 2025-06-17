@@ -3,6 +3,7 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { formatPercentage } from '../lib/utils';
+import { useState, useEffect } from 'react';
 
 interface TrendChartProps {
   data: CoinAnalysis[];
@@ -74,38 +75,57 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
     rank: index + 1
   }));
 
+  // Track screen size for responsive behavior
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    // Check on mount
+    checkScreenSize();
+
+    // Add event listener for resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   return (
     <div 
-      className="p-6 pb-0 rounded-lg transition-colors backdrop-blur-[2px]" 
+      className="p-4 sm:p-6 pb-0 rounded-lg transition-colors backdrop-blur-[2px]" 
       style={{ 
         border: '1px solid rgba(255, 255, 255, 0.2)',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         backgroundColor: 'rgba(30, 63, 32, 0.1)'
       }}
     >
-      <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#ffffff' }}>{title}</h3>
-      <div className="h-80">
+      <h3 className="text-base sm:text-lg font-semibold mb-4 text-center" style={{ color: '#ffffff' }}>{title}</h3>
+      <div className="h-64 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
             margin={{
               top: 20,
-              right: 30,
+              right: 10,
               left: 3,
-              bottom: 60,
+              bottom: isMobile ? 70 : 60,
             }}
           >
             <XAxis 
               dataKey="name" 
               stroke="#ffffff"
-              fontSize={12}
-              angle={-45}
+              fontSize={isMobile ? 10 : 12}
+              angle={isMobile ? -40 : -45}
               textAnchor="end"
-              height={60}
+              height={isMobile ? 50 : 60}
+              interval={0}
             />
             <YAxis 
               stroke="#ffffff"
-              fontSize={12}
+              fontSize={isMobile ? 10 : 12}
               tickFormatter={(value) => 
                 dataKey === 'trendScore' ? value.toFixed(1) : `${value.toFixed(1)}%`
               }

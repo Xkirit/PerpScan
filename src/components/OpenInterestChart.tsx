@@ -23,13 +23,25 @@ const OpenInterestChart: React.FC = () => {
   const [openInterestData, setOpenInterestData] = useState<OpenInterestData[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Screen size detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const fetchOpenInterestData = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       console.log('📊 Fetching Open Interest data...');
       
-      const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
+      const tickersResponse = await fetch('/api/tickers', {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         cache: 'no-cache',
@@ -39,10 +51,12 @@ const OpenInterestChart: React.FC = () => {
         throw new Error('Failed to fetch tickers data');
       }
 
-      const tickersData = await tickersResponse.json();
-      if (tickersData.retCode !== 0) {
-        throw new Error(tickersData.retMsg);
+      const result = await tickersResponse.json();
+      if (!result.success) {
+        throw new Error(result.error);
       }
+
+      const tickersData = { result: { list: result.data } };
 
       const allUsdtTickers = tickersData.result.list
         .filter((ticker: any) => ticker.symbol.endsWith('USDT'))
@@ -105,16 +119,18 @@ const OpenInterestChart: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#ffffff' }}>
-          <BarChart3Icon className="h-6 w-6" style={{ color: '#4a7c59' }} />
-          Open Interest Analysis
-          {loading && <RefreshCwIcon className="h-5 w-5 animate-spin" style={{ color: '#4a7c59' }} />}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+        <h2 className="text-lg sm:text-2xl font-bold flex items-center gap-2" style={{ color: '#ffffff' }}>
+          <BarChart3Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#4a7c59' }} />
+          <span className="hidden sm:inline">Open Interest Analysis</span>
+          <span className="sm:hidden">OI Analysis</span>
+          {loading && <RefreshCwIcon className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" style={{ color: '#4a7c59' }} />}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {lastUpdated && (
-            <div className="text-sm" style={{ color: '#4a7c59' }}>
-              Last updated: {formatLastUpdated(lastUpdated)}
+            <div className="text-xs sm:text-sm" style={{ color: '#4a7c59' }}>
+              <span className="hidden sm:inline">Last updated: </span>
+              {formatLastUpdated(lastUpdated)}
             </div>
           )}
           <Button
@@ -122,65 +138,78 @@ const OpenInterestChart: React.FC = () => {
             disabled={loading}
             variant="outline"
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3"
           >
-            <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCwIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+            <span className="sm:hidden">↻</span>
           </Button>
         </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Total Assets</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Total Assets</span>
+            <span className="sm:hidden">Assets</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.length}
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Mega Whales</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Mega Whales</span>
+            <span className="sm:hidden">Mega</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.filter(item => item.whaleRating === 'mega').length}
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Large Whales</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Large Whales</span>
+            <span className="sm:hidden">Large</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.filter(item => item.whaleRating === 'large').length}
           </div>
         </div>
         <div 
-          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Total OI Value</div>
-          <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">Total OI Value</span>
+            <span className="sm:hidden">OI Value</span>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
             ${(openInterestData.reduce((sum, item) => sum + item.openInterestValue, 0) / 1e9).toFixed(1)}B
           </div>
         </div>
@@ -189,32 +218,44 @@ const OpenInterestChart: React.FC = () => {
       {/* Top Open Interest Chart */}
       {openInterestData.length > 0 && (
         <div 
-          className="rounded-lg p-6 backdrop-blur-[2px]" 
+          className="rounded-lg p-4 sm:p-6 backdrop-blur-[2px]" 
           style={{ 
             border: '1px solid rgba(255, 255, 255, 0.2)', 
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', 
             backgroundColor: 'rgba(30, 63, 32, 0.1)' 
           }}
         >
-          <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>OI vs Funding Rate</h3>
-          <div style={{ height: '600px' }}>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4" style={{ color: '#ffffff' }}>
+            <span className="hidden sm:inline">OI vs Funding Rate</span>
+            <span className="sm:hidden">OI Chart</span>
+          </h3>
+          <div style={{ height: isMobile ? '280px' : '600px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={openInterestData.slice(0, 30)} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+              <ComposedChart 
+                data={openInterestData.slice(0, 30)} 
+                margin={{ 
+                  top: isMobile ? 10 : 20, 
+                  right: isMobile ? 10 : 30, 
+                  left: isMobile ? 2 : 20, 
+                  bottom: isMobile ? 45 : 80 
+                }}
+              >
                 <XAxis 
                   dataKey="symbol" 
                   stroke="#666"
                   className="dark:stroke-gray-400"
-                  tick={{ fontSize: 10 }}
-                  angle={-45}
+                  tick={{ fontSize: isMobile ? 7 : 10 }}
+                  angle={isMobile ? -30 : -45}
                   textAnchor="end"
-                  height={80}
+                  height={isMobile ? 45 : 80}
                   tickFormatter={(value) => value.replace('USDT', '')}
+                  interval={0}
                 />
                 <YAxis 
                   yAxisId="left"
                   stroke="#666"
                   className="dark:stroke-gray-400"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: isMobile ? 7 : 10 }}
                   tickFormatter={(value) => `$${(value / 1e6).toFixed(0)}M`}
                 />
                 <YAxis 
@@ -222,7 +263,7 @@ const OpenInterestChart: React.FC = () => {
                   orientation="right"
                   stroke="#666"
                   className="dark:stroke-gray-400"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: isMobile ? 7 : 10 }}
                   tickFormatter={(value) => `${value.toFixed(2)}%`}
                 />
                 <Tooltip 
@@ -305,17 +346,18 @@ const OpenInterestChart: React.FC = () => {
           </div>
           
           {/* Chart Legend */}
-          <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-3 bg-blue-500 opacity-70 rounded-sm"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Open Interest</span>
+              <div className="w-3 h-2 sm:w-4 sm:h-3 bg-blue-500 opacity-70 rounded-sm"></div>
+              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Open Interest</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-red-500 rounded-full"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Funding Rate</span>
+              <div className="w-3 h-0.5 sm:w-4 bg-red-500 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Funding Rate</span>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-500 italic">
-              Click any bar to open TradingView chart
+            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 italic text-center">
+              <span className="hidden sm:inline">Click any bar to open TradingView chart</span>
+              <span className="sm:hidden">Tap bars for charts</span>
             </div>
           </div>
         </div>

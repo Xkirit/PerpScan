@@ -10,7 +10,6 @@ import OpenInterestChart from './OpenInterestChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
 import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon } from 'lucide-react';
-import { BybitClientService } from '@/lib/bybit-client-service';
 import BtcPriceChange from './BtcPriceChange';
 import LiquidGlass from 'liquid-glass-react';
 
@@ -91,14 +90,34 @@ const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Starting client-side analysis with interval:', interval);
-      const clientService = new BybitClientService();
-      const result = await clientService.runCompleteAnalysis(50, interval);
-      setData(result);
+      console.log('Fetching data via API route with interval:', interval);
+      
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          limit: 50, 
+          interval: interval 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'API request failed');
+      }
+
+      setData(result.data);
       setLastUpdated(new Date());
-      console.log('Client-side analysis completed successfully');
+      console.log('Data fetched successfully via API route');
     } catch (error) {
-      console.error('Client-side analysis failed:', error);
+      console.error('Failed to fetch data via API route:', error);
       setError('Failed to fetch data. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
@@ -179,7 +198,7 @@ const Dashboard: React.FC = () => {
               <img 
                 src="/logo.svg" 
                 alt="PerpFlow" 
-                className="h-20 w-auto"
+                className="h-12 sm:h-16 md:h-20 w-auto"
                 style={{ 
                   filter: 'brightness(1.4)',
                   transform: 'scaleY(0.92)'
@@ -221,9 +240,9 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Interval Selector */}
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <span className="text-sm font-medium" style={{ color: '#4a7c59' }}>Analysis Interval:</span>
-            <div className="flex rounded-lg p-1" style={{ backgroundColor: '#0F1411' }}>
+            <div className="flex rounded-lg p-1 w-max" style={{ backgroundColor: '#0F1411' }}>
               <button
                 onClick={() => setChartInterval('4h')}
                 className="px-3 py-1 text-sm rounded-md transition-colors"

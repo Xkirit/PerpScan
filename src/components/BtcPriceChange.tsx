@@ -13,14 +13,7 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
   const fetchBtcChange = useCallback(async () => {
     setLoading(true);
     try {
-      const bybitInterval = interval === '1d' ? 'D' : '60';
-      const points = interval === '1d' ? 30 : 24;
-      
-      const endTime = Date.now();
-      const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
-      
-      const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
-      const response = await fetch(url, {
+      const response = await fetch(`/api/btc-price?interval=${interval}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -33,21 +26,14 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
         return;
       }
 
-      const data = await response.json();
-      if (data.retCode !== 0) {
-        console.error('API error for BTC:', data.retMsg);
+      const result = await response.json();
+      
+      if (!result.success) {
+        console.error('API error for BTC:', result.error);
         return;
       }
 
-      const klineData = data.result?.list || [];
-      const sortedData = klineData.reverse();
-      
-      if (sortedData.length > 0) {
-        const basePrice = parseFloat(sortedData[0][4]); // First close price
-        const lastPrice = parseFloat(sortedData[sortedData.length - 1][4]); // Last close price
-        const change = ((lastPrice - basePrice) / basePrice) * 100;
-        setBtcChange(change);
-      }
+      setBtcChange(result.data.priceChange);
     } catch (error) {
       console.error('Error fetching BTC data:', error);
     } finally {
@@ -65,8 +51,9 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
 
   if (loading) {
     return (
-      <div className="px-3 py-1 rounded-lg text-sm font-medium" style={{ backgroundColor: '#2d5a31', color: '#4a7c59' }}>
-        Loading...
+      <div className="px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium" style={{ backgroundColor: '#2d5a31', color: '#4a7c59' }}>
+        <span className="hidden sm:inline">Loading...</span>
+        <span className="sm:hidden">...</span>
       </div>
     );
   }
@@ -77,7 +64,7 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
 
   return (
     <div 
-      className="px-3 py-1 rounded-lg text-sm font-medium"
+      className="px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap"
       style={{
         backgroundColor: btcChange >= 0 ? '#2d5a31' : '#1A1F16',
         color: btcChange >= 0 ? '#ffffff' : '#ffffff'
