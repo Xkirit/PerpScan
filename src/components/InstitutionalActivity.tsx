@@ -1207,11 +1207,14 @@ const InstitutionalActivity: React.FC = () => {
 
       {/* Signal Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
-          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
-          border: '1px solid rgba(74, 124, 89, 0.2)',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Institutional Inflows</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             ${suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) > 1e9 
@@ -1219,45 +1222,50 @@ const InstitutionalActivity: React.FC = () => {
               : `${(suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) / 1e6).toFixed(0)}M`
             }
           </div>
-          
         </div>
-        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
-          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
-          border: '1px solid rgba(74, 124, 89, 0.2)',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>High Priority Alerts</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {suspiciousMovements.filter(coin => (coin.priorityScore || 0) > 80).length}
           </div>
-          
         </div>
-        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
-          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
-          border: '1px solid rgba(74, 124, 89, 0.2)',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Manipulation Detected</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {suspiciousMovements.filter(coin => (coin.manipulationConfidence || 0) > 70).length}
           </div>
-         
         </div>
-        <div className="p-4 rounded-lg shadow-sm backdrop-blur-[2px]" style={{ 
-          background: 'linear-gradient(135deg, rgba(45, 90, 49, 0.2) 0%, rgba(45, 90, 49, 0.1) 100%)',
-          border: '1px solid rgba(74, 124, 89, 0.2)',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Monitored Assets</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.length}
           </div>
-          
         </div>
       </div>
 
       {/* 🚀 SMART MONEY TRACKER - Institutional Flow Detection */}
-      <div className="min-h-[800px] rounded-lg border-2 p-6 backdrop-blur-[2px]" style={{ backgroundColor: 'rgba(30, 63, 32, 0.1)', borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
+      <div className="min-h-[800px] rounded-lg border-2 p-6 backdrop-blur-[2.5px]" style={{  borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
         <div className="flex items-center justify-between mb-6">
                       <h3 className="text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff' }}>
               SMART MONEY TRACKER - Institutional Flow Detection
@@ -1422,70 +1430,66 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className={`group relative p-5 rounded-xl ${colors.bg} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden`}
+                  className="group relative p-4 rounded-lg backdrop-blur-[2px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
+                  style={{
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(30, 63, 32, 0.1)',
+                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
+                  }}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-gray-400 to-transparent rounded-full transform translate-x-8 -translate-y-8"></div>
-                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-300 to-transparent rounded-full transform -translate-x-6 translate-y-6"></div>
+                  {/* Header Row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center font-bold text-sm text-purple-600 dark:text-purple-400">
+                        {signal.symbol.replace('USDT', '').slice(0, 2)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg text-white leading-none">
+                          {signal.symbol.replace('USDT', '')}
+                        </h4>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(signal.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Severity Badge */}
+                    <div className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                      {signal.severity.toUpperCase()}
+                    </div>
                   </div>
-                  
-                  {/* Content */}
-                  <div className="relative z-10">
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center font-bold text-lg ${colors.text} shadow-sm`}>
-                          {signal.symbol.replace('USDT', '').slice(0, 2)}
-                        </div>
-                        <div>
-                          <h4 className={`font-bold text-xl ${colors.text} leading-none`}>
-                            {signal.symbol.replace('USDT', '')}
-                          </h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {new Date(signal.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Severity Badge */}
-                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${colors.badge} shadow-sm`}>
-                        {signal.severity.toUpperCase()}
-                      </div>
-                    </div>
 
-                    {/* Metrics Row */}
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* Metrics Row */}
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">Confidence</span>
+                      <span className="text-xs font-bold text-white">{signal.confidence}%</span>
+                    </div>
+                    
+                    {sentiment !== 'neutral' && (
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Confidence</span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{signal.confidence}%</span>
+                        <span className={`text-xs font-bold ${
+                          sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {sentiment === 'bullish' ? '📈 BULL' : '📉 BEAR'}
+                        </span>
                       </div>
-                      
-                      {sentiment !== 'neutral' && (
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-bold ${
-                            sentiment === 'bullish' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                          }`}>
-                            {sentiment === 'bullish' ? '📈 BULL' : '📉 BEAR'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Message */}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed line-clamp-2">
-                      {signal.message}
-                    </p>
+                  {/* Message */}
+                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                    {signal.message}
+                  </p>
 
-                    {/* Action Button */}
-                    <div className="flex justify-end">
-                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
-                        <span>View Chart</span>
-                        <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
+                  {/* Action Button */}
+                  <div className="flex justify-end">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                      <span>View Chart</span>
+                      <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -1528,70 +1532,66 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className={`group relative p-5 rounded-xl ${colors.bg} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden`}
+                  className="group relative p-4 rounded-lg backdrop-blur-[2px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
+                  style={{
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(30, 63, 32, 0.1)',
+                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
+                  }}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-gray-400 to-transparent rounded-full transform translate-x-8 -translate-y-8"></div>
-                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-300 to-transparent rounded-full transform -translate-x-6 translate-y-6"></div>
+                  {/* Header Row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center font-bold text-sm text-orange-600 dark:text-orange-400">
+                        {signal.symbol.replace('USDT', '').slice(0, 2)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg text-white leading-none">
+                          {signal.symbol.replace('USDT', '')}
+                        </h4>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(signal.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Severity Badge */}
+                    <div className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                      {signal.severity.toUpperCase()}
+                    </div>
                   </div>
-                  
-                  {/* Content */}
-                  <div className="relative z-10">
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center font-bold text-lg ${colors.text} shadow-sm`}>
-                          {signal.symbol.replace('USDT', '').slice(0, 2)}
-                        </div>
-                        <div>
-                          <h4 className={`font-bold text-xl ${colors.text} leading-none`}>
-                            {signal.symbol.replace('USDT', '')}
-                          </h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {new Date(signal.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Severity Badge */}
-                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${colors.badge} shadow-sm`}>
-                        {signal.severity.toUpperCase()}
-                      </div>
-                    </div>
 
-                    {/* Metrics Row */}
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* Metrics Row */}
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">Confidence</span>
+                      <span className="text-xs font-bold text-white">{signal.confidence}%</span>
+                    </div>
+                    
+                    {sentiment !== 'neutral' && (
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Confidence</span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{signal.confidence}%</span>
+                        <span className={`text-xs font-bold ${
+                          sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {sentiment === 'bullish' ? '📈 BULL' : '📉 BEAR'}
+                        </span>
                       </div>
-                      
-                      {sentiment !== 'neutral' && (
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-bold ${
-                            sentiment === 'bullish' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                          }`}>
-                            {sentiment === 'bullish' ? '📈 BULL' : '📉 BEAR'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Message */}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed line-clamp-2">
-                      {signal.message}
-                    </p>
+                  {/* Message */}
+                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                    {signal.message}
+                  </p>
 
-                    {/* Action Button */}
-                    <div className="flex justify-end">
-                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
-                        <span>View Chart</span>
-                        <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
+                  {/* Action Button */}
+                  <div className="flex justify-end">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                      <span>View Chart</span>
+                      <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -1634,70 +1634,66 @@ const InstitutionalActivity: React.FC = () => {
               return (
                 <div
                   key={index}
-                  className={`group relative p-5 rounded-xl ${colors.bg} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden`}
+                  className="group relative p-4 rounded-lg backdrop-blur-[2px] hover:shadow-lg transition-all duration-300 cursor-pointer"
                   onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
+                  style={{
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(30, 63, 32, 0.1)',
+                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
+                  }}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-gray-400 to-transparent rounded-full transform translate-x-8 -translate-y-8"></div>
-                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-300 to-transparent rounded-full transform -translate-x-6 translate-y-6"></div>
+                  {/* Header Row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-sm text-blue-600 dark:text-blue-400">
+                        {signal.symbol.replace('USDT', '').slice(0, 2)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg text-white leading-none">
+                          {signal.symbol.replace('USDT', '')}
+                        </h4>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(signal.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Severity Badge */}
+                    <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                      {signal.severity.toUpperCase()}
+                    </div>
                   </div>
-                  
-                  {/* Content */}
-                  <div className="relative z-10">
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center font-bold text-lg ${colors.text} shadow-sm`}>
-                          {signal.symbol.replace('USDT', '').slice(0, 2)}
-                        </div>
-                        <div>
-                          <h4 className={`font-bold text-xl ${colors.text} leading-none`}>
-                            {signal.symbol.replace('USDT', '')}
-                          </h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {new Date(signal.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Severity Badge */}
-                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${colors.badge} shadow-sm`}>
-                        {signal.severity.toUpperCase()}
-                      </div>
-                    </div>
 
-                    {/* Metrics Row */}
-                    <div className="flex items-center gap-2 mb-3">
+                  {/* Metrics Row */}
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">Confidence</span>
+                      <span className="text-xs font-bold text-white">{signal.confidence}%</span>
+                    </div>
+                    
+                    {sentiment !== 'neutral' && (
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Confidence</span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{signal.confidence}%</span>
+                        <span className={`text-xs font-bold ${
+                          sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {sentiment === 'bullish' ? '📈 BULL' : '📉 BEAR'}
+                        </span>
                       </div>
-                      
-                      {sentiment !== 'neutral' && (
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-bold ${
-                            sentiment === 'bullish' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                          }`}>
-                            {sentiment === 'bullish' ? '📈 BULL' : '📉 BEAR'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Message */}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed line-clamp-2">
-                      {signal.message}
-                    </p>
+                  {/* Message */}
+                  <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                    {signal.message}
+                  </p>
 
-                    {/* Action Button */}
-                    <div className="flex justify-end">
-                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
-                        <span>View Chart</span>
-                        <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
+                  {/* Action Button */}
+                  <div className="flex justify-end">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                      <span>View Chart</span>
+                      <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
                 </div>

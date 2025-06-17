@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, TooltipProps, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, TooltipProps, ReferenceLine } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon, AlertTriangleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,6 +74,20 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   const [filterType, setFilterType] = useState<'trendScore' | 'volume24h'>('trendScore');
   const [rawVolumeData, setRawVolumeData] = useState<{ symbol: string; volume24h: number; rawVolume: number; rawTurnover: number }[]>([]);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
+  // Create stable color mapping based on coin symbol
+  const getColorForSymbol = useCallback((symbol: string) => {
+    // Create a simple hash from the symbol to get consistent color index
+    let hash = 0;
+    for (let i = 0; i < symbol.length; i++) {
+      const char = symbol.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    const colorIndex = Math.abs(hash) % chartColors.length;
+    return chartColors[colorIndex];
+  }, []);
 
   // Fetch raw volume data from Bybit
   const fetchRawVolumeData = useCallback(async () => {
@@ -304,9 +318,41 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     }
   }, [topCoinSymbols, interval, topCoins.length, fetchHistoricalData]);
 
+  // Trigger animations when parameters change (filterType, coinLimit, interval)
+  useEffect(() => {
+    // Skip animation on initial mount (handled by the mount useEffect)
+    if (historicalData.length > 0) {
+      setShouldAnimate(true);
+      const timeout = setTimeout(() => setShouldAnimate(false), 4000);
+      return () => clearTimeout(timeout);
+    }
+  }, [filterType, coinLimit, interval]); // Trigger when these parameters change
+
   useEffect(() => {
     fetchBtcChange(interval);
   }, [interval, fetchBtcChange]);
+
+  // Enable animations on initial component mount (page refresh)
+  useEffect(() => {
+    setShouldAnimate(true);
+    const timeout = setTimeout(() => setShouldAnimate(false), 4000); // Match animation duration + buffer
+    return () => clearTimeout(timeout);
+  }, []); // ✅ only on first mount
+  
+  const refreshData = () => {
+    // Reset animation state first
+    setShouldAnimate(false);
+    
+    // Fetch new data
+    fetchHistoricalData(topCoins.map(coin => coin.symbol), interval);
+    
+    // Enable animation after a brief delay to ensure data is loaded
+    setTimeout(() => {
+      setShouldAnimate(true);
+      // Disable animation after it completes
+      setTimeout(() => setShouldAnimate(false), 4000);
+    }, 100);
+  };
 
   const toggleCoin = (symbol: string) => {
     const newSelected = selectedCoins.includes(symbol)
@@ -315,9 +361,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     setSelectedCoins(newSelected);
   };
 
-  const refreshData = () => {
-    fetchHistoricalData(topCoins.map(coin => coin.symbol), interval);
-  };
+  
 
   const formatPercent = (value: number): string => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -348,7 +392,6 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)
-            {filterType === 'volume24h' && ' - Top Volume Coins'}
           </h2>
           {btcChange !== null && (
             <div 
@@ -401,7 +444,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       </div>
 
       {/* Chart */}
-      <div className="w-full" style={{ height: 'calc(100vh - 250px)' }}>
+      <div className="w-full backdrop-blur-[2.2px]" style={{ height: 'calc(100vh - 250px)' }}>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -413,7 +456,6 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={historicalData} margin={{ top: 30, right: 80, left: 10, bottom: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" className="dark:stroke-gray-700" />
                 <XAxis 
                   dataKey="time" 
                   stroke="#666"
@@ -436,11 +478,14 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                     key={symbol}
                     type="monotone"
                     dataKey={symbol}
-                    stroke={chartColors[index % chartColors.length]}
+                    stroke={getColorForSymbol(symbol)}
                     strokeWidth={2.5}
                     dot={false}
                     connectNulls={false}
-                    isAnimationActive={false}
+                    isAnimationActive={shouldAnimate}
+                    animationBegin={shouldAnimate ? index * 100 : 0}
+                    animationDuration={shouldAnimate ? 1200 : 0}
+                    animationEasing="ease-in-out"
                     onMouseEnter={() => setHoveredTicker(symbol)}
                     onMouseLeave={() => setHoveredTicker(null)}
                   />
@@ -489,7 +534,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                         right: '5px',
                         fontSize: '11px',
                         fontWeight: '600',
-                        color: chartColors[index % chartColors.length],
+                        color: getColorForSymbol(symbol),
                         cursor: 'pointer',
                         pointerEvents: 'auto',
                         transform: 'translateY(-50%)',
@@ -516,7 +561,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Select coins to display (showing top {coinLimit} by {filterType === 'trendScore' ? 'trend score' : '24h volume'}):
+          Select coins to display:
         </h3>
         <div className="flex flex-wrap gap-2 overflow-x-auto max-w-full pb-1">
           {topCoins.map((coin, index) => (
@@ -530,7 +575,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
               }`}
               style={
                 selectedCoins.includes(coin.symbol)
-                  ? { borderColor: chartColors[index % chartColors.length] }
+                  ? { borderColor: getColorForSymbol(coin.symbol) }
                   : {}
               }
             >

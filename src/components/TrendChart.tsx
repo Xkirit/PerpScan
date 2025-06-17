@@ -1,6 +1,6 @@
 "use client";
 
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { formatPercentage } from '../lib/utils';
 
@@ -76,14 +76,14 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
 
   return (
     <div 
-      className="p-6 rounded-lg transition-colors backdrop-blur-[2px]" 
+      className="p-6 pb-0 rounded-lg transition-colors backdrop-blur-[2px]" 
       style={{ 
         border: '1px solid rgba(255, 255, 255, 0.2)',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         backgroundColor: 'rgba(30, 63, 32, 0.1)'
       }}
     >
-      <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>{title}</h3>
+      <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#ffffff' }}>{title}</h3>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -91,11 +91,10 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
             margin={{
               top: 20,
               right: 30,
-              left: 20,
+              left: 3,
               bottom: 60,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#2d5a31" />
             <XAxis 
               dataKey="name" 
               stroke="#ffffff"

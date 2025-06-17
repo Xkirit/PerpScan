@@ -25,7 +25,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 const getCategoryColor = (category: string) => {
-  const baseStyle = { backgroundColor: '#2d5a31' };
+  const baseStyle = { backgroundColor: '#15321a' };
   switch (category) {
     case 'trending':
       return { ...baseStyle, borderLeftColor: '#4a7c59', borderLeftWidth: '4px' };
@@ -59,7 +59,7 @@ export function DataTable({ data, title, category }: DataTableProps) {
     <div 
       className="rounded-lg overflow-hidden transition-colors backdrop-blur-[2px]" 
       style={{ 
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: '0.5px solid rgba(255, 255, 255, 0.2)',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         backgroundColor: 'rgba(30, 63, 32, 0.1)'
       }}
@@ -69,15 +69,13 @@ export function DataTable({ data, title, category }: DataTableProps) {
           <div className="flex items-center space-x-2">
             {getCategoryIcon(category)}
             <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>{title}</h3>
-            <span className="px-2 py-1 rounded-full text-xs" style={{ backgroundColor: '#1E3F20', color: '#ffffff' }}>
-              {data.length} coins
-            </span>
+            
           </div>
           {data.length > 10 && (
             <button
               onClick={() => setShowAll(!showAll)}
               className="flex items-center gap-1 px-3 py-1 text-sm transition-colors"
-              style={{ color: '#4a7c59' }}
+              style={{ color: '#6ca37f', opacity:"50" }}
             >
               {showAll ? (
                 <>
@@ -95,9 +93,9 @@ export function DataTable({ data, title, category }: DataTableProps) {
         </div>
       </div>
       
-      <div className={`overflow-x-auto ${showAll ? 'max-h-96 overflow-y-auto' : ''}`}>
+      <div className={`overflow-x-auto ${showAll ? 'max-h-[1000px] overflow-y-auto' : ''}`}>
         <table className="w-full">
-          <thead className="border-b sticky top-0" style={{ backgroundColor: '#4a7c59', borderColor: '#2d5a31' }}>
+          <thead className="sticky top-0" style={{ backgroundColor: '#091a0c', borderBottom: '0.5px solid #2d5a31' }}>
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#ffffff' }}>
                 Rank
@@ -125,9 +123,15 @@ export function DataTable({ data, title, category }: DataTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: '#2d5a31' }}>
+          <tbody style={{ borderColor: '#2d5a31' }}>
             {displayData.map((coin, index) => (
-              <tr key={coin.symbol} className="transition-colors hover:opacity-80">
+              <tr 
+                key={coin.symbol} 
+                className="transition-colors hover:opacity-80"
+                style={{ 
+                  borderBottom: index < displayData.length - 1 ? '0.8px solid rgba(45, 90, 49, 0.3)' : 'none'
+                }}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm font-medium" style={{ color: '#ffffff' }}>
@@ -150,7 +154,7 @@ export function DataTable({ data, title, category }: DataTableProps) {
                     >
                       {coin.symbol.replace('USDT', '')}
                     </div>
-                    <div className="text-xs ml-1" style={{ color: '#4a7c59' }}>USDT</div>
+                    {/* <div className="text-xs ml-1" style={{ color: '#4a7c59' }}>USDT</div> */}
                   </div>
                 </td>
                 
@@ -179,7 +183,7 @@ export function DataTable({ data, title, category }: DataTableProps) {
                 </td>
                 
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPerformanceBgColorDark(coin.trendScore)} ${getPerformanceColorDark(coin.trendScore)}`}>
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium  ${getPerformanceColorDark(coin.trendScore)}`}>
                     {coin.trendScore.toFixed(2)}
                   </div>
                 </td>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { RefreshCwIcon, BarChart3Icon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -132,25 +132,53 @@ const OpenInterestChart: React.FC = () => {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Total Assets</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.length}
           </div>
         </div>
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Mega Whales</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.filter(item => item.whaleRating === 'mega').length}
           </div>
         </div>
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Large Whales</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             {openInterestData.filter(item => item.whaleRating === 'large').length}
           </div>
         </div>
-        <div className="p-4 rounded-lg border shadow-sm" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
+        <div 
+          className="p-4 rounded-lg backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+          }}
+        >
           <div className="text-sm font-medium" style={{ color: '#ffffff' }}>Total OI Value</div>
           <div className="text-2xl font-bold" style={{ color: '#ffffff' }}>
             ${(openInterestData.reduce((sum, item) => sum + item.openInterestValue, 0) / 1e9).toFixed(1)}B
@@ -160,12 +188,18 @@ const OpenInterestChart: React.FC = () => {
 
       {/* Top Open Interest Chart */}
       {openInterestData.length > 0 && (
-        <div className="rounded-lg p-6 backdrop-blur-[2px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
+        <div 
+          className="rounded-lg p-6 backdrop-blur-[2px]" 
+          style={{ 
+            border: '1px solid rgba(255, 255, 255, 0.2)', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', 
+            backgroundColor: 'rgba(30, 63, 32, 0.1)' 
+          }}
+        >
           <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>📊 Top Open Interest Assets</h3>
           <div style={{ height: '600px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={openInterestData.slice(0, 30)} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" className="dark:stroke-gray-700" />
                 <XAxis 
                   dataKey="symbol" 
                   stroke="#666"
