@@ -147,20 +147,30 @@ const Dashboard: React.FC = () => {
   const allCoins = data?.trending || [];
 
   return (
-    <div
-      className="min-h-screen transition-colors relative scrollbar-hide"
-      style={{
-        backgroundColor: '#0F1411',
-        backgroundImage: `
-          linear-gradient(rgba(26, 31, 22, 0.8) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(26, 31, 22, 0.8) 1px, transparent 1px)
-        `,
-        backgroundSize: '40px 40px',
-        overflowY: 'scroll', // Force scrollbar to always be present
-        scrollbarWidth: 'none', // Firefox
-        msOverflowStyle: 'none' // Internet Explorer and Edge
-      }}
-    >
+    <div className="min-h-screen relative">
+      {/* Fixed Background Grid */}
+      <div
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundColor: '#0F1411',
+          backgroundImage: `
+            linear-gradient(rgba(26, 31, 22, 0.8) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(26, 31, 22, 0.8) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px',
+          backgroundAttachment: 'fixed'
+        }}
+      />
+      
+      {/* Scrollable Content */}
+      <div
+        className="relative z-10 min-h-screen transition-colors scrollbar-hide"
+        style={{
+          overflowY: 'auto',
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none' // Internet Explorer and Edge
+        }}
+      >
       {/* Header */}
       <div className="shadow-sm border-b relative z-10" style={{ backgroundColor: '#15321a', borderColor: '#2d5a31' }}>
         <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-4">
@@ -424,7 +434,7 @@ const Dashboard: React.FC = () => {
         ) : null}
       </div>
 
-                      {/* Enhanced Footer */}
+        {/* Enhanced Footer */}
         {data && !loading && (
           <footer className="mt-16 py-8 border-t backdrop-blur-[2px]" style={{ 
             borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -447,11 +457,11 @@ const Dashboard: React.FC = () => {
             {/* Center Section - Quick Links */}
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => window.open('https://docs.bybit.com/v5/intro', '_blank')}
+                onClick={() => window.open('/docs', '_blank')}
                 className="text-xs hover:opacity-80 transition-opacity"
                 style={{ color: 'rgba(255, 255, 255, 0.5)' }}
               >
-                API Docs
+                Docs
               </button>
               <button 
                 onClick={() => window.open('https://www.bybit.com', '_blank')}
@@ -565,6 +575,7 @@ const Dashboard: React.FC = () => {
         </div>
       </footer>
         )}
+      </div>
     </div>
   );
 };

@@ -28,13 +28,13 @@ const getCategoryColor = (category: string) => {
   const baseStyle = { backgroundColor: '#15321a' };
   switch (category) {
     case 'trending':
-      return { ...baseStyle, borderLeftColor: '#4a7c59', borderLeftWidth: '4px' };
+      return { ...baseStyle, borderLeftColor: '#4a7c59' };
     case 'strongest':
-      return { ...baseStyle, borderLeftColor: '#ffffff', borderLeftWidth: '4px' };
+      return { ...baseStyle, borderLeftColor: '#ffffff' };
     case 'weakest':
-      return { ...baseStyle, borderLeftColor: '#4a7c59', borderLeftWidth: '4px' };
+      return { ...baseStyle, borderLeftColor: '#4a7c59' };
     default:
-      return { ...baseStyle, borderLeftColor: '#4a7c59', borderLeftWidth: '4px' };
+      return { ...baseStyle, borderLeftColor: '#4a7c59' };
   }
 };
 
@@ -93,7 +93,7 @@ export function DataTable({ data, title, category }: DataTableProps) {
         </div>
       </div>
       
-      <div className={`overflow-x-auto ${showAll ? 'max-h-[1000px] overflow-y-auto' : ''}`}>
+      <div className={`overflow-x-auto ${showAll ? 'max-h-[1000px] overflow-y-scroll scrollbar-hide' : ''}`}>
         <table className="w-full">
           <thead className="sticky top-0" style={{ backgroundColor: '#091a0c', borderBottom: '0.5px solid #2d5a31' }}>
             <tr>

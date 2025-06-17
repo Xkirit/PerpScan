@@ -196,7 +196,7 @@ const OpenInterestChart: React.FC = () => {
             backgroundColor: 'rgba(30, 63, 32, 0.1)' 
           }}
         >
-          <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>📊 Top Open Interest Assets</h3>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>OI vs Funding Rate</h3>
           <div style={{ height: '600px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={openInterestData.slice(0, 30)} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
