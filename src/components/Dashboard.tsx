@@ -12,6 +12,7 @@ import { Button } from './ui/button';
 import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon } from 'lucide-react';
 import BtcPriceChange from './BtcPriceChange';
 import LiquidGlass from 'liquid-glass-react';
+import { BybitClientService } from '@/lib/bybit-client-service';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -90,34 +91,14 @@ const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Fetching data via API route with interval:', interval);
-      
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          limit: 50, 
-          interval: interval 
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'API request failed');
-      }
-
-      setData(result.data);
+      console.log('Starting client-side analysis with interval:', interval);
+      const clientService = new BybitClientService();
+      const result = await clientService.runCompleteAnalysis(50, interval);
+      setData(result);
       setLastUpdated(new Date());
-      console.log('Data fetched successfully via API route');
+      console.log('Client-side analysis completed successfully');
     } catch (error) {
-      console.error('Failed to fetch data via API route:', error);
+      console.error('Client-side analysis failed:', error);
       setError('Failed to fetch data. Please check your internet connection and try again.');
     } finally {
       setLoading(false);

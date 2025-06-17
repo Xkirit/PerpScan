@@ -511,7 +511,7 @@ const InstitutionalActivity: React.FC = () => {
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
       
       const response = await fetch(
-        `/api/account-ratio?symbol=${symbol}&period=1h&limit=1&startTime=${oneHourAgo}&endTime=${now}`,
+        `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1&startTime=${oneHourAgo}&endTime=${now}`,
         {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
@@ -525,12 +525,10 @@ const InstitutionalActivity: React.FC = () => {
         return null; // Silent fallback
       }
       
-      const result = await response.json();
-      if (!result.success || !result.data?.length) {
+      const data = await response.json();
+      if (data.retCode !== 0 || !data.result?.list?.length) {
         return null;
       }
-
-      const data = { result: { list: result.data } };
       
       const latestData = data.result.list[0];
       const buyRatio = parseFloat(latestData.buyRatio);
@@ -702,7 +700,7 @@ const InstitutionalActivity: React.FC = () => {
       console.log('🔍 Scanning Bybit futures for institutional flows...');
       
       // Get ALL tickers data (includes OI, funding, volume)
-      const tickersResponse = await fetch('/api/tickers', {
+      const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         cache: 'no-cache',
@@ -717,12 +715,10 @@ const InstitutionalActivity: React.FC = () => {
         setLoadingMessage('Processing market data...');
       }
 
-      const result = await tickersResponse.json();
-      if (!result.success) {
-        throw new Error(result.error);
+      const tickersData = await tickersResponse.json();
+      if (tickersData.retCode !== 0) {
+        throw new Error(tickersData.retMsg);
       }
-
-      const tickersData = { result: { list: result.data } };
 
       // Filter to top volume USDT pairs - optimized for faster loading
       const topUsdtTickers = tickersData.result.list

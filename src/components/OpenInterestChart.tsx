@@ -41,7 +41,7 @@ const OpenInterestChart: React.FC = () => {
     try {
       console.log('📊 Fetching Open Interest data...');
       
-      const tickersResponse = await fetch('/api/tickers', {
+      const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         cache: 'no-cache',
@@ -51,12 +51,10 @@ const OpenInterestChart: React.FC = () => {
         throw new Error('Failed to fetch tickers data');
       }
 
-      const result = await tickersResponse.json();
-      if (!result.success) {
-        throw new Error(result.error);
+      const tickersData = await tickersResponse.json();
+      if (tickersData.retCode !== 0) {
+        throw new Error(tickersData.retMsg);
       }
-
-      const tickersData = { result: { list: result.data } };
 
       const allUsdtTickers = tickersData.result.list
         .filter((ticker: any) => ticker.symbol.endsWith('USDT'))
