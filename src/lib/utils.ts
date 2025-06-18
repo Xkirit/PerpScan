@@ -42,4 +42,52 @@ export function getPerformanceBgColor(value: number): string {
   if (value > 0) return 'bg-green-50 border-green-200'
   if (value < 0) return 'bg-red-50 border-red-200'
   return 'bg-gray-50 border-gray-200'
-} 
+}
+
+// Production-safe logging utilities
+const isProduction = process.env.NODE_ENV === 'production';
+
+export const logger = {
+  log: (...args: any[]) => {
+    if (!isProduction) {
+      console.log(...args);
+    }
+  },
+  error: (...args: any[]) => {
+    if (!isProduction) {
+      console.error(...args);
+    }
+  },
+  warn: (...args: any[]) => {
+    if (!isProduction) {
+      console.warn(...args);
+    }
+  },
+  info: (...args: any[]) => {
+    if (!isProduction) {
+      console.info(...args);
+    }
+  }
+};
+
+// Suppress fetch errors in production
+export const safeFetch = async (url: string, options?: RequestInit) => {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      // Add default headers to prevent some blocking
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+        'Accept': 'application/json',
+        ...options?.headers,
+      },
+    });
+    return response;
+  } catch (error) {
+    // Silently handle fetch errors in production
+    if (!isProduction) {
+      console.error('Fetch error:', error);
+    }
+    throw error;
+  }
+}; 

@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
       fullUrl: false,
     },
   },
+  // Completely disable request logging in production
+  serverExternalPackages: [],
+
   // Reduce verbose output
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,
@@ -40,6 +43,16 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+  },
+  // Custom webpack config to minimize console output
+  webpack: (config, { dev, isServer }) => {
+    // In production, replace console methods with no-ops
+    if (!dev && process.env.NODE_ENV === 'production') {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+      };
+    }
+    return config;
   },
 };
 

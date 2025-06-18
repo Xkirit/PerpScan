@@ -4,6 +4,20 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Analytics } from "@vercel/analytics/next";
 
+// Suppress console output in production
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+  const noop = () => {};
+  window.console = {
+    ...console,
+    log: noop,
+    info: noop,
+    warn: noop,
+    error: noop,
+    debug: noop,
+    trace: noop,
+  };
+}
+
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
