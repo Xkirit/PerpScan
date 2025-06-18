@@ -724,10 +724,10 @@ const InstitutionalActivity: React.FC = () => {
           }
         }
       } else {
-        console.warn('Failed to load institutional flows:', response.status);
+        // console.warn('Failed to load institutional flows:', response.status);
       }
     } catch (error) {
-      console.error('Error loading institutional flows from Redis:', error);
+      // //console.error('Error loading institutional flows from Redis:', error);
     }
   }, []); // Remove dependency to prevent unnecessary re-renders
 
@@ -760,7 +760,7 @@ const InstitutionalActivity: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error saving institutional flows to Redis:', error);
+      // //console.error('Error saving institutional flows to Redis:', error);
     }
   }, [suspiciousMovements.length]);
 
@@ -1118,7 +1118,7 @@ const InstitutionalActivity: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('❌ Error in advanced OI scanning:', error);
+      // //console.error('❌ Error in advanced OI scanning:', error);
     } finally {
       // Always hide loading after operation completes
       setLoading(false);

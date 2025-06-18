@@ -38,19 +38,19 @@ async function getRedisClient(): Promise<any> {
   });
 
   client.on('error', (err) => {
-    console.error('❌ Redis Client Error:', err);
+    //console.error('❌ Redis Client Error:', err);
   });
 
   client.on('connect', () => {
-    console.log('🔗 Redis Client Connected');
+          // console.log('🔗 Redis Client Connected');
   });
 
   client.on('ready', () => {
-    console.log('✅ Redis Client Ready');
+          // console.log('✅ Redis Client Ready');
   });
 
   client.on('end', () => {
-    console.log('🔌 Redis Client Connection Ended');
+          // console.log('🔌 Redis Client Connection Ended');
   });
 
   await client.connect();
@@ -97,9 +97,9 @@ export class InstitutionalFlowsRedis {
         await client.expire(PRIORITY_KEY, TTL_SECONDS);
       }
       
-      console.log(`✅ Redis: Saved ${flows.length} flows with TTL ${TTL_SECONDS}s`);
+      // console.log(`✅ Redis: Saved ${flows.length} flows with TTL ${TTL_SECONDS}s`);
     } catch (error) {
-      console.error('❌ Redis save error:', error);
+      //console.error('❌ Redis save error:', error);
       throw error;
     }
   }
@@ -115,7 +115,7 @@ export class InstitutionalFlowsRedis {
       if (dataString) {
         const data = JSON.parse(dataString);
         if (data && data.flows && Array.isArray(data.flows)) {
-          console.log(`📊 Redis: Retrieved ${data.flows.length} flows from main key`);
+          // console.log(`📊 Redis: Retrieved ${data.flows.length} flows from main key`);
           return data.flows;
         }
       }
@@ -125,15 +125,15 @@ export class InstitutionalFlowsRedis {
       
       if (flowsData && flowsData.length > 0) {
         const flows = flowsData.map((item: string) => JSON.parse(item));
-        console.log(`📊 Redis: Retrieved ${flows.length} flows from sorted set`);
+        // console.log(`📊 Redis: Retrieved ${flows.length} flows from sorted set`);
         return flows;
       }
       
-      console.log('📊 Redis: No flows found');
+      //console.log('📊 Redis: No flows found');
       return [];
       
     } catch (error) {
-      console.error('❌ Redis get error:', error);
+      //console.error('❌ Redis get error:', error);
       return [];
     }
   }
@@ -145,7 +145,7 @@ export class InstitutionalFlowsRedis {
       const count = await client.zCard(PRIORITY_KEY);
       return count || 0;
     } catch (error) {
-      console.error('❌ Redis count error:', error);
+      ////console.error('❌ Redis count error:', error);
       return 0;
     }
   }
@@ -156,9 +156,9 @@ export class InstitutionalFlowsRedis {
       const client = await getRedisClient();
       await client.del(FLOWS_KEY);
       await client.del(PRIORITY_KEY);
-      console.log('🗑️ Redis: Cleared all flows');
+      //console.log('🗑️ Redis: Cleared all flows');
     } catch (error) {
-      console.error('❌ Redis clear error:', error);
+      //console.error('❌ Redis clear error:', error);
     }
   }
   
@@ -169,7 +169,7 @@ export class InstitutionalFlowsRedis {
       const result = await client.ping();
       return result === 'PONG';
     } catch (error) {
-      console.error('❌ Redis health check failed:', error);
+     // //console.error('❌ Redis health check failed:', error);
       return false;
     }
   }
@@ -180,10 +180,10 @@ export class InstitutionalFlowsRedis {
       if (redisClient && redisClient.isReady) {
         await redisClient.quit();
         redisClient = null;
-        console.log('🔌 Redis connection closed');
+        //console.log('🔌 Redis connection closed');
       }
     } catch (error) {
-      console.error('❌ Redis close error:', error);
+      //console.error('❌ Redis close error:', error);
     }
   }
 }

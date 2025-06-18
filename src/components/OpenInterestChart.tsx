@@ -41,7 +41,7 @@ const OpenInterestChart: React.FC = () => {
   const fetchOpenInterestData = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      console.log('📊 Fetching Open Interest data...');
+      // console.log('📊 Fetching Open Interest data...');
       
       const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
         method: 'GET',
@@ -88,10 +88,10 @@ const OpenInterestChart: React.FC = () => {
 
       setOpenInterestData(allUsdtTickers.slice(0, 50)); // Top 50 assets
       setLastUpdated(new Date());
-      console.log(`📊 Loaded ${allUsdtTickers.length} open interest data points`);
+      // console.log(`📊 Loaded ${allUsdtTickers.length} open interest data points`);
 
     } catch (error) {
-      console.error('❌ Error fetching open interest data:', error);
+              // //console.error('❌ Error fetching open interest data:', error);
     } finally {
       setLoading(false);
     }

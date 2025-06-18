@@ -2,6 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+  // Reduce verbose output
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
   async rewrites() {
     return [
       {

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       points = 30; // 30 days
     }
 
-    console.log('Fetching historical data for symbols:', symbols, 'interval:', interval);
+    // console.log('Fetching historical data for symbols:', symbols, 'interval:', interval);
 
     // Calculate timestamp for the required period
     const endTime = Date.now();
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           data: percentageData
         };
       } catch (error) {
-        console.error(`Error fetching data for ${symbol}:`, error);
+        //console.error(`Error fetching data for ${symbol}:`, error);
         return {
           symbol,
           data: []
@@ -120,16 +120,16 @@ export async function POST(request: NextRequest) {
       return dataPoint;
     });
 
-    console.log('Historical data processed:', {
-      symbols: symbols.length,
-      timePoints: chartData.length,
-      samplePoint: chartData[0]
-    });
+    // console.log('Historical data processed:', {
+    //   symbols: symbols.length,
+    //   timePoints: chartData.length,
+    //   samplePoint: chartData[0]
+    // });
 
     return NextResponse.json(chartData);
 
   } catch (error) {
-    console.error('Error in historical API:', error);
+    // //console.error('Error in historical API:', error);
     return NextResponse.json(
       { error: 'Failed to fetch historical data' },
       { status: 500 }

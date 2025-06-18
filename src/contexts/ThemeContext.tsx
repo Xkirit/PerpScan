@@ -34,32 +34,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') {
-      console.log('Theme effect skipped - mounted:', mounted, 'window available:', typeof window !== 'undefined');
       return;
     }
 
     const root = window.document.documentElement;
-    console.log('Applying theme:', theme, 'to document root');
-    console.log('Root classes before:', root.className);
     
     if (theme === 'dark') {
       root.classList.add('dark');
-      console.log('Added dark class');
     } else {
       root.classList.remove('dark');
-      console.log('Removed dark class');
     }
     
-    console.log('Root classes after:', root.className);
     localStorage.setItem('theme', theme);
-    console.log('Saved theme to localStorage:', theme);
   }, [theme, mounted]);
 
   const toggleTheme = () => {
-    console.log('toggleTheme called, current theme:', theme);
     setTheme(prevTheme => {
       const newTheme = prevTheme === 'light' ? 'dark' : 'light';
-      console.log('Switching from', prevTheme, 'to', newTheme);
       return newTheme;
     });
   };

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    console.log('Starting Bybit analysis...');
+    // console.log('Starting Bybit analysis...');
     const result = await bybitService.runCompleteAnalysis(limit);
 
     return NextResponse.json({
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Analysis error:', error);
+    //console.error('Analysis error:', error);
     
     return NextResponse.json(
       {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch (jsonError) {
-      console.error('Invalid JSON in request body:', jsonError);
+      //console.error('Invalid JSON in request body:', jsonError);
       return NextResponse.json(
         {
           success: false,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     const { limit = 10, interval = '4h' } = body;
 
-    console.log('Starting custom Bybit analysis...', 'interval:', interval);
+    // console.log('Starting custom Bybit analysis...', 'interval:', interval);
     
     const result = await bybitService.runCompleteAnalysis(limit, interval);
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Custom analysis error:', error);
+    //console.error('Custom analysis error:', error);
     
     return NextResponse.json(
       {

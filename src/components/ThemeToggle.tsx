@@ -8,12 +8,12 @@ export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
   const handleToggle = () => {
-    console.log('ThemeToggle clicked! Current theme:', theme);
+    // console.log('ThemeToggle clicked! Current theme:', theme);
     toggleTheme();
-    console.log('toggleTheme called');
+    // console.log('toggleTheme called');
   };
 
-  console.log('ThemeToggle rendering with theme:', theme);
+  // console.log('ThemeToggle rendering with theme:', theme);
 
   return (
     <div className="flex items-center gap-2">

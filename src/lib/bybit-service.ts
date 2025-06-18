@@ -29,14 +29,14 @@ export class BybitService {
         if (attempt > 0) {
           // Exponential backoff: 1s, 2s, 4s
           const delayMs = Math.pow(2, attempt) * 1000;
-          console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delayMs}ms delay`);
+          // console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delayMs}ms delay`);
           await this.delay(delayMs);
         }
         
         return await requestFn();
       } catch (error) {
         lastError = error as Error;
-        console.log(`Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : error);
+        // console.log(`Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : error);
         
         if (axios.isAxiosError(error)) {
           // Don't retry on certain error codes
@@ -75,7 +75,7 @@ export class BybitService {
 
         return response.data.result?.list || [];
       } catch (error) {
-        console.error('Error fetching tickers:', error);
+        //console.error('Error fetching tickers:', error);
         if (axios.isAxiosError(error)) {
           if (error.code === 'ECONNABORTED') {
             throw new Error('Request timeout - Bybit API is not responding');
@@ -114,12 +114,12 @@ export class BybitService {
 
         // Check if response is valid JSON and has expected structure
         if (!response.data || typeof response.data !== 'object') {
-          console.error(`Invalid response format for ${symbol}`);
+          //console.error(`Invalid response format for ${symbol}`);
           return [];
         }
 
         if (response.data.retCode !== 0) {
-          console.error(`API Error for ${symbol}: ${response.data.retMsg}`);
+          //console.error(`API Error for ${symbol}: ${response.data.retMsg}`);
           return [];
         }
 
@@ -133,16 +133,16 @@ export class BybitService {
           volume: candle[5]
         }));
       } catch (error) {
-        console.error(`Error fetching kline data for ${symbol}:`, error);
+        //console.error(`Error fetching kline data for ${symbol}:`, error);
         if (axios.isAxiosError(error)) {
           if (error.code === 'ECONNABORTED') {
-            console.error(`Timeout fetching data for ${symbol}`);
+            //console.error(`Timeout fetching data for ${symbol}`);
           }
           if (error.response && error.response.status === 429) {
-            console.error(`Rate limit exceeded for ${symbol}`);
+            //console.error(`Rate limit exceeded for ${symbol}`);
           }
           if (error.response && error.response.status === 403) {
-            console.error(`Access denied for ${symbol} - API may be blocking requests`);
+            //console.error(`Access denied for ${symbol} - API may be blocking requests`);
           }
         }
         return [];
@@ -223,7 +223,7 @@ export class BybitService {
   }
 
   async analyzeCoins(interval: '4h' | '1d' = '4h'): Promise<CoinAnalysis[]> {
-    console.log('Starting coin analysis for interval:', interval);
+    //console.log('Starting coin analysis for interval:', interval);
     const tickers = await this.getPerpetualFuturesTickers();
     if (!tickers.length) {
       throw new Error('No ticker data available');
@@ -237,7 +237,7 @@ export class BybitService {
       })
       .sort((a, b) => parseFloat(b.volume24h) - parseFloat(a.volume24h))
       .slice(0, 150);
-    console.log(`Analyzing top ${filteredTickers.length} coins by volume...`);
+    //console.log(`Analyzing top ${filteredTickers.length} coins by volume...`);
     const coinAnalyses: CoinAnalysis[] = [];
     let processed = 0;
     const batchSize = 10;
@@ -284,7 +284,7 @@ export class BybitService {
             };
           }
         } catch (error) {
-          console.error(`Error analyzing ${ticker.symbol}:`, error);
+          //console.error(`Error analyzing ${ticker.symbol}:`, error);
           return null;
         }
       });
@@ -295,12 +295,12 @@ export class BybitService {
           processed++;
         }
       });
-      console.log(`Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(filteredTickers.length/batchSize)} - ${processed} coins completed`);
+      //console.log(`Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(filteredTickers.length/batchSize)} - ${processed} coins completed`);
       if (i + batchSize < filteredTickers.length) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
-    console.log(`Analysis completed: ${processed} coins analyzed`);
+    //console.log(`Analysis completed: ${processed} coins analyzed`);
     return coinAnalyses;
   }
 

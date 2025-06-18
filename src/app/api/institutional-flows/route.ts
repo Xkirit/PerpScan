@@ -28,10 +28,10 @@ const MAX_FLOWS = 10;
 async function readFlows(): Promise<InstitutionalFlow[]> {
   try {
     const flows = await InstitutionalFlowsRedis.getFlows();
-    console.log(`📊 Found ${flows.length} flows in Redis`);
+    // console.log(`📊 Found ${flows.length} flows in Redis`);
     return flows;
   } catch (error) {
-    console.error('Error reading from Redis:', error);
+    //console.error('Error reading from Redis:', error);
     return [];
   }
 }
@@ -40,9 +40,9 @@ async function readFlows(): Promise<InstitutionalFlow[]> {
 async function writeFlows(flows: InstitutionalFlow[]): Promise<void> {
   try {
     await InstitutionalFlowsRedis.saveFlows(flows);
-    console.log(`💾 Successfully saved ${flows.length} flows to Redis`);
+    // console.log(`💾 Successfully saved ${flows.length} flows to Redis`);
   } catch (error) {
-    console.error('Error writing to Redis:', error);
+    //console.error('Error writing to Redis:', error);
     throw error;
   }
 }
@@ -57,18 +57,18 @@ export async function GET(request: NextRequest) {
     // 🔍 DEBUG: Check Redis connection
     const redisHealth = await InstitutionalFlowsRedis.healthCheck();
     
-    console.log('🔍 Redis Connection Debug:');
-    console.log(`   Redis Health: ${redisHealth ? '✅ Connected' : '❌ Disconnected'}`);
-    console.log(`   REDIS_URL: ${process.env.REDIS_URL ? '✅ Set' : '❌ Missing'}`);
+    // console.log('🔍 Redis Connection Debug:');
+    // console.log(`   Redis Health: ${redisHealth ? '✅ Connected' : '❌ Disconnected'}`);
+    // console.log(`   REDIS_URL: ${process.env.REDIS_URL ? '✅ Set' : '❌ Missing'}`);
   
-    if (!redisHealth) {
-      console.log('⚠️ Redis not available');
-    } else {
-      console.log('✅ Redis is connected and ready');
-    }
+    // if (!redisHealth) {
+    //   console.log('⚠️ Redis not available');
+    // } else {
+    //   console.log('✅ Redis is connected and ready');
+    // }
     
     if (forceRefresh) {
-      console.log('🔄 Force refresh requested - bypassing any cache');
+      // console.log('🔄 Force refresh requested - bypassing any cache');
       // Add a small delay to ensure Redis writes have propagated
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     
     return response;
   } catch (error) {
-    console.error('Error reading institutional flows:', error);
+    //console.error('Error reading institutional flows:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to read institutional flows',
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
           timestamp: currentTime
         });
         addedCount++;
-        console.log(`🆕 New flow detected: ${newFlow.symbol} (Priority: ${(newFlow.priorityScore || 0).toFixed(0)})`);
+        // console.log(`🆕 New flow detected: ${newFlow.symbol} (Priority: ${(newFlow.priorityScore || 0).toFixed(0)})`);
       } else {
         // Existing coin - update with latest data
         const oldPriority = existingFlow.priorityScore || 0;
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         });
         updatedCount++;
         
-        console.log(`🔄 Updated existing flow: ${newFlow.symbol} (Priority: ${oldPriority.toFixed(0)} → ${newPriority.toFixed(0)})`);
+        // console.log(`🔄 Updated existing flow: ${newFlow.symbol} (Priority: ${oldPriority.toFixed(0)} → ${newPriority.toFixed(0)})`);
       }
     });
     
@@ -182,24 +182,24 @@ export async function POST(request: NextRequest) {
       
       removedCount = removedFlows.length;
       
-      console.log(`🔄 Priority-based replacement: Keeping top ${MAX_FLOWS} flows`);
-      console.log(`➕ Top ${MAX_FLOWS} flows (by priority):`);
-      finalFlows.forEach((flow, index) => {
-        console.log(`   ${index + 1}. ${flow.symbol}: Priority ${(flow.priorityScore || 0).toFixed(0)}`);
-      });
+      // console.log(`🔄 Priority-based replacement: Keeping top ${MAX_FLOWS} flows`);
+      // console.log(`➕ Top ${MAX_FLOWS} flows (by priority):`);
+      // finalFlows.forEach((flow, index) => {
+      //   console.log(`   ${index + 1}. ${flow.symbol}: Priority ${(flow.priorityScore || 0).toFixed(0)}`);
+      // });
       
-      if (removedFlows.length > 0) {
-        console.log(`➖ Removed ${removedFlows.length} lower priority flows:`);
-        removedFlows.forEach((flow) => {
-          console.log(`   - ${flow.symbol}: Priority ${(flow.priorityScore || 0).toFixed(0)}`);
-        });
-      }
+      // if (removedFlows.length > 0) {
+      //   console.log(`➖ Removed ${removedFlows.length} lower priority flows:`);
+      //   removedFlows.forEach((flow) => {
+      //     console.log(`   - ${flow.symbol}: Priority ${(flow.priorityScore || 0).toFixed(0)}`);
+      //   });
+      // }
     }
     
     // Save to Redis
     await writeFlows(finalFlows);
     
-    console.log(`🚀 Redis updated: ${finalFlows.length} flows (${addedCount} new, ${updatedCount} updated, ${removedCount} removed)`);
+    // console.log(`🚀 Redis updated: ${finalFlows.length} flows (${addedCount} new, ${updatedCount} updated, ${removedCount} removed)`);
     
     return NextResponse.json({
       success: true,
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       priorityReplacement: finalFlows.length === MAX_FLOWS
     });
   } catch (error) {
-    console.error('Error updating institutional flows:', error);
+    //console.error('Error updating institutional flows:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to update institutional flows'

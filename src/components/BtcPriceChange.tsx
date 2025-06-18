@@ -31,13 +31,13 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch BTC data:', response.status);
+        // //console.error('Failed to fetch BTC data:', response.status);
         return;
       }
 
       const data = await response.json();
       if (data.retCode !== 0) {
-        console.error('API error for BTC:', data.retMsg);
+                  // //console.error('API error for BTC:', data.retMsg);
         return;
       }
 
@@ -51,7 +51,7 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
         setBtcChange(change);
       }
     } catch (error) {
-      console.error('Error fetching BTC data:', error);
+      // //console.error('Error fetching BTC data:', error);
     } finally {
       setLoading(false);
     }

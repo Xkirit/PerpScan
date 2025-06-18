@@ -111,7 +111,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
   // Fetch raw volume data from Bybit
   const fetchRawVolumeData = useCallback(async () => {
     try {
-      console.log('Fetching raw volume data from Bybit...');
+      // console.log('Fetching raw volume data from Bybit...');
       const response = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
         method: 'GET',
         headers: {
@@ -121,17 +121,17 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch volume data:', response.status);
+        // //console.error('Failed to fetch volume data:', response.status);
         return;
       }
 
       const data = await response.json();
       if (data.retCode !== 0) {
-        console.error('API error:', data.retMsg);
+                  // //console.error('API error:', data.retMsg);
         return;
       }
 
-      console.log('Raw API response sample:', data.result.list.slice(0, 3));
+              // console.log('Raw API response sample:', data.result.list.slice(0, 3));
 
       const volumeData = data.result.list
         .filter((ticker: any) => ticker.symbol.endsWith('USDT'))
@@ -143,10 +143,10 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         }))
         .sort((a: any, b: any) => b.volume24h - a.volume24h);
 
-      console.log('Top 10 volume coins:', volumeData.slice(0, 10));
+              // console.log('Top 10 volume coins:', volumeData.slice(0, 10));
       setRawVolumeData(volumeData);
     } catch (error) {
-      console.error('Error fetching volume data:', error);
+              // //console.error('Error fetching volume data:', error);
     }
   }, []);
 
@@ -190,13 +190,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       });
 
       if (!response.ok) {
-        console.error('Failed to fetch BTC data:', response.status);
+        // //console.error('Failed to fetch BTC data:', response.status);
         return;
       }
 
       const data = await response.json();
       if (data.retCode !== 0) {
-        console.error('API error for BTC:', data.retMsg);
+                  // //console.error('API error for BTC:', data.retMsg);
         return;
       }
 
@@ -210,12 +210,12 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         setBtcChange(change);
       }
     } catch (error) {
-      console.error('Error fetching BTC data:', error);
+              // //console.error('Error fetching BTC data:', error);
     }
   }, []);
 
   const fetchHistoricalDataClientSide = useCallback(async (symbols: string[], interval: string) => {
-    console.log('Fetching historical data client-side...');
+          // console.log('Fetching historical data client-side...');
     setError(null);
     
     try {
@@ -242,13 +242,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           });
 
           if (!response.ok) {
-            console.error(`Failed to fetch client-side data for ${symbol}: ${response.status}`);
+            // //console.error(`Failed to fetch client-side data for ${symbol}: ${response.status}`);
             return { symbol, data: [] };
           }
 
           const data = await response.json();
           if (data.retCode !== 0) {
-            console.error(`API error for ${symbol}: ${data.retMsg}`);
+                          // //console.error(`API error for ${symbol}: ${data.retMsg}`);
             return { symbol, data: [] };
           }
 
@@ -268,7 +268,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             data: percentageData
           };
         } catch (error) {
-          console.error(`Error fetching data for ${symbol}:`, error);
+                      // //console.error(`Error fetching data for ${symbol}:`, error);
           return { symbol, data: [] };
         }
       });
@@ -311,7 +311,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
       setHistoricalData(transformedData);
     } catch (error) {
-      console.error('Error in fetchHistoricalDataClientSide:', error);
+              // //console.error('Error in fetchHistoricalDataClientSide:', error);
       setError('Failed to fetch historical data');
     }
   }, [coinLimit]);
@@ -323,7 +323,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     try {
       await fetchHistoricalDataClientSide(symbols, interval);
     } catch (error) {
-      console.error('Error fetching historical data:', error);
+              // //console.error('Error fetching historical data:', error);
       setError('Failed to fetch data. Please check your internet connection and try again.');
     } finally {
       setLoading(false);

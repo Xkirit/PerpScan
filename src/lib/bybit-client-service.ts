@@ -46,7 +46,7 @@ export class BybitClientService {
 
       return data.result?.list || [];
     } catch (error) {
-      console.error('Client-side error fetching tickers:', error);
+      //console.error('Client-side error fetching tickers:', error);
       throw error;
     }
   }
@@ -63,20 +63,20 @@ export class BybitClientService {
       });
 
       if (!response.ok) {
-        console.error(`Failed to fetch kline for ${symbol}: ${response.status}`);
+        //console.error(`Failed to fetch kline for ${symbol}: ${response.status}`);
         return [];
       }
 
       const data: KlineResponse = await response.json();
 
       if (data.retCode !== 0) {
-        console.error(`API Error for ${symbol}: ${data.retMsg}`);
+        //console.error(`API Error for ${symbol}: ${data.retMsg}`);
         return [];
       }
 
       return data.result?.list || [];
     } catch (error) {
-      console.error(`Error fetching kline data for ${symbol}:`, error);
+      //console.error(`Error fetching kline data for ${symbol}:`, error);
       return [];
     }
   }
@@ -139,7 +139,7 @@ export class BybitClientService {
   }
 
   async analyzeCoins(interval: '4h' | '1d' = '4h'): Promise<CoinAnalysis[]> {
-    console.log('Starting client-side coin analysis for interval:', interval);
+    // console.log('Starting client-side coin analysis for interval:', interval);
     
     const tickers = await this.getPerpetualFuturesTickers();
     if (!tickers.length) {
@@ -156,7 +156,7 @@ export class BybitClientService {
       .sort((a, b) => parseFloat(b.volume24h) - parseFloat(a.volume24h))
       .slice(0, 50); // Limit to 50 for faster client-side processing
 
-    console.log(`Analyzing top ${filteredTickers.length} coins by volume for ${interval} interval (client-side)...`);
+    // console.log(`Analyzing top ${filteredTickers.length} coins by volume for ${interval} interval (client-side)...`);
     
     const coinAnalyses: CoinAnalysis[] = [];
     const batchSize = 5; // Smaller batches for client-side
@@ -213,7 +213,7 @@ export class BybitClientService {
             trendScore
           };
         } catch (error) {
-          console.error(`Error analyzing ${ticker.symbol} (client-side):`, error);
+          //console.error(`Error analyzing ${ticker.symbol} (client-side):`, error);
           return null;
         }
       });
@@ -231,7 +231,7 @@ export class BybitClientService {
       }
     }
 
-    console.log(`Client-side analysis completed: ${coinAnalyses.length} coins analyzed`);
+    // console.log(`Client-side analysis completed: ${coinAnalyses.length} coins analyzed`);
     return coinAnalyses;
   }
 

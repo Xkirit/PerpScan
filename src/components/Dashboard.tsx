@@ -114,14 +114,14 @@ const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Starting client-side analysis with interval:', interval);
+      // console.log('Starting client-side analysis with interval:', interval);
       const clientService = new BybitClientService();
       const result = await clientService.runCompleteAnalysis(50, interval);
       setData(result);
       setLastUpdated(new Date());
-      console.log('Client-side analysis completed successfully');
+      // console.log('Client-side analysis completed successfully');
     } catch (error) {
-      console.error('Client-side analysis failed:', error);
+              // //console.error('Client-side analysis failed:', error);
       setError('Failed to fetch data. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
@@ -129,7 +129,7 @@ const Dashboard: React.FC = () => {
   }, [chartInterval]);
 
   useEffect(() => {
-    console.log('Dashboard useEffect triggered with interval:', chartInterval);
+    // console.log('Dashboard useEffect triggered with interval:', chartInterval);
     fetchData(chartInterval);
   }, [chartInterval, fetchData]);
 
