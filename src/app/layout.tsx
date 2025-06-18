@@ -12,8 +12,8 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "Perpflow  | Real-time Perpetual futures analytics",
-  description: "Analyze Bybit perpetual futures data to identify trending, strongest, and weakest performing coins with advanced charting and real-time updates.",
-  keywords: "bybit, crypto, futures, trading, analysis, trends, charts",
+  description: "Real-time crypto futures analytics platform with advanced institutional activity detection",
+  keywords: "bybit, binance, crypto, futures, trading, analysis, trends, charts",
 };
 
 export default function RootLayout({
