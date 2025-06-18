@@ -1,0 +1,33 @@
+name: Keep Serverless Functions Warm
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  keep-warm:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Institutional Flows
+        run: |
+          curl -f -s "https://perpflow.vercel.app/api/institutional-flows" || echo "Failed to ping institutional-flows"
+          
+      - name: Ping Redis Info
+        run: |
+          curl -f -s "https://perpflow.vercel.app/api/redis-info" || echo "Failed to ping redis-info"
+          
+      - name: Ping Debug Redis
+        run: |
+          curl -f -s "https://perpflow.vercel.app/api/debug-redis" || echo "Failed to ping debug-redis"
+          
+      - name: Ping Analyze
+        run: |
+          curl -f -s "https://perpflow.vercel.app/api/analyze?interval=4h" || echo "Failed to ping analyze"
+          
+      - name: Wait and ping again
+        run: |
+          sleep 30
+          curl -f -s "https://perpflow.vercel.app/api/institutional-flows" || echo "Second ping failed" 
