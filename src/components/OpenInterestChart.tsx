@@ -5,6 +5,7 @@ import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } 
 import { RefreshCwIcon, BarChart3Icon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
+import { apiService } from '@/lib/api-service';
 
 interface OpenInterestData {
   symbol: string;
@@ -43,48 +44,31 @@ const OpenInterestChart: React.FC = () => {
     try {
       // console.log('📊 Fetching Open Interest data...');
       
-      const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-cache',
+      const tickers = await apiService.getUSDTTickers(1000000); // Get USDT tickers with >$1M OI
+      
+      const allUsdtTickers = tickers.map((ticker: any) => {
+        const oiValue = parseFloat(ticker.openInterestValue || '0');
+        
+        // Whale rating based on OI value
+        let whaleRating: 'mega' | 'large' | 'medium' | 'small' = 'small';
+        if (oiValue > 1000000000) whaleRating = 'mega';      // >$1B
+        else if (oiValue > 100000000) whaleRating = 'large';  // >$100M
+        else if (oiValue > 10000000) whaleRating = 'medium';  // >$10M
+        
+        return {
+          symbol: ticker.symbol,
+          openInterest: parseFloat(ticker.openInterest || '0'),
+          openInterestValue: oiValue,
+          oiChange24h: parseFloat(ticker.price24hPcnt || '0'),
+          oiChangePercent: parseFloat(ticker.price24hPcnt || '0'),
+          price: parseFloat(ticker.lastPrice || '0'),
+          priceChange24h: parseFloat(ticker.price24hPcnt || '0'),
+          volume24h: parseFloat(ticker.turnover24h || '0'),
+          fundingRate: parseFloat(ticker.fundingRate || '0'),
+          timestamp: Date.now(),
+          whaleRating
+        };
       });
-
-      if (!tickersResponse.ok) {
-        throw new Error('Failed to fetch tickers data');
-      }
-
-      const tickersData = await tickersResponse.json();
-      if (tickersData.retCode !== 0) {
-        throw new Error(tickersData.retMsg);
-      }
-
-      const allUsdtTickers = tickersData.result.list
-        .filter((ticker: any) => ticker.symbol.endsWith('USDT'))
-        .map((ticker: any) => {
-          const oiValue = parseFloat(ticker.openInterestValue || '0');
-          
-          // Whale rating based on OI value
-          let whaleRating: 'mega' | 'large' | 'medium' | 'small' = 'small';
-          if (oiValue > 1000000000) whaleRating = 'mega';      // >$1B
-          else if (oiValue > 100000000) whaleRating = 'large';  // >$100M
-          else if (oiValue > 10000000) whaleRating = 'medium';  // >$10M
-          
-          return {
-            symbol: ticker.symbol,
-            openInterest: parseFloat(ticker.openInterest || '0'),
-            openInterestValue: oiValue,
-            oiChange24h: parseFloat(ticker.price24hPcnt || '0'),
-            oiChangePercent: parseFloat(ticker.price24hPcnt || '0'),
-            price: parseFloat(ticker.lastPrice || '0'),
-            priceChange24h: parseFloat(ticker.price24hPcnt || '0'),
-            volume24h: parseFloat(ticker.turnover24h || '0'),
-            fundingRate: parseFloat(ticker.fundingRate || '0'),
-            timestamp: Date.now(),
-            whaleRating
-          };
-        })
-        .filter((item: OpenInterestData) => item.openInterestValue > 1000000)
-        .sort((a: OpenInterestData, b: OpenInterestData) => b.openInterestValue - a.openInterestValue);
 
       setOpenInterestData(allUsdtTickers.slice(0, 50)); // Top 50 assets
       setLastUpdated(new Date());
@@ -101,9 +85,9 @@ const OpenInterestChart: React.FC = () => {
     fetchOpenInterestData();
   }, [fetchOpenInterestData]);
 
-  // Auto-refresh every 2 minutes
+  // Auto-refresh every 5 minutes to match optimization
   useEffect(() => {
-    const interval = setInterval(fetchOpenInterestData, 2 * 60 * 1000);
+    const interval = setInterval(fetchOpenInterestData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchOpenInterestData]);
 

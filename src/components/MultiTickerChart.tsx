@@ -6,6 +6,7 @@ import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon, AlertTriangleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
+import { apiService } from '@/lib/api-service';
 
 interface HistoricalDataPoint {
   timestamp: number;
@@ -108,32 +109,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     return chartColors[colorIndex];
   }, []);
 
-  // Fetch raw volume data from Bybit
+  // Fetch raw volume data from consolidated API service
   const fetchRawVolumeData = useCallback(async () => {
     try {
-      // console.log('Fetching raw volume data from Bybit...');
-      const response = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-cache',
-      });
-
-      if (!response.ok) {
-        // //console.error('Failed to fetch volume data:', response.status);
-        return;
-      }
-
-      const data = await response.json();
-      if (data.retCode !== 0) {
-                  // //console.error('API error:', data.retMsg);
-        return;
-      }
-
-              // console.log('Raw API response sample:', data.result.list.slice(0, 3));
-
-      const volumeData = data.result.list
+      // console.log('Fetching raw volume data from API service...');
+      const tickers = await apiService.getTickers();
+      
+      const volumeData = tickers
         .filter((ticker: any) => ticker.symbol.endsWith('USDT'))
         .map((ticker: any) => ({
           symbol: ticker.symbol,
@@ -143,10 +125,10 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         }))
         .sort((a: any, b: any) => b.volume24h - a.volume24h);
 
-              // console.log('Top 10 volume coins:', volumeData.slice(0, 10));
+      // console.log('Top 10 volume coins:', volumeData.slice(0, 10));
       setRawVolumeData(volumeData);
     } catch (error) {
-              // //console.error('Error fetching volume data:', error);
+      // //console.error('Error fetching volume data:', error);
     }
   }, []);
 
@@ -174,43 +156,10 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
   const fetchBtcChange = useCallback(async (interval: string) => {
     try {
-      const bybitInterval = interval === '1d' ? 'D' : '60';
-      const points = interval === '1d' ? 30 : 24;
-      
-      const endTime = Date.now();
-      const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
-      
-      const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-cache',
-      });
-
-      if (!response.ok) {
-        // //console.error('Failed to fetch BTC data:', response.status);
-        return;
-      }
-
-      const data = await response.json();
-      if (data.retCode !== 0) {
-                  // //console.error('API error for BTC:', data.retMsg);
-        return;
-      }
-
-      const klineData = data.result?.list || [];
-      const sortedData = klineData.reverse();
-      
-      if (sortedData.length > 0) {
-        const basePrice = parseFloat(sortedData[0][4]); // First close price
-        const lastPrice = parseFloat(sortedData[sortedData.length - 1][4]); // Last close price
-        const change = ((lastPrice - basePrice) / basePrice) * 100;
-        setBtcChange(change);
-      }
+      const change = await apiService.getBTCPriceChange(interval as '4h' | '1d');
+      setBtcChange(change);
     } catch (error) {
-              // //console.error('Error fetching BTC data:', error);
+      // //console.error('Error fetching BTC data:', error);
     }
   }, []);
 
@@ -232,27 +181,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           const endTime = Date.now();
           const startTime = endTime - (points * (interval === '1d' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
           
-          const url = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${bybitInterval}&start=${startTime}&end=${endTime}&limit=${points}`;
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-            },
-            cache: 'no-cache',
-          });
-
-          if (!response.ok) {
-            // //console.error(`Failed to fetch client-side data for ${symbol}: ${response.status}`);
-            return { symbol, data: [] };
-          }
-
-          const data = await response.json();
-          if (data.retCode !== 0) {
-                          // //console.error(`API error for ${symbol}: ${data.retMsg}`);
-            return { symbol, data: [] };
-          }
-
-          const klineData = data.result?.list || [];
+          const klineData = await apiService.getKlineData(symbol, bybitInterval, points, startTime, endTime);
           const sortedData = klineData.reverse(); // Chronological order
           
           // Always calculate price changes, regardless of filter type

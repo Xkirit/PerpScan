@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { BarChart, Bar, ComposedChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CardContainer, CardBody, CardItem } from '@/components/ui/3d-card';
 import { useTheme } from '@/contexts/ThemeContext';
+import { apiService } from '@/lib/api-service';
 // Custom SVG Icons - Modern Financial Theme
 const RefreshIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -588,57 +589,8 @@ const InstitutionalActivity: React.FC = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
       
-      const bybitResponse = await fetch(
-        `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1&startTime=${oneHourAgo}&endTime=${now}`,
-        {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          signal: controller.signal,
-        }
-      );
-      
-      clearTimeout(timeoutId);
-      
-      if (!bybitResponse.ok) {
-        return null; // Silent fallback
-      }
-      
-      const bybitData = await bybitResponse.json();
-      if (bybitData.retCode !== 0 || !bybitData.result?.list?.length) {
-        return null;
-      }
-      
-      const latestData = bybitData.result.list[0];
-      const buyRatio = parseFloat(latestData.buyRatio);
-      const sellRatio = parseFloat(latestData.sellRatio);
-      
-      // Calculate directional bias
-      const ratioDiff = buyRatio - sellRatio;
-      let bias: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-      let biasStrength: 'weak' | 'moderate' | 'strong' = 'weak';
-      
-      if (Math.abs(ratioDiff) > 0.15) {
-        biasStrength = 'strong';
-      } else if (Math.abs(ratioDiff) > 0.08) {
-        biasStrength = 'moderate';
-      }
-      
-      if (buyRatio > 0.55) {
-        bias = 'bullish';
-      } else if (sellRatio > 0.55) {
-        bias = 'bearish';
-      }
-      
-
-      
-      return {
-        buyRatio,
-        sellRatio,
-        bias,
-        biasStrength,
-        timestamp: parseInt(latestData.timestamp),
-        source: 'bybit'
-      };
+      const result = await apiService.getAccountRatio(symbol, '1h', 1, oneHourAgo, now);
+      return result;
       
     } catch (error) {
       return null; // Silent fallback for stability
@@ -777,32 +729,19 @@ const InstitutionalActivity: React.FC = () => {
     try {
       // Scanning Bybit futures for institutional flows
       
-      // Get ALL tickers data (includes OI, funding, volume)
-      const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-cache',
-      });
-
-      if (!tickersResponse.ok) {
-        throw new Error('Failed to fetch tickers data');
-      }
+      // Get ALL tickers data (includes OI, funding, volume) from API service
+      const allTickers = await apiService.getTickers();
 
       if (isFirstLoad) {
         setLoadingProgress(20);
         setLoadingMessage('Processing market data...');
       }
 
-      const tickersData = await tickersResponse.json();
-      if (tickersData.retCode !== 0) {
-        throw new Error(tickersData.retMsg);
-      }
-
       // Filter to top volume USDT pairs - optimized for faster loading
-      const topUsdtTickers = tickersData.result.list
+      const topUsdtTickers = allTickers
         .filter((ticker: any) => ticker.symbol.endsWith('USDT') && parseFloat(ticker.openInterestValue || '0') > 1000000) // >$1M OI (raised threshold for speed)
         .sort((a: any, b: any) => parseFloat(b.openInterestValue) - parseFloat(a.openInterestValue))
-        .slice(0, 300); // Top 300 by OI value for broader monitoring
+        .slice(0, 200); // Top 200 by OI value for reduced API load
 
     
       if (isFirstLoad) {
@@ -832,10 +771,10 @@ const InstitutionalActivity: React.FC = () => {
              // Prioritized API calls - reduce requests for stability
              let realOIChange = 0;
              let longShortData = null;
-             const priority = index < 30 ? 'high' : index < 150 ? 'medium' : 'low'; // Expanded high/medium priority ranges
+             const priority = index < 20 ? 'high' : index < 60 ? 'medium' : 'low'; // Reduced priority ranges for fewer API calls
              
-             // Fetch both OI change and long/short ratio for top coins
-             if (index < 200) { // Expanded to top 80 coins for better L/S coverage
+             // Fetch both OI change and long/short ratio for top coins only
+             if (index < 50) { // Further reduced to top 50 coins to minimize API calls
                [realOIChange, longShortData] = await Promise.all([
                  get24hOIChange(symbol, currentOI, priority),
                  getLongShortRatio(symbol, priority)
@@ -908,16 +847,16 @@ const InstitutionalActivity: React.FC = () => {
                oiAcceleration,
                abnormalityScore,
                whaleRating,
-               longShortRatio: longShortData
+               longShortRatio: longShortData || undefined
              };
            })
          );
          
          allUsdtTickers.push(...batchResults);
          
-         // Small delay between batches to prevent overwhelming the server
+         // Larger delay between batches to reduce API pressure
          if (i + batchSize < topUsdtTickers.length) {
-           await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+           await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay (doubled)
          }
        }
 
@@ -999,9 +938,9 @@ const InstitutionalActivity: React.FC = () => {
                           item.volume24h < mediumVolumeThreshold ? 'medium' as const : 'high' as const
          }));
       
-            // 🎯 SMART TRACKER: Update every 10 seconds to match scan frequency
+            // 🎯 SMART TRACKER: Update every 5 minutes to match scan frequency
       const lastEdgeUpdate = localStorage.getItem('lastEdgeDetectorUpdate');
-      const shouldUpdateEdgeDetector = !lastEdgeUpdate || (now - parseInt(lastEdgeUpdate)) > 10 * 1000; // Match scan frequency
+      const shouldUpdateEdgeDetector = !lastEdgeUpdate || (now - parseInt(lastEdgeUpdate)) > 5 * 60 * 1000; // Match scan frequency
       
       if (shouldUpdateEdgeDetector) {
         
@@ -1065,7 +1004,7 @@ const InstitutionalActivity: React.FC = () => {
           // Waiting for next update cycle
         }
       
-      setOpenInterestData(sortedByValue.slice(0, 300)); // Increased to 200 for broader monitoring
+      setOpenInterestData(sortedByValue.slice(0, 200)); // Reduced to 200 for API optimization
       
       // 🎯 REDIS FRONTEND UPDATE - Load latest data from store after database update
       if (shouldUpdateEdgeDetector) {
@@ -1312,7 +1251,7 @@ const InstitutionalActivity: React.FC = () => {
     });
   }, []);  // Remove dependencies to prevent re-initialization loops
 
-  // Auto-refresh institutional data every 10 seconds - continuous scanning
+  // Auto-refresh institutional data every 5 minutes - reduced frequency for API optimization
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
@@ -1322,7 +1261,7 @@ const InstitutionalActivity: React.FC = () => {
         fetchOpenInterestData().then(() => {
           scheduleNextScan(); // Schedule next scan after this one completes
         });
-      }, 10 * 1000); // 10 seconds
+      }, 5 * 60 * 1000); // 5 minutes (300 seconds)
     };
 
     // Only schedule if we have data (meaning initial scan completed)
@@ -1354,7 +1293,7 @@ const InstitutionalActivity: React.FC = () => {
         return;
       }
       
-      const nextUpdate = new Date(lastUpdated.getTime() + 10 * 1000);
+      const nextUpdate = new Date(lastUpdated.getTime() + 5 * 60 * 1000); // 5 minutes
       const now = new Date();
       
       if (nextUpdate <= now) {
@@ -1363,9 +1302,14 @@ const InstitutionalActivity: React.FC = () => {
       }
       
       const timeDiff = nextUpdate.getTime() - now.getTime();
-      const seconds = Math.floor(timeDiff / 1000);
+      const minutes = Math.floor(timeDiff / (60 * 1000));
+      const seconds = Math.floor((timeDiff % (60 * 1000)) / 1000);
       
-      setCountdown(`${seconds}s`);
+      if (minutes > 0) {
+        setCountdown(`${minutes}m ${seconds}s`);
+      } else {
+        setCountdown(`${seconds}s`);
+      }
     };
 
     updateCountdown();
@@ -1645,7 +1589,7 @@ const InstitutionalActivity: React.FC = () => {
             </div>
             
             <p className="text-sm" style={{ color: '#4a7c59' }}>
-              Optimized for speed - analyzing top 100 institutional flows
+              Optimized for speed - analyzing top 200 institutional flows
             </p>
           </div>
         ) : !isFirstLoad && !loading ? (
@@ -1707,7 +1651,7 @@ const InstitutionalActivity: React.FC = () => {
             </div>
             
             <p className="text-sm" style={{ color: '#4a7c59' }}>
-              Optimized for speed - analyzing top 100 institutional flows
+              Optimized for speed - analyzing top 200 institutional flows
             </p>
           </div>
         )}
