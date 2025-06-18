@@ -1,23 +1,21 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Suppress all console output in production
-if (process.env.NODE_ENV === 'production') {
-  const noop = () => {};
-  
-  // Override console methods in production
-  if (typeof window === 'undefined') {
-    // Server-side
-    global.console = {
-      ...console,
-      log: noop,
-      info: noop,
-      warn: noop,
-      error: noop,
-      debug: noop,
-      trace: noop,
-    };
-  }
+// Suppress all console output in ALL environments (development and production)
+const noop = () => {};
+
+// Override console methods everywhere
+if (typeof window === 'undefined') {
+  // Server-side
+  global.console = {
+    ...console,
+    log: noop,
+    info: noop,
+    warn: noop,
+    error: noop,
+    debug: noop,
+    trace: noop,
+  };
 }
 
 export function middleware(request: NextRequest) {

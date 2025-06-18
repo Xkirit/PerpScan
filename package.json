@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:silent": "NEXT_TELEMETRY_DISABLED=1 next dev --turbopack --quiet > /dev/null 2>&1",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

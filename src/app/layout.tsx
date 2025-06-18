@@ -1,11 +1,14 @@
+// Import console disabler FIRST to run immediately
+import '@/lib/disable-logging';
+
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Analytics } from "@vercel/analytics/next";
 
-// Suppress console output in production
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+// Suppress console output in ALL environments (development and production)
+if (typeof window !== 'undefined') {
   const noop = () => {};
   window.console = {
     ...console,

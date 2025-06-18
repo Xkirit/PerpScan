@@ -2,15 +2,21 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  logging: {
-    fetches: {
-      fullUrl: false,
-    },
-  },
-  // Completely disable request logging in production
+  logging: false,
+  // Completely disable ALL logging
   serverExternalPackages: [],
 
-  // Reduce verbose output
+  // Custom webpack config to completely suppress output
+  webpack: (config, { dev, isServer }) => {
+    // Suppress all webpack logging
+    config.stats = 'none';
+    config.infrastructureLogging = {
+      level: 'none',
+    };
+    return config;
+  },
+
+  // Reduce verbose output to minimum
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,
     pagesBufferLength: 2,
@@ -43,16 +49,6 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
-  },
-  // Custom webpack config to minimize console output
-  webpack: (config, { dev, isServer }) => {
-    // In production, replace console methods with no-ops
-    if (!dev && process.env.NODE_ENV === 'production') {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-      };
-    }
-    return config;
   },
 };
 

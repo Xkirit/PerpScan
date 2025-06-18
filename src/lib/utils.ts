@@ -44,33 +44,24 @@ export function getPerformanceBgColor(value: number): string {
   return 'bg-gray-50 border-gray-200'
 }
 
-// Production-safe logging utilities
-const isProduction = process.env.NODE_ENV === 'production';
+// Determine background color for percentage change display
+export function getPercentageColor(value: number): string {
+  if (value > 0) return 'bg-green-50 border-green-200'
+  if (value < 0) return 'bg-red-50 border-red-200'
+  return 'bg-gray-50 border-gray-200'
+}
+
+// Production-safe logging utilities - DISABLED EVERYWHERE
+const noop = () => {};
 
 export const logger = {
-  log: (...args: any[]) => {
-    if (!isProduction) {
-      console.log(...args);
-    }
-  },
-  error: (...args: any[]) => {
-    if (!isProduction) {
-      console.error(...args);
-    }
-  },
-  warn: (...args: any[]) => {
-    if (!isProduction) {
-      console.warn(...args);
-    }
-  },
-  info: (...args: any[]) => {
-    if (!isProduction) {
-      console.info(...args);
-    }
-  }
+  log: noop,
+  error: noop,
+  warn: noop,
+  info: noop
 };
 
-// Suppress fetch errors in production
+// Suppress fetch errors everywhere
 export const safeFetch = async (url: string, options?: RequestInit) => {
   try {
     const response = await fetch(url, {
@@ -84,10 +75,7 @@ export const safeFetch = async (url: string, options?: RequestInit) => {
     });
     return response;
   } catch (error) {
-    // Silently handle fetch errors in production
-    if (!isProduction) {
-      console.error('Fetch error:', error);
-    }
+    // Silently handle fetch errors everywhere
     throw error;
   }
 }; 
