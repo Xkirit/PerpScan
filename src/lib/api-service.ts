@@ -63,7 +63,7 @@ class APIService {
     return `${endpoint}?${sortedParams}`;
   }
 
-  private isCacheValid<T>(cached: CachedData<T> | undefined, duration: number): boolean {
+  private isCacheValid<T>(cached: CachedData<T> | undefined, duration: number): cached is CachedData<T> {
     if (!cached) return false;
     return Date.now() - cached.timestamp < duration;
   }
@@ -130,7 +130,7 @@ class APIService {
     } catch (error) {
       // If cache exists, return cached data as fallback
       const cached = this.cache.get(cacheKey);
-      if (cached && cached.data) {
+      if (cached?.data) {
         console.warn('Using cached tickers data due to API error:', error);
         return cached.data;
       }
@@ -185,7 +185,7 @@ class APIService {
     } catch (error) {
       // If cache exists, return cached data as fallback
       const cached = this.cache.get(cacheKey);
-      if (cached && cached.data) {
+      if (cached?.data) {
         console.warn(`Using cached kline data for ${symbol} due to API error:`, error);
         return cached.data;
       }
@@ -277,7 +277,7 @@ class APIService {
     } catch (error) {
       // If cache exists, return cached data as fallback
       const cached = this.cache.get(cacheKey);
-      if (cached && cached.data) {
+      if (cached?.data !== undefined) {
         console.warn(`Using cached account ratio for ${symbol} due to API error:`, error);
         return cached.data;
       }
