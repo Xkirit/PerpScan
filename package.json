@@ -4,10 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:verbose": "NODE_ENV=development next dev --turbopack",
     "dev:silent": "NEXT_TELEMETRY_DISABLED=1 next dev --turbopack --quiet > /dev/null 2>&1",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test-cron": "curl -s https://perpflow.vercel.app/api/institutional-flows && echo '\\nCron test completed'",
+    "redis-info": "curl -s http://localhost:3000/api/redis-info | jq '.redis'",
+    "redis-info-full": "curl -s http://localhost:3000/api/redis-info | jq '.'",
+    "redis-debug": "curl -s http://localhost:3000/api/debug-redis | jq -r '.capturedLogs[]'",
+    "redis-debug-full": "curl -s http://localhost:3000/api/debug-redis | jq '.'",
+    "clean-privacy": "./scripts/clean-privacy.sh",
+    "deploy-clean": "npm run clean-privacy && git add . && git commit -m 'Clean privacy deployment' && git push"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",

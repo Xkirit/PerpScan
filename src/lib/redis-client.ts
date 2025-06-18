@@ -29,32 +29,64 @@ async function getRedisClient(): Promise<any> {
     return redisClient;
   }
 
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  
+  // 🔍 DATABASE CONNECTION LOGGING
+  console.log('🔗 Redis Database Connection Info:');
+  console.log('   Environment:', process.env.NODE_ENV || 'development');
+  console.log('   Redis URL:', redisUrl);
+  
+  if (redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
+    console.log('   📍 Database Type: LOCAL Redis (localhost)');
+  } else if (redisUrl.includes('redis-cloud.com') || redisUrl.includes('redislabs.com')) {
+    console.log('   📍 Database Type: REDIS CLOUD (Vercel-managed)');
+    const host = redisUrl.match(/@([^:]+)/)?.[1] || 'unknown';
+    console.log('   🌐 Host:', host);
+  } else if (redisUrl.includes('upstash.io')) {
+    console.log('   📍 Database Type: UPSTASH Redis');
+  } else {
+    console.log('   📍 Database Type: EXTERNAL Redis');
+  }
+  
+  console.log('   🔑 Authentication:', redisUrl.includes('@') ? 'Yes (with password)' : 'No');
+  console.log('   🌍 Connection Mode:', process.env.NODE_ENV === 'production' ? 'Production' : 'Development');
+
   // Create Redis client
   const client = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    url: redisUrl,
     // For production, you might want to add more config:
     // password: process.env.REDIS_PASSWORD,
     // socket: { tls: process.env.NODE_ENV === 'production' }
   });
 
   client.on('error', (err) => {
-    //console.error('❌ Redis Client Error:', err);
+    console.error('❌ Redis Client Error:', err);
   });
 
   client.on('connect', () => {
-          // console.log('🔗 Redis Client Connected');
+    console.log('🔗 Redis Client Connected Successfully');
   });
 
   client.on('ready', () => {
-          // console.log('✅ Redis Client Ready');
+    console.log('✅ Redis Client Ready and Operational');
   });
 
   client.on('end', () => {
-          // console.log('🔌 Redis Client Connection Ended');
+    console.log('🔌 Redis Client Connection Ended');
   });
 
   await client.connect();
   redisClient = client;
+  
+  // Additional connection verification
+  try {
+    const pingResult = await client.ping();
+    console.log('🏓 Redis Ping Test:', pingResult);
+    console.log('🎯 Successfully connected to Redis database!\n');
+  } catch (error) {
+    console.error('❌ Redis ping failed:', error);
+  }
+  
   return client;
 }
 
@@ -97,7 +129,7 @@ export class InstitutionalFlowsRedis {
         await client.expire(PRIORITY_KEY, TTL_SECONDS);
       }
       
-      // console.log(`✅ Redis: Saved ${flows.length} flows with TTL ${TTL_SECONDS}s`);
+      console.log(`✅ Redis: Saved ${flows.length} flows with TTL ${TTL_SECONDS}s`);
     } catch (error) {
       //console.error('❌ Redis save error:', error);
       throw error;
@@ -115,7 +147,7 @@ export class InstitutionalFlowsRedis {
       if (dataString) {
         const data = JSON.parse(dataString);
         if (data && data.flows && Array.isArray(data.flows)) {
-          // console.log(`📊 Redis: Retrieved ${data.flows.length} flows from main key`);
+          console.log(`📊 Redis: Retrieved ${data.flows.length} flows from main key`);
           return data.flows;
         }
       }
@@ -125,11 +157,11 @@ export class InstitutionalFlowsRedis {
       
       if (flowsData && flowsData.length > 0) {
         const flows = flowsData.map((item: string) => JSON.parse(item));
-        // console.log(`📊 Redis: Retrieved ${flows.length} flows from sorted set`);
+        console.log(`📊 Redis: Retrieved ${flows.length} flows from sorted set`);
         return flows;
       }
       
-      //console.log('📊 Redis: No flows found');
+      console.log('📊 Redis: No flows found');
       return [];
       
     } catch (error) {
