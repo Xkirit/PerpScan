@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface BtcPriceChangeProps {
   interval: '4h' | '1d';
@@ -9,6 +10,7 @@ interface BtcPriceChangeProps {
 const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
   const [btcChange, setBtcChange] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme();
 
   const fetchBtcChange = useCallback(async () => {
     setLoading(true);
@@ -65,7 +67,13 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
 
   if (loading) {
     return (
-      <div className="px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium" style={{ backgroundColor: '#2d5a31', color: '#4a7c59' }}>
+      <div 
+        className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium h-8 sm:h-9 flex items-center" 
+        style={{ 
+                  backgroundColor: theme === 'dark' ? '#2d5a31' : '#f2f8f3',
+        color: theme === 'dark' ? '#4a7c59' : '#64748b'
+        }}
+      >
         <span className="hidden sm:inline">Loading...</span>
         <span className="sm:hidden">...</span>
       </div>
@@ -78,10 +86,14 @@ const BtcPriceChange: React.FC<BtcPriceChangeProps> = ({ interval }) => {
 
   return (
     <div 
-      className="px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap"
+      className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap h-8 sm:h-9 flex items-center"
       style={{
-        backgroundColor: btcChange >= 0 ? '#2d5a31' : '#1A1F16',
-        color: btcChange >= 0 ? '#ffffff' : '#ffffff'
+        backgroundColor: theme === 'dark' 
+          ? (btcChange >= 0 ? '#2d5a31' : '#1A1F16')
+          : (btcChange >= 0 ? '#16a34a' : '#dc2626'),
+        color: theme === 'dark' 
+          ? '#ffffff' 
+          : '#ffffff'
       }}
     >
       BTC: {formatPercent(btcChange)}

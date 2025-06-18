@@ -4,6 +4,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 
 import { CoinAnalysis } from '@/types';
 import { formatPercentage } from '../lib/utils';
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TrendChartProps {
   data: CoinAnalysis[];
@@ -41,24 +42,29 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  const { theme } = useTheme();
+  
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="p-4 border rounded-lg shadow-lg" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
-        <p className="font-semibold" style={{ color: '#ffffff' }}>{label}</p>
-        <p className="text-sm" style={{ color: '#ffffff' }}>
+      <div className="p-4 border rounded-lg shadow-lg" style={{ 
+        backgroundColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8', 
+        borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94' 
+      }}>
+        <p className="font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>{label}</p>
+        <p className="text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
           Current Price: ${data.currentPrice.toFixed(6)}
         </p>
-        <p className="text-sm" style={{ color: '#ffffff' }}>
+        <p className="text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
           4H Change: {formatPercentage(data.priceChange4h)}
         </p>
-        <p className="text-sm" style={{ color: '#ffffff' }}>
+        <p className="text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
           24H Change: {formatPercentage(data.priceChange24h)}
         </p>
-        <p className="text-sm" style={{ color: '#ffffff' }}>
+        <p className="text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
           Trend Score: {data.trendScore.toFixed(2)}
         </p>
-        <p className="text-sm" style={{ color: '#ffffff' }}>
+        <p className="text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
           Volume Change: {formatPercentage(data.volumeChange4h)}
         </p>
       </div>
@@ -68,6 +74,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 export function TrendChart({ data, title, dataKey }: TrendChartProps) {
+  const { theme } = useTheme();
+  
   // Take top 10 items for better visualization
   const chartData = data.slice(0, 10).map((item, index) => ({
     ...item,
@@ -97,12 +105,12 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
     <div 
       className="p-4 sm:p-6 pb-0 rounded-lg transition-colors backdrop-blur-[2px]" 
       style={{ 
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid #b0d7b8',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        backgroundColor: 'rgba(30, 63, 32, 0.1)'
+        backgroundColor: theme === 'dark' ? 'rgba(30, 63, 32, 0.1)' : '#f0f7f1'
       }}
     >
-      <h3 className="text-base sm:text-lg font-semibold mb-4 text-center" style={{ color: '#ffffff' }}>{title}</h3>
+      <h3 className="text-base sm:text-lg font-semibold mb-4 text-center" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>{title}</h3>
       <div className="h-64 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -116,7 +124,7 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
           >
             <XAxis 
               dataKey="name" 
-              stroke="#ffffff"
+              stroke={theme === 'dark' ? '#ffffff' : '#1A1F16'}
               fontSize={isMobile ? 10 : 12}
               angle={isMobile ? -40 : -45}
               textAnchor="end"
@@ -124,7 +132,7 @@ export function TrendChart({ data, title, dataKey }: TrendChartProps) {
               interval={0}
             />
             <YAxis 
-              stroke="#ffffff"
+              stroke={theme === 'dark' ? '#ffffff' : '#1A1F16'}
               fontSize={isMobile ? 10 : 12}
               tickFormatter={(value) => 
                 dataKey === 'trendScore' ? value.toFixed(1) : `${value.toFixed(1)}%`

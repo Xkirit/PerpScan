@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { BarChart, Bar, ComposedChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CardContainer, CardBody, CardItem } from '@/components/ui/3d-card';
+import { useTheme } from '@/contexts/ThemeContext';
 // Custom SVG Icons - Modern Financial Theme
 const RefreshIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,6 +89,7 @@ interface OpenInterestData {
     bias: 'bullish' | 'bearish' | 'neutral';
     biasStrength: 'weak' | 'moderate' | 'strong';
     timestamp: number;
+    source: 'binance' | 'bybit';
   };
 }
 
@@ -146,11 +148,13 @@ const calculatePriorityScore = (item: OpenInterestData, lowVolumeThreshold: numb
 
 // Manipulation confidence calculator for edge detectionƒ
 // Memoized ticker component to prevent unnecessary re-renders
-const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: number }) => {
+const TickerCard = memo(({ coin, index, theme }: { coin: OpenInterestData; index: number; theme: string }) => {
   // Enhanced directional bias determination using long/short ratio
   const hasDirectionalData = coin.longShortRatio;
   const directionalBias = hasDirectionalData ? coin.longShortRatio?.bias : null;
   const biasStrength = hasDirectionalData ? coin.longShortRatio?.biasStrength : null;
+  
+  // L/S ratio display data processed
   
   // Determine overall sentiment combining OI change and long/short bias
   const oiChange = coin.oiChangePercent;
@@ -214,12 +218,12 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
               </CardItem>
               <div>
                 <CardItem translateZ="50">
-                  <span className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">
+                  <span className="font-bold text-lg sm:text-xl" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                     {coin.symbol.replace('USDT', '')}
                   </span>
                 </CardItem>
                                   <CardItem translateZ="40">
-                   <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">
+                   <div className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                      <span className="hidden sm:inline">Detected </span>
                      {new Date(coin.timestamp).toLocaleTimeString()}
                    </div>
@@ -243,11 +247,11 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
                 }`}>
                   {coin.whaleRating === 'mega' ? 'XL' : coin.whaleRating === 'large' ? 'L' : coin.whaleRating === 'medium' ? 'M' : 'S'}
                 </span>
-                {(coin.abnormalityScore || 0) > 2.5 && (
+                {/* {(coin.abnormalityScore || 0) > 2.5 && (
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium animate-pulse">
-                    🚀
+                    <span className="hidden sm:inline">🚀</span>
                   </span>
-                )}
+                )} */}
               </div>
             </CardItem>
           </div>
@@ -256,8 +260,8 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
           <CardItem translateZ="40">
             <div className="space-y-1 sm:space-y-1.5 md:space-y-2 text-xs sm:text-sm mb-1.5 sm:mb-2 md:mb-3">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">OI Value:</span>
-                <span className="font-bold text-sm sm:text-lg">
+                <span style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>OI Value:</span>
+                <span className="font-bold text-sm sm:text-lg" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                   {coin.openInterestValue > 1e9 
                     ? `$${(coin.openInterestValue / 1e9).toFixed(2)}B` 
                     : `$${(coin.openInterestValue / 1e6).toFixed(1)}M`
@@ -265,9 +269,9 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">OI Change:</span>
+                <span style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>OI Change:</span>
                 <span className={`font-bold text-sm sm:text-lg ${
-                  Math.abs(coin.oiChangePercent) < 0.1 ? 'text-gray-500 dark:text-gray-400' :
+                  Math.abs(coin.oiChangePercent) < 0.1 ? (theme === 'dark' ? 'text-gray-500' : 'text-gray-700') :
                   coin.oiChangePercent > 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {Math.abs(coin.oiChangePercent) < 0.1 ? 'Building...' : 
@@ -282,35 +286,35 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
           <CardItem translateZ="30">
             <div className="grid grid-cols-2 gap-1 sm:gap-1.5 md:gap-2 text-xs sm:text-sm mb-1.5 sm:mb-2">
               <div className="bg-green-100 dark:bg-green-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-green-600 dark:text-green-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Priority Score</div>
-                <div className="font-bold text-xs sm:text-sm text-green-800 dark:text-green-300">
+                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#16a34a' : '#15803d' }}>Priority Score</div>
+                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#22c55e' : '#166534' }}>
                   {(coin.priorityScore || 0).toFixed(0)}
                 </div>
               </div>
               <div className="bg-blue-100 dark:bg-blue-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-blue-600 dark:text-blue-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Volume/OI</div>
-                <div className="font-bold text-xs sm:text-sm text-blue-800 dark:text-blue-300">
+                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#3b82f6' : '#1d4ed8' }}>Volume/OI</div>
+                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#60a5fa' : '#1e3a8a' }}>
                   {(coin.volume24h / coin.openInterestValue).toFixed(1)}x
                 </div>
               </div>
               <div className="bg-red-100 dark:bg-red-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-red-600 dark:text-red-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Abnormality</div>
-                <div className="font-bold text-xs sm:text-sm text-red-800 dark:text-red-300">
+                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#ef4444' : '#dc2626' }}>Abnormality</div>
+                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#f87171' : '#991b1b' }}>
                   {(coin.abnormalityScore || 0).toFixed(1)}
                 </div>
               </div>
               <div className="bg-purple-100 dark:bg-purple-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-purple-600 dark:text-purple-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">
+                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#a855f7' : '#7c3aed' }}>
                   <span className="hidden sm:inline">24h Volume</span>
                   <span className="sm:hidden">Volume</span>
                 </div>
-                <div className="font-bold text-xs sm:text-sm text-purple-800 dark:text-purple-300">
+                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#c084fc' : '#581c87' }}>
                   ${(coin.volume24h / 1e6).toFixed(1)}M
                 </div>
               </div>
               <div className="bg-green-100 dark:bg-green-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-green-600 dark:text-green-400 text-[9px] sm:text-[10px] mb-0.5 sm:mb-1">Manipulation</div>
-                <div className="font-bold text-xs sm:text-sm text-green-800 dark:text-green-300">
+                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#16a34a' : '#15803d' }}>Manipulation</div>
+                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#22c55e' : '#166534' }}>
                   {(coin.manipulationConfidence || 0).toFixed(0)}%
                 </div>
               </div>
@@ -320,20 +324,21 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
                   directionalBias === 'bearish' ? 'bg-red-100 dark:bg-red-900/20' :
                   'bg-gray-100 dark:bg-gray-900/20'
                 }`}>
-                  <div className={`text-[9px] sm:text-[10px] mb-0.5 sm:mb-1 ${
-                    directionalBias === 'bullish' ? 'text-green-600 dark:text-green-400' :
-                    directionalBias === 'bearish' ? 'text-red-600 dark:text-red-400' :
-                    'text-gray-600 dark:text-gray-400'
-                  }`}>
-                    L/S Bias
+                  <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1 flex items-center justify-between" style={{ 
+                    color: directionalBias === 'bullish' ? (theme === 'dark' ? '#16a34a' : '#15803d') :
+                           directionalBias === 'bearish' ? (theme === 'dark' ? '#ef4444' : '#dc2626') :
+                           (theme === 'dark' ? '#4a7c59' : '#3c5d47')
+                  }}>
+                    <span>L/S Bias</span>
+                    
                   </div>
                   
                   <div className="text-xs sm:text-sm mt-0.5 sm:mt-1 flex items-center gap-1">
-                    <span className="text-green-600 font-bold">
+                    <span className="font-bold" style={{ color: theme === 'dark' ? '#22c55e' : '#166534' }}>
                       {coin.longShortRatio ? `${(coin.longShortRatio.buyRatio * 100).toFixed(0)}%` : ''}
                     </span>
-                    <span className="text-gray-500">/</span>
-                    <span className="text-red-600 font-bold">
+                    <span style={{ color: theme === 'dark' ? '#6b7280' : '#4b5563' }}>/</span>
+                    <span className="font-bold" style={{ color: theme === 'dark' ? '#f87171' : '#991b1b' }}>
                       {coin.longShortRatio ? `${(coin.longShortRatio.sellRatio * 100).toFixed(0)}%` : ''}
                     </span>
                   </div>
@@ -344,7 +349,7 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
           
           {/* Time indicator */}
           <CardItem translateZ="20">
-            <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 text-center">
+            <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-center" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
               <span className="hidden sm:inline">Last seen: </span>
               {new Date(coin.timestamp).toLocaleTimeString()}
             </div>
@@ -360,6 +365,9 @@ const TickerCard = memo(({ coin, index }: { coin: OpenInterestData; index: numbe
   
   // If it's the same symbol, check if display-relevant data changed
   if (prev.symbol !== next.symbol) return false;
+  
+  // IMPORTANT: Always re-render if theme changes (for immediate color updates)
+  if (prevProps.theme !== nextProps.theme) return false;
   
   // Round values to avoid re-rendering on tiny changes
   const prevPriority = Math.round(prev.priorityScore || 0);
@@ -472,6 +480,7 @@ const shouldReplaceDbCoins = (currentDbCoins: OpenInterestData[], newCoins: Open
 };
 
 const InstitutionalActivity: React.FC = () => {
+  const { theme } = useTheme();
   const [openInterestData, setOpenInterestData] = useState<OpenInterestData[]>([]);
   const [institutionalSignals, setInstitutionalSignals] = useState<InstitutionalSignal[]>([]);
   const [whaleSignals, setWhaleSignals] = useState<InstitutionalSignal[]>([]);
@@ -488,29 +497,91 @@ const InstitutionalActivity: React.FC = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [dbLastUpdated, setDbLastUpdated] = useState<Date | null>(null);
 
-  // Fetch long/short ratio data for directional bias analysis
+  // Enhanced L/S ratio fetching with Binance as primary source (91% coverage vs Bybit's 30%)
   const getLongShortRatio = async (symbol: string, priority: 'high' | 'medium' | 'low'): Promise<{
     buyRatio: number;
     sellRatio: number;
     bias: 'bullish' | 'bearish' | 'neutral';
     biasStrength: 'weak' | 'moderate' | 'strong';
     timestamp: number;
+    source: 'binance' | 'bybit';
   } | null> => {
     // Skip API calls for low priority coins to reduce requests
     if (priority === 'low') {
       return null;
     }
     
+    // 🚀 PRIMARY SOURCE: Binance (91% coverage - 3x better than Bybit)
     try {
-      // Get current timestamp for recent data
-      const now = Date.now();
-      const oneHourAgo = now - (60 * 60 * 1000); // 1 hour ago
-      
-      // Shorter timeout for stability
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
       
-      const response = await fetch(
+      const binanceResponse = await fetch(
+        `/api/binance-ls-ratio?symbol=${symbol}&period=1h&limit=1`,
+        {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal,
+        }
+      );
+      
+      clearTimeout(timeoutId);
+      
+      if (binanceResponse.ok) {
+        const binanceData = await binanceResponse.json();
+        if (binanceData && binanceData.length > 0) {
+          const latestData = binanceData[0];
+          const longRatio = parseFloat(latestData.longShortRatio);
+          
+          // Binance returns longShortRatio, convert to individual ratios
+          // longShortRatio = longAccount / shortAccount
+          // If longShortRatio = 2.0, it means 2:1 ratio (67% long, 33% short)
+          const totalRatio = longRatio + 1;
+          const buyRatio = longRatio / totalRatio;
+          const sellRatio = 1 / totalRatio;
+          
+          // Calculate directional bias
+          const ratioDiff = buyRatio - sellRatio;
+          let bias: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+          let biasStrength: 'weak' | 'moderate' | 'strong' = 'weak';
+          
+          if (Math.abs(ratioDiff) > 0.15) {
+            biasStrength = 'strong';
+          } else if (Math.abs(ratioDiff) > 0.08) {
+            biasStrength = 'moderate';
+          }
+          
+          if (buyRatio > 0.55) {
+            bias = 'bullish';
+          } else if (sellRatio > 0.55) {
+            bias = 'bearish';
+          }
+          
+
+          
+          return {
+            buyRatio,
+            sellRatio,
+            bias,
+            biasStrength,
+            timestamp: parseInt(latestData.timestamp),
+            source: 'binance'
+          };
+        }
+      }
+    } catch (error) {
+      // Silent fallback to Bybit
+    }
+    
+    // 🔄 FALLBACK SOURCE: Bybit (for coins not available on Binance)
+    try {
+      const now = Date.now();
+      const oneHourAgo = now - (60 * 60 * 1000); // 1 hour ago
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      
+      const bybitResponse = await fetch(
         `https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1&startTime=${oneHourAgo}&endTime=${now}`,
         {
           method: 'GET',
@@ -521,16 +592,16 @@ const InstitutionalActivity: React.FC = () => {
       
       clearTimeout(timeoutId);
       
-      if (!response.ok) {
+      if (!bybitResponse.ok) {
         return null; // Silent fallback
       }
       
-      const data = await response.json();
-      if (data.retCode !== 0 || !data.result?.list?.length) {
+      const bybitData = await bybitResponse.json();
+      if (bybitData.retCode !== 0 || !bybitData.result?.list?.length) {
         return null;
       }
       
-      const latestData = data.result.list[0];
+      const latestData = bybitData.result.list[0];
       const buyRatio = parseFloat(latestData.buyRatio);
       const sellRatio = parseFloat(latestData.sellRatio);
       
@@ -551,12 +622,15 @@ const InstitutionalActivity: React.FC = () => {
         bias = 'bearish';
       }
       
+
+      
       return {
         buyRatio,
         sellRatio,
         bias,
         biasStrength,
-        timestamp: parseInt(latestData.timestamp)
+        timestamp: parseInt(latestData.timestamp),
+        source: 'bybit'
       };
       
     } catch (error) {
@@ -612,7 +686,7 @@ const InstitutionalActivity: React.FC = () => {
     }
   };
 
-  // Load institutional flows from Edge Config Store with improved data freshness
+  // Load institutional flows from Redis with improved data freshness
   const loadInstitutionalFlows = useCallback(async (): Promise<void> => {
     try {
       // Add timestamp to prevent caching issues
@@ -629,29 +703,28 @@ const InstitutionalActivity: React.FC = () => {
           // Always update data to ensure freshness, but optimize re-renders
           const newFlows = data.flows as OpenInterestData[];
           
-          // Update flows with fresh data and current timestamp
+          // Update flows with fresh data, current timestamp, and ensure manipulation confidence is calculated
           const freshFlows = newFlows.map(flow => ({
             ...flow,
-            timestamp: timestamp // Ensure fresh timestamp
+            timestamp: timestamp, // Ensure fresh timestamp
+            manipulationConfidence: flow.manipulationConfidence || calculateManipulationConfidence(flow) // Calculate if missing
           }));
           
           setSuspiciousMovements(freshFlows);
-          console.log(`📊 Refreshed ${freshFlows.length} institutional flows from Edge Config Store`);
           
           if (data.lastUpdated) {
             setDbLastUpdated(new Date(data.lastUpdated));
-            console.log(`🕒 Database last updated: ${new Date(data.lastUpdated).toLocaleTimeString()}`);
           }
         }
       } else {
         console.warn('Failed to load institutional flows:', response.status);
       }
     } catch (error) {
-      console.error('Error loading institutional flows from Edge Config Store:', error);
+      console.error('Error loading institutional flows from Redis:', error);
     }
   }, []); // Remove dependency to prevent unnecessary re-renders
 
-  // Save institutional flows to Edge Config Store with enhanced metadata
+  // Save institutional flows to Redis with enhanced metadata
   const saveInstitutionalFlows = useCallback(async (flows: OpenInterestData[], replaceMode: boolean = false): Promise<void> => {
     try {
       const response = await fetch('/api/institutional-flows', {
@@ -671,18 +744,16 @@ const InstitutionalActivity: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          console.log(`💾 Saved ${data.totalFlows} flows to Edge Config Store (${data.addedCount} new, ${data.updatedCount} updated, ${data.removedCount} removed)`);
           if (data.priorityReplacement) {
-            console.log(`🎯 Priority-based replacement active: Maintaining top ${data.maxFlows} highest priority flows`);
+            // Priority-based replacement is active
           }
           if (data.protectedCoins && data.protectedCoins.length > 0) {
-            console.log(`🛡️ Protected coins (higher priority): ${data.protectedCoins.join(', ')}`);
-          }
+            }
           setDbLastUpdated(new Date(data.lastUpdated));
         }
       }
     } catch (error) {
-      console.error('Error saving institutional flows to Edge Config Store:', error);
+      console.error('Error saving institutional flows to Redis:', error);
     }
   }, [suspiciousMovements.length]);
 
@@ -697,7 +768,7 @@ const InstitutionalActivity: React.FC = () => {
       setLoadingMessage('Refreshing institutional flows...');
     }
     try {
-      console.log('🔍 Scanning Bybit futures for institutional flows...');
+      // Scanning Bybit futures for institutional flows
       
       // Get ALL tickers data (includes OI, funding, volume)
       const tickersResponse = await fetch('https://api.bybit.com/v5/market/tickers?category=linear', {
@@ -724,7 +795,7 @@ const InstitutionalActivity: React.FC = () => {
       const topUsdtTickers = tickersData.result.list
         .filter((ticker: any) => ticker.symbol.endsWith('USDT') && parseFloat(ticker.openInterestValue || '0') > 1000000) // >$1M OI (raised threshold for speed)
         .sort((a: any, b: any) => parseFloat(b.openInterestValue) - parseFloat(a.openInterestValue))
-        .slice(0, 200); // Top 200 by OI value for broader monitoring
+        .slice(0, 300); // Top 300 by OI value for broader monitoring
 
     
       if (isFirstLoad) {
@@ -733,7 +804,6 @@ const InstitutionalActivity: React.FC = () => {
       }
       
       // Process tickers with optimized batch processing - reduced concurrency
-      console.log(`⚡ Processing ${topUsdtTickers.length} tickers with stable batch loading...`);
       
              // Process in smaller batches to reduce server load and improve stability
        const batchSize = 10;
@@ -755,14 +825,16 @@ const InstitutionalActivity: React.FC = () => {
              // Prioritized API calls - reduce requests for stability
              let realOIChange = 0;
              let longShortData = null;
-             const priority = index < 20 ? 'high' : index < 100 ? 'medium' : 'low';
+             const priority = index < 30 ? 'high' : index < 150 ? 'medium' : 'low'; // Expanded high/medium priority ranges
              
              // Fetch both OI change and long/short ratio for top coins
-             if (index < 50) { // Only top 50 coins get real API data
+             if (index < 200) { // Expanded to top 80 coins for better L/S coverage
                [realOIChange, longShortData] = await Promise.all([
                  get24hOIChange(symbol, currentOI, priority),
                  getLongShortRatio(symbol, priority)
                ]);
+               
+               // L/S data fetching completed silently
              }
              
              // For all coins: Use local historical data as primary source (much faster)
@@ -876,12 +948,10 @@ const InstitutionalActivity: React.FC = () => {
             return false; // Skip coins still building historical data
           }
           
-          // 🔥 TEMPORARY DEBUG: Lower thresholds to see if any coins get detected
-          console.log(`🔍 Checking ${item.symbol}: OI change ${oiChange.toFixed(2)}%, abnormality ${abnormality.toFixed(2)}, whale ${item.whaleRating}, volume category ${item.volumeCategory}`);
+          // Check coin detection criteria
           
           // 🎯 HIGH PRIORITY: Dramatic OI changes (the main focus)
           if (oiChange > 10) { // Lowered from 15 to 10
-            console.log(`✅ ${item.symbol} qualifies: Dramatic OI change (${oiChange.toFixed(2)}%)`);
             return true;
           }
           
@@ -891,7 +961,6 @@ const InstitutionalActivity: React.FC = () => {
             volumeOiRatio < 3 || // Increased from 2 to 3
             (item.whaleRating === 'mega' || item.whaleRating === 'large') // Whale activity
           )) {
-            console.log(`✅ ${item.symbol} qualifies: Significant OI change with supporting signals`);
             return true;
           }
           
@@ -900,19 +969,16 @@ const InstitutionalActivity: React.FC = () => {
             abnormality > 0.5 || // Lowered from 0.8 to 0.5
             volumeOiRatio < 4 // Increased from 3 to 4
           )) {
-            console.log(`✅ ${item.symbol} qualifies: Low volume stealth accumulation`);
             return true;
           }
           
           // 🐋 WHALE PRIORITY: Large whales with any meaningful OI movement
           if ((item.whaleRating === 'mega' || item.whaleRating === 'large') && oiChange > 2) { // Lowered from 3 to 2
-            console.log(`✅ ${item.symbol} qualifies: Whale activity`);
             return true;
           }
           
           // 📊 STATISTICAL PRIORITY: Extreme statistical anomalies even with smaller OI changes
           if (abnormality > 1.5 && oiChange > 1) { // Lowered thresholds
-            console.log(`✅ ${item.symbol} qualifies: Statistical anomaly`);
             return true;
           }
           
@@ -931,7 +997,6 @@ const InstitutionalActivity: React.FC = () => {
       const shouldUpdateEdgeDetector = !lastEdgeUpdate || (now - parseInt(lastEdgeUpdate)) > 10 * 1000; // Match scan frequency
       
       if (shouldUpdateEdgeDetector) {
-        console.log('🎯 UPDATING SMART TRACKER - Finding top 10 highest priority coins...');
         
         // Get all coins that meet threshold criteria
         const qualifyingCoins = currentSuspicious
@@ -963,10 +1028,8 @@ const InstitutionalActivity: React.FC = () => {
           }))
           .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0)); // Sort by priority score descending
         
-        // 🎯 SMART PRIORITY-BASED EDGE CONFIG STORE LOGIC
-        console.log(`🎯 Processing ${qualifyingCoins.length} qualifying coins for Edge Config Store...`);
-        
-                if (qualifyingCoins.length > 0) {
+        // 🎯 SMART PRIORITY-BASED REDIS LOGIC
+        if (qualifyingCoins.length > 0) {
            // Get current database coins to implement smart replacement logic
            const currentDbCoins = suspiciousMovements;
            const replacementAnalysis = shouldReplaceDbCoins(currentDbCoins, qualifyingCoins);
@@ -976,36 +1039,28 @@ const InstitutionalActivity: React.FC = () => {
              await saveInstitutionalFlows(qualifyingCoins, isAtLimit);
              
              if (isAtLimit) {
-               console.log(`🔄 Smart replacement: ${replacementAnalysis.coinsToReplace.length} coins qualify to replace lower priority coins`);
-               console.log(`📊 Priority comparison: Min DB: ${replacementAnalysis.minDbPriority.toFixed(0)}, Max New: ${replacementAnalysis.maxNewPriority.toFixed(0)}`);
-               console.log(`🎯 Replacement candidates: ${replacementAnalysis.coinsToReplace.map(c => `${c.symbol}(${(c.priorityScore || 0).toFixed(0)})`).join(', ')}`);
-               
-               // Show which coins are being protected
+               // Smart replacement logic - priority-based coin replacement
                const protectedCoins = currentDbCoins
                  .filter(coin => (coin.priorityScore || 0) >= replacementAnalysis.maxNewPriority)
                  .map(coin => `${coin.symbol}(${(coin.priorityScore || 0).toFixed(0)})`);
-               if (protectedCoins.length > 0) {
-                 console.log(`🛡️ Protected coins (higher priority): ${protectedCoins.join(', ')}`);
-               }
              } else {
-               console.log(`📈 Database has space: Added ${qualifyingCoins.length} qualifying flows to Edge Config Store`);
+               // Database has space for new flows
              }
            } else {
-             console.log(`✋ No replacement warranted: All current DB coins have higher priority than new candidates`);
-             console.log(`📊 Priority gap: Min DB: ${replacementAnalysis.minDbPriority.toFixed(0)}, Max New: ${replacementAnalysis.maxNewPriority.toFixed(0)}`);
+             // No replacement warranted - existing DB coins have higher priority
            }
         } else {
-          console.log('📊 No coins currently match institutional criteria - maintaining existing flows in Edge Config Store');
+          // No coins currently match institutional criteria
         }
         
         localStorage.setItem('lastEdgeDetectorUpdate', now.toString());
               } else {
-          console.log('🚀 Smart Money Tracker: Waiting for next 10-second update cycle...');
+          // Waiting for next update cycle
         }
       
-      setOpenInterestData(sortedByValue.slice(0, 200)); // Increased to 200 for broader monitoring
+      setOpenInterestData(sortedByValue.slice(0, 300)); // Increased to 200 for broader monitoring
       
-      // 🎯 EDGE CONFIG STORE FRONTEND UPDATE - Load latest data from store after database update
+      // 🎯 REDIS FRONTEND UPDATE - Load latest data from store after database update
       if (shouldUpdateEdgeDetector) {
         // Wait a moment for database update to complete, then load fresh data
         setTimeout(async () => {
@@ -1016,17 +1071,20 @@ const InstitutionalActivity: React.FC = () => {
         await loadInstitutionalFlows();
       }
       
-      console.log(`📊 Processed ${allUsdtTickers.length} USDT tickers`);
+      // Processed tickers
       
       // Count how many coins have meaningful OI change data
       const coinsWithOIData = allUsdtTickers.filter((t: OpenInterestData) => Math.abs(t.oiChangePercent) >= 0.1).length;
       const coinsWithDramaticChanges = allUsdtTickers.filter((t: OpenInterestData) => Math.abs(t.oiChangePercent) > 10).length;
       const coinsWithExtremeChanges = allUsdtTickers.filter((t: OpenInterestData) => Math.abs(t.oiChangePercent) > 20).length;
       
-      console.log(`📊 Real 24h OI Data: ${coinsWithOIData}/${allUsdtTickers.length} coins have meaningful 24h OI changes (${((coinsWithOIData/allUsdtTickers.length)*100).toFixed(1)}%)`);
-      console.log(`🎯 Dramatic 24h OI Changes: ${coinsWithDramaticChanges} coins >10%, ${coinsWithExtremeChanges} coins >20%`);
-      console.log(`🔍 Found ${currentSuspicious.length} coins with significant 24h OI movements from TOP 200 assets`);
-      console.log(`🚀 Smart Money Tracker: Edge Config Store will maintain top 10 highest priority flows`);
+      // Analysis statistics calculated
+      
+      // L/S Ratio Coverage Summary
+      const totalWithLS = allUsdtTickers.filter(t => t.longShortRatio).length;
+      const binanceLS = allUsdtTickers.filter(t => t.longShortRatio?.source === 'binance').length;
+      const bybitLS = allUsdtTickers.filter(t => t.longShortRatio?.source === 'bybit').length;
+      // L/S ratio coverage analysis completed
       
       if (isFirstLoad) {
         setLoadingProgress(90);
@@ -1045,8 +1103,7 @@ const InstitutionalActivity: React.FC = () => {
       
       const scanCompleteTime = new Date();
       setLastUpdated(scanCompleteTime);
-      console.log(`✅ Smart Money Tracker scan completed at ${scanCompleteTime.toLocaleTimeString()}`);
-      console.log(`📊 Next scan scheduled in 10 seconds at ${new Date(scanCompleteTime.getTime() + 10 * 1000).toLocaleTimeString()}`);
+      // Scan completed successfully
 
       // Mark first load as complete
       if (isFirstLoad) {
@@ -1068,7 +1125,7 @@ const InstitutionalActivity: React.FC = () => {
     const anomalySignals: InstitutionalSignal[] = [];
     const now = Date.now();
     
-    console.log('🔬 Running advanced institutional detection algorithms...');
+    // Running advanced institutional detection algorithms
 
     oiData.forEach((coin) => {
       const abnormality = coin.abnormalityScore || 0;
@@ -1233,17 +1290,16 @@ const InstitutionalActivity: React.FC = () => {
     setAnomalySignals(sortedAnomalySignals);
     setInstitutionalSignals(allSignals.slice(0, 25)); // Top 25 high-confidence signals
     
-    console.log(`🎯 Detected ${allSignals.length} institutional signals (${allSignals.filter(s => s.severity === 'critical').length} critical)`);
-    console.log(`🐋 Whale: ${sortedWhaleSignals.length}, ⚡ Squeeze: ${sortedSqueezeSignals.length}, 📊 Anomaly: ${sortedAnomalySignals.length}`);
+    // Institutional signals detected and analyzed
   }, []);
 
-  // Initial load from Edge Config Store and then fetch new data
+  // Initial load from Redis and then fetch new data
   useEffect(() => {
-    console.log('🚀 Starting Smart Money Tracker - loading from Edge Config Store first...');
+    // Starting Smart Money Tracker - loading from Redis first
     
-    // Load existing data from Edge Config Store immediately
+    // Load existing data from Redis immediately
     loadInstitutionalFlows().then(() => {
-      console.log('📊 Database coins loaded, starting fresh scan...');
+      // Database coins loaded, starting fresh scan
       // Then start fresh scan
       fetchOpenInterestData();
     });
@@ -1255,7 +1311,7 @@ const InstitutionalActivity: React.FC = () => {
     
     const scheduleNextScan = () => {
       timeoutId = setTimeout(() => {
-        console.log('🔄 Starting scheduled 10-second Smart Money Tracker rescan...');
+        // Starting scheduled rescan
         fetchOpenInterestData().then(() => {
           scheduleNextScan(); // Schedule next scan after this one completes
         });
@@ -1420,14 +1476,14 @@ const InstitutionalActivity: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: '#ffffff' }}>
-          <AlertCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#4a7c59' }} />
+        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <AlertCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }} />
           <span className="hidden sm:inline">Institutional Activity Detection</span>
           <span className="sm:hidden">Institutional Activity</span>
         </h2>
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
               <span className="hidden sm:inline">Last updated: </span>
               {formatLastUpdated(lastUpdated)}
             </div>
@@ -1445,11 +1501,11 @@ const InstitutionalActivity: React.FC = () => {
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             <span className="hidden sm:inline">Institutional Inflows</span>
             <span className="sm:hidden">Inflows</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             ${suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) > 1e9 
               ? `${(suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) / 1e9).toFixed(1)}B`
               : `${(suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) / 1e6).toFixed(0)}M`
@@ -1464,11 +1520,11 @@ const InstitutionalActivity: React.FC = () => {
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             <span className="hidden sm:inline">High Priority Alerts</span>
             <span className="sm:hidden">Alerts</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             {suspiciousMovements.filter(coin => (coin.priorityScore || 0) > 80).length}
           </div>
         </div>
@@ -1480,11 +1536,11 @@ const InstitutionalActivity: React.FC = () => {
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             <span className="hidden sm:inline">Manipulation Detected</span>
             <span className="sm:hidden">Manipulation</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             {suspiciousMovements.filter(coin => (coin.manipulationConfidence || 0) > 70).length}
           </div>
         </div>
@@ -1496,11 +1552,11 @@ const InstitutionalActivity: React.FC = () => {
             backgroundColor: 'rgba(30, 63, 32, 0.1)'
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: '#ffffff' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             <span className="hidden sm:inline">Monitored Assets</span>
             <span className="sm:hidden">Assets</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             {openInterestData.length}
           </div>
         </div>
@@ -1509,7 +1565,7 @@ const InstitutionalActivity: React.FC = () => {
       {/* 🚀 SMART MONEY TRACKER - Institutional Flow Detection */}
       <div className="min-h-[600px] sm:min-h-[800px] rounded-lg border-2 p-4 sm:p-6 backdrop-blur-[2.5px]" style={{  borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
-          <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3" style={{ color: '#ffffff' }}>
+          <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             <span className="hidden sm:inline">MANIPULATION DETECTOR</span>
             <span className="sm:hidden">DETECTOR</span>
           </h3>
@@ -1550,7 +1606,7 @@ const InstitutionalActivity: React.FC = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-full overflow-y-auto py-4 sm:py-6 px-1 sm:px-2 overflow-x-hidden">
               {suspiciousMovements.map((coin, index) => (
-                <TickerCard key={coin.symbol} coin={coin} index={index} />
+                <TickerCard key={`${coin.symbol}-${theme}`} coin={coin} index={index} theme={theme} />
               ))}
             </div>
           </>
@@ -1588,14 +1644,14 @@ const InstitutionalActivity: React.FC = () => {
         ) : !isFirstLoad && !loading ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-6">🔍</div>
-            <h4 className="text-2xl font-bold mb-4" style={{ color: '#ffffff' }}>
+            <h4 className="text-2xl font-bold mb-4" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
               No Coins Found
             </h4>
             <p className="text-lg mb-4" style={{ color: '#4a7c59' }}>
               No coins are currently stored in the database
             </p>
             <div className="rounded-lg p-4 max-w-md mx-auto mb-4" style={{ backgroundColor: 'rgba(74, 124, 89, 0.2)', border: '1px solid rgba(74, 124, 89, 0.3)' }}>
-              <p className="text-sm font-medium mb-2" style={{ color: '#ffffff' }}>
+              <p className="text-sm font-medium mb-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                 💾 Database Status: Empty (0/10 coins)
               </p>
               <div className="flex items-center justify-center gap-4 text-sm">
@@ -1656,7 +1712,7 @@ const InstitutionalActivity: React.FC = () => {
         {/* WHALE ACTIVITY */}
         <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-4 sm:mb-5">
-            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: '#ffffff' }}>
+            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
               <span className="hidden sm:inline">Whale Activity</span>
               <span className="sm:hidden">Whales</span>
             </h3>
@@ -1672,7 +1728,7 @@ const InstitutionalActivity: React.FC = () => {
                 <div className="flex justify-center mb-4">
                   <RefreshCwIcon className="h-12 w-12 text-purple-500 animate-spin" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Loading whale activity...</p>
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Loading whale activity...</p>
               </div>
             ) : whaleSignals.length > 0 ? whaleSignals.map((signal, index) => {
               const sentiment = getSignalSentiment(signal);
@@ -1708,10 +1764,10 @@ const InstitutionalActivity: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm sm:text-lg text-white leading-none">
+                        <h4 className="font-bold text-sm sm:text-lg leading-none" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                           {signal.symbol.replace('USDT', '')}
                         </h4>
-                        <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
+                        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                           {new Date(signal.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
@@ -1721,11 +1777,11 @@ const InstitutionalActivity: React.FC = () => {
                   {/* Metrics Row */}
                   <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs text-gray-400">
+                      <span className="text-[10px] sm:text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                         <span className="hidden sm:inline">Confidence</span>
                         <span className="sm:hidden">Conf</span>
                       </span>
-                      <span className="text-[10px] sm:text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
+                      <span className="text-[10px] sm:text-xs font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>{signal.confidence.toFixed(1)}%</span>
                     </div>
                     
                     {sentiment !== 'neutral' && (
@@ -1740,13 +1796,13 @@ const InstitutionalActivity: React.FC = () => {
                   </div>
 
                   {/* Message */}
-                  <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 leading-relaxed line-clamp-3">
+                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 leading-relaxed line-clamp-3" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
                     {signal.message}
                   </p>
 
                   {/* Action Button */}
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs transition-colors" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                       <span className="hidden sm:inline">View Chart</span>
                       <span className="sm:hidden">Chart</span>
                       <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1757,8 +1813,8 @@ const InstitutionalActivity: React.FC = () => {
                 </div>
               );
             }) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="text-sm">No whale activity detected</p>
+              <div className="text-center py-8">
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>No whale activity detected</p>
               </div>
             )}
           </div>
@@ -1767,7 +1823,7 @@ const InstitutionalActivity: React.FC = () => {
         {/* FUNDING SQUEEZES */}
         <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-4 sm:mb-5">
-            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: '#ffffff' }}>
+            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
               <span className="hidden sm:inline">Funding Squeezes</span>
               <span className="sm:hidden">Funding</span>
             </h3>
@@ -1783,7 +1839,7 @@ const InstitutionalActivity: React.FC = () => {
                 <div className="flex justify-center mb-4">
                   <RefreshCwIcon className="h-12 w-12 text-orange-500 animate-spin" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Loading funding squeezes...</p>
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Loading funding squeezes...</p>
               </div>
             ) : squeezeSignals.length > 0 ? squeezeSignals.map((signal, index) => {
               const sentiment = getSignalSentiment(signal);
@@ -1819,10 +1875,10 @@ const InstitutionalActivity: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm sm:text-lg text-white leading-none">
+                        <h4 className="font-bold text-sm sm:text-lg leading-none" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                           {signal.symbol.replace('USDT', '')}
                         </h4>
-                        <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
+                        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                           {new Date(signal.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
@@ -1832,11 +1888,11 @@ const InstitutionalActivity: React.FC = () => {
                   {/* Metrics Row */}
                   <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs text-gray-400">
+                      <span className="text-[10px] sm:text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                         <span className="hidden sm:inline">Confidence</span>
                         <span className="sm:hidden">Conf</span>
                       </span>
-                      <span className="text-[10px] sm:text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
+                      <span className="text-[10px] sm:text-xs font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>{signal.confidence.toFixed(1)}%</span>
                     </div>
                     
                     {sentiment !== 'neutral' && (
@@ -1851,13 +1907,13 @@ const InstitutionalActivity: React.FC = () => {
                   </div>
 
                   {/* Message */}
-                  <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 leading-relaxed line-clamp-3">
+                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 leading-relaxed line-clamp-3" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
                     {signal.message}
                   </p>
 
                   {/* Action Button */}
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs transition-colors" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                       <span className="hidden sm:inline">View Chart</span>
                       <span className="sm:hidden">Chart</span>
                       <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1868,8 +1924,8 @@ const InstitutionalActivity: React.FC = () => {
                 </div>
               );
             }) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="text-sm">No funding squeezes detected</p>
+              <div className="text-center py-8">
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>No funding squeezes detected</p>
               </div>
             )}
           </div>
@@ -1878,7 +1934,7 @@ const InstitutionalActivity: React.FC = () => {
         {/* STATISTICAL ANOMALIES */}
         <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
           <div className="mb-4 sm:mb-5">
-            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: '#ffffff' }}>
+            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
               <span className="hidden sm:inline">Statistical Anomalies</span>
               <span className="sm:hidden">Anomalies</span>
             </h3>
@@ -1894,7 +1950,7 @@ const InstitutionalActivity: React.FC = () => {
                 <div className="flex justify-center mb-4">
                   <RefreshCwIcon className="h-12 w-12 text-blue-500 animate-spin" />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Loading statistical anomalies...</p>
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Loading statistical anomalies...</p>
               </div>
             ) : anomalySignals.length > 0 ? anomalySignals.map((signal, index) => {
               const sentiment = getSignalSentiment(signal);
@@ -1930,10 +1986,10 @@ const InstitutionalActivity: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm sm:text-lg text-white leading-none">
+                        <h4 className="font-bold text-sm sm:text-lg leading-none" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                           {signal.symbol.replace('USDT', '')}
                         </h4>
-                        <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
+                        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                           {new Date(signal.timestamp).toLocaleTimeString()}
                         </p>
                       </div>
@@ -1943,7 +1999,7 @@ const InstitutionalActivity: React.FC = () => {
                   {/* Metrics Row */}
                   <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs text-gray-400">
+                      <span className="text-[10px] sm:text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                         <span className="hidden sm:inline">Confidence</span>
                         <span className="sm:hidden">Conf</span>
                       </span>
@@ -1962,13 +2018,13 @@ const InstitutionalActivity: React.FC = () => {
                   </div>
 
                   {/* Message */}
-                  <p className="text-xs sm:text-sm text-gray-300 mb-2 sm:mb-3 leading-relaxed line-clamp-3">
+                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 leading-relaxed line-clamp-3" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
                     {signal.message}
                   </p>
 
                   {/* Action Button */}
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs transition-colors" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
                       <span className="hidden sm:inline">View Chart</span>
                       <span className="sm:hidden">Chart</span>
                       <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1979,8 +2035,8 @@ const InstitutionalActivity: React.FC = () => {
                 </div>
               );
             }) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="text-sm">No anomalies detected</p>
+              <div className="text-center py-8">
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>No anomalies detected</p>
               </div>
             )}
           </div>

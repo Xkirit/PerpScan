@@ -1,12 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #1E3F20;
+  /* Dark theme (default - your existing colors) */
+  --background: #1A1F16;
   --foreground: #ffffff;
-  --primary: #1A1F16;
-  --secondary: #1E3F20;
-  --accent: #2d5a31;
+  --primary: #1E3F20;
+  --secondary: #2d5a31;
+  --accent: #4a7c59;
   --muted: #1A1F16;
+}
+
+.dark {
+  /* Dark theme (same as default) */
+  --background: #1A1F16;
+  --foreground: #ffffff;
+  --primary: #1E3F20;
+  --secondary: #2d5a31;
+  --accent: #4a7c59;
+  --muted: #1A1F16;
+}
+
+/* Light theme override when NOT in dark mode */
+:root:not(.dark) {
+  --background: #f8fdf9;
+  --foreground: #1a202c;
+  --primary: #f1f8f2;
+  --secondary: #e7f4e8;
+  --accent: #2d5a31;
+  --muted: #f1f8f2;
+  
+  /* Additional light mode colors - NEW */
+  --light-surface: #f3f8f4;
+  --light-border: #d6e5d8;
+  --light-hover: #ebf3ec;
+  --light-active: #d6e5d8;
+  --light-text-secondary: #64748b;
+  --light-text-muted: #94a3b8;
+  --light-success: #16a34a;
+  --light-warning: #ca8a04;
+  --light-error: #dc2626;
+  --light-info: #0ea5e9;
+  --light-surface-elevated: #f8fdf9;
+  --light-border-subtle: #ebf3ec;
+  --light-accent-soft: #d4f0dc;
+  --light-accent-hover: #b3e6c4;
 }
 
 @theme inline {
@@ -17,17 +54,22 @@
   --color-accent: var(--accent);
   --color-muted: var(--muted);
   --font-sans: var(--font-poppins);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1A1F16;
-    --foreground: #ffffff;
-    --primary: #1E3F20;
-    --secondary: #2d5a31;
-    --accent: #4a7c59;
-    --muted: #1A1F16;
-  }
+  
+  /* Additional light mode color utilities - NEW */
+  --color-light-surface: var(--light-surface);
+  --color-light-border: var(--light-border);
+  --color-light-hover: var(--light-hover);
+  --color-light-active: var(--light-active);
+  --color-light-text-secondary: var(--light-text-secondary);
+  --color-light-text-muted: var(--light-text-muted);
+  --color-light-success: var(--light-success);
+  --color-light-warning: var(--light-warning);
+  --color-light-error: var(--light-error);
+  --color-light-info: var(--light-info);
+  --color-light-surface-elevated: var(--light-surface-elevated);
+  --color-light-border-subtle: var(--light-border-subtle);
+  --color-light-accent-soft: var(--light-accent-soft);
+  --color-light-accent-hover: var(--light-accent-hover);
 }
 
 body {

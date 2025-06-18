@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Custom SVG Icons
 const DollarSignIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
@@ -22,19 +23,23 @@ const HomeIcon = ({ className }: { className?: string }) => (
 );
 
 export default function DocsPage() {
+  const { theme } = useTheme();
+  
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: '#0a0e0b' }}>
+    <div className="min-h-screen p-6" style={{ backgroundColor: theme === 'dark' ? '#0a0e0b' : '#f2f9f4' }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
-              onClick={() => window.history.back()}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+              onClick={() => window.location.href = '/'}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors hover:opacity-80 cursor-pointer"
               style={{ 
-                backgroundColor: 'rgba(30, 63, 32, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#ffffff'
+                backgroundColor: theme === 'dark' ? 'rgba(30, 63, 32, 0.3)' : 'rgba(198, 228, 205, 0.3)',
+                border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid #b0d7b8',
+                color: theme === 'dark' ? '#ffffff' : '#1A1F16',
+                zIndex: 10,
+                position: 'relative'
               }}
             >
               <HomeIcon className="h-4 w-4" />
@@ -42,11 +47,11 @@ export default function DocsPage() {
             </button>
           </div>
           
-                     <h1 className="text-4xl font-bold mb-4 flex items-center gap-3" style={{ color: '#ffffff' }}>
-             <BookOpenIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
+                     <h1 className="text-4xl font-bold mb-4 flex items-center gap-3" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+             <BookOpenIcon className="h-8 w-8" style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }} />
              Institutional Activity Tracker Documentation
            </h1>
-           <p className="text-lg" style={{ color: '#4a7c59' }}>
+           <p className="text-lg" style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>
              Comprehensive guide to institutional activity detection algorithms and signal interpretation
            </p>
         </div>
@@ -55,13 +60,13 @@ export default function DocsPage() {
         <div 
           className="rounded-lg p-8 backdrop-blur-[2px]"
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid #b0d7b8',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+            backgroundColor: theme === 'dark' ? 'rgba(30, 63, 32, 0.1)' : '#f0f7f1'
           }}
         >
-                     <h2 className="text-3xl font-bold mb-6 flex items-center gap-3" style={{ color: '#ffffff' }}>
-             <DollarSignIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
+                     <h2 className="text-3xl font-bold mb-6 flex items-center gap-3" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+             <DollarSignIcon className="h-8 w-8" style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }} />
              System Documentation
            </h2>
           

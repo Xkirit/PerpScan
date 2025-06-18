@@ -7,30 +7,35 @@ import { Button } from './ui/button';
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
+  const handleToggle = () => {
+    console.log('ThemeToggle clicked! Current theme:', theme);
+    toggleTheme();
+    console.log('toggleTheme called');
+  };
+
+  console.log('ThemeToggle rendering with theme:', theme);
+
   return (
-    <Button
+    <div className="flex items-center gap-2">
+     
+      <Button
       variant="outline"
-      size="sm"
-      onClick={toggleTheme}
-      className="flex items-center space-x-1"
-      style={{
-        borderColor: '#2d5a31',
-        backgroundColor: '#1E3F20',
-        color: '#ffffff'
-      }}
+      onClick={handleToggle}
+      className="flex items-center gap-0 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 h-4 sm:h-9 text-xs sm:text-sm min-h-0 bg-background text-foreground border-accent"
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? (
         <>
-          <MoonIcon className="w-4 h-4" />
+          <MoonIcon className="w-4 h-4 sm:w-4 sm:h-4" />
           <span className="hidden sm:inline">Dark</span>
         </>
       ) : (
         <>
-          <SunIcon className="w-4 h-4" />
+          <SunIcon className="w-4 h-4 sm:w-4 sm:h-4" />
           <span className="hidden sm:inline">Light</span>
         </>
       )}
     </Button>
+    </div>
   );
 } 

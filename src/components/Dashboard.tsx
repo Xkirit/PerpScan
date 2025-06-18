@@ -13,6 +13,7 @@ import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon,
 import BtcPriceChange from './BtcPriceChange';
 import LiquidGlass from 'liquid-glass-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -25,6 +26,7 @@ interface AnalysisResult {
 // Countdown Timer Component
 const CandleCountdown: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const { theme } = useTheme();
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -68,11 +70,31 @@ const CandleCountdown: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ backgroundColor: '#2d5a31', borderColor: '#4a7c59' }}>
-      <ClockIcon className="h-4 w-4" style={{ color: '#ffffff' }} />
-      <div className="text-sm">
-        <span className="font-medium" style={{ color: '#ffffff' }}>4H Close:</span>
-        <span className="ml-2 font-mono" style={{ color: '#ffffff' }}>{timeLeft}</span>
+    <div 
+      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg border h-8 sm:h-9"
+      style={{ 
+        backgroundColor: theme === 'dark' ? '#1E3F20' : '#c6e4cd',
+        borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94'
+      }}
+    >
+      <ClockIcon 
+        className="h-3 w-3 sm:h-4 sm:w-4" 
+        style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }} 
+      />
+      <div className="text-xs sm:text-sm">
+        <span 
+          className="font-medium" 
+          style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+        >
+          <span className="hidden sm:inline">4H Close:</span>
+          <span className="sm:hidden">4H:</span>
+        </span>
+        <span 
+          className="ml-1 sm:ml-2 font-mono" 
+          style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+        >
+          {timeLeft}
+        </span>
       </div>
     </div>
   );
@@ -85,6 +107,7 @@ const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analysis' | 'chart' | 'institutional' | 'openinterest'>('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
   const [error, setError] = useState<string | null>(null);
+  const { theme } = useTheme();
 
   const fetchData = useCallback(async (interval: '4h' | '1d' = chartInterval) => {
     setLoading(true);
@@ -147,15 +170,18 @@ const Dashboard: React.FC = () => {
   const allCoins = data?.trending || [];
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-background">
       {/* Fixed Background Grid */}
       <div
         className="fixed inset-0 z-0"
         style={{
-          backgroundColor: '#0F1411',
-          backgroundImage: `
+          backgroundColor: theme === 'dark' ? '#0F1411' : '#f2f8f3',
+          backgroundImage: theme === 'dark' ? `
             linear-gradient(rgba(26, 31, 22, 0.8) 1px, transparent 1px),
             linear-gradient(90deg, rgba(26, 31, 22, 0.8) 1px, transparent 1px)
+          ` : `
+            linear-gradient(rgba(198, 228, 205, 0.3) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(198, 228, 205, 0.3) 1px, transparent 1px)
           `,
           backgroundSize: '40px 40px',
           backgroundAttachment: 'fixed'
@@ -172,38 +198,28 @@ const Dashboard: React.FC = () => {
         }}
       >
       {/* Header */}
-      <div className="shadow-sm border-b relative z-10" style={{ backgroundColor: '#122817', borderColor: '#2d5a31' }}>
-        <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div 
+                className="shadow-sm border-b relative z-10" 
+                style={{ 
+                  backgroundColor: theme === 'dark' ? '#122817' : '#e5f3e7', 
+                  borderColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8' 
+                }}
+              >
+        <div className="max-w-[140vh] mx-auto px-4 sm:px-6 lg:px-12 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div>
               <img 
                 src="/logo.svg" 
                 alt="PerpFlow" 
-                className="h-12 sm:h-16 md:h-20 w-auto"
+                className="h-14 sm:h-15 md:h-17 lg:h-20 w-auto"
                 style={{ 
-                  filter: 'brightness(1.4)',
+                  filter: 'brightness(1.4) drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.8))',
                   transform: 'scaleY(0.92)'
                 }}
               />
-              {/* <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
-                {lastUpdated && (
-                  <p className="text-sm" style={{ color: '#4a7c59' }}>
-                    Last updated: {formatLastUpdated(lastUpdated)}
-                    <span className="ml-2 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full" style={{ backgroundColor: '#2d5a31', color: '#ffffff' }}>
-                      Client Mode
-                    </span>
-                  </p>
-                )}
-                {data && (
-                  <p className="text-xs" style={{ color: '#4a7c59' }}>
-                    {data.totalCoins} coins analyzed
-                  </p>
-                )}
-              </div> */}
             </div>
            
-
-            <div className="flex items-center gap-3">
+            <div className="flex items-center py-0 gap-2 sm:gap-3 overflow-x-auto">
               <BtcPriceChange interval={chartInterval} />
               <CandleCountdown /> 
               <ThemeToggle />
@@ -211,35 +227,50 @@ const Dashboard: React.FC = () => {
                 onClick={() => fetchData(chartInterval)}
                 disabled={loading}
                 variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-0 sm:py-2 whitespace-nowrap h-8 sm:h-9 text-xs sm:text-sm min-h-0"
               >
-                <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                <RefreshCwIcon className={`h-4 w-4 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
             </div>
           </div>
 
           {/* Interval Selector */}
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <span className="text-sm font-medium" style={{ color: '#4a7c59' }}>Analysis Interval:</span>
-            <div className="flex rounded-lg p-1 w-max" style={{ backgroundColor: '#0F1411' }}>
+          <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <span 
+              className="text-xs sm:text-sm font-medium" 
+              style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+            >
+              Analysis Interval:
+            </span>
+            <div 
+              className="flex rounded-lg p-1 w-max" 
+              style={{ backgroundColor: theme === 'dark' ? '#0F1411' : '#f2f8f3' }}
+            >
               <button
                 onClick={() => setChartInterval('4h')}
-                className="px-3 py-1 text-sm rounded-md transition-colors"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors"
                 style={{
-                  backgroundColor: chartInterval === '4h' ? '#2d5a31' : 'transparent',
-                  color: chartInterval === '4h' ? '#ffffff' : '#4a7c59'
+                  backgroundColor: chartInterval === '4h' 
+                    ? (theme === 'dark' ? '#2d5a31' : '#b0d7b8') 
+                    : 'transparent',
+                  color: chartInterval === '4h' 
+                    ? (theme === 'dark' ? '#ffffff' : '#1A1F16') 
+                    : (theme === 'dark' ? '#4a7c59' : '#76ba94')
                 }}
               >
                 4H
               </button>
               <button
                 onClick={() => setChartInterval('1d')}
-                className="px-3 py-1 text-sm rounded-md transition-colors"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors"
                 style={{
-                  backgroundColor: chartInterval === '1d' ? '#2d5a31' : 'transparent',
-                  color: chartInterval === '1d' ? '#ffffff' : '#4a7c59'
+                  backgroundColor: chartInterval === '1d' 
+                    ? (theme === 'dark' ? '#2d5a31' : '#b0d7b8') 
+                    : 'transparent',
+                  color: chartInterval === '1d' 
+                    ? (theme === 'dark' ? '#ffffff' : '#1A1F16') 
+                    : (theme === 'dark' ? '#4a7c59' : '#76ba94')
                 }}
               >
                 1D
@@ -248,23 +279,36 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Tab Navigation */}
-          <div className="mt-4">
-            <div className="border-b" style={{ borderColor: '#2d5a31' }}>
-              <nav className="-mb-px flex space-x-8">
+          <div className="mt-3 sm:mt-4">
+            <div 
+              className="border-b" 
+              style={{ borderColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8' }}
+            >
+              <nav className="-mb-px flex space-x-2 sm:space-x-6 md:space-x-8 overflow-x-auto">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className="flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors"
+                      className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap"
                       style={{
-                        borderColor: activeTab === tab.id ? '#ffffff' : 'transparent',
-                        color: activeTab === tab.id ? '#ffffff' : '#4a7c59'
+                        borderColor: activeTab === tab.id 
+                          ? (theme === 'dark' ? '#ffffff' : '#1A1F16') 
+                          : 'transparent',
+                        color: activeTab === tab.id 
+                          ? (theme === 'dark' ? '#ffffff' : '#1A1F16') 
+                          : (theme === 'dark' ? '#4a7c59' : '#76ba94')
                       }}
                     >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
+                      <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden">
+                        {tab.id === 'analysis' ? 'Analysis' : 
+                         tab.id === 'chart' ? 'Chart' : 
+                         tab.id === 'institutional' ? 'Institutional' : 
+                         'OI'}
+                      </span>
                     </button>
                   );
                 })}
@@ -281,14 +325,25 @@ const Dashboard: React.FC = () => {
             <div
               className="rounded-lg p-6"
               style={{
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                border: theme === 'dark' 
+                  ? '1px solid rgba(255, 255, 255, 0.2)' 
+                  : '1px solid #b0d7b8',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                backgroundColor: theme === 'dark' ? 'transparent' : '#f0f7f1'
               }}
             >
-              <h3 className="text-lg font-medium mb-2" style={{ color: '#ffffff' }}>
+              <h3 
+                className="text-lg font-medium mb-2" 
+                style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+              >
                 Failed to Load Data
               </h3>
-              <p className="mb-4" style={{ color: '#4a7c59' }}>{error}</p>
+              <p 
+                className="mb-4" 
+                style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+              >
+                {error}
+              </p>
               <Button onClick={() => fetchData(chartInterval)} variant="outline">
                 Try Again
               </Button>
@@ -296,11 +351,20 @@ const Dashboard: React.FC = () => {
           </div>
         ) : loading ? (
           <div className="text-center py-12">
-            <RefreshCwIcon className="h-12 w-12 animate-spin mx-auto" style={{ color: '#4a7c59' }} />
-            <h3 className="mt-4 text-lg font-medium" style={{ color: '#ffffff' }}>
+            <RefreshCwIcon 
+              className="h-12 w-12 animate-spin mx-auto" 
+              style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }} 
+            />
+            <h3 
+              className="mt-4 text-lg font-medium" 
+              style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+            >
               Analyzing Market Data
             </h3>
-            <p className="mt-2" style={{ color: '#4a7c59' }}>
+            <p 
+              className="mt-2" 
+              style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+            >
               Consulting the crypto crystal ball..
             </p>
           </div>
@@ -313,84 +377,129 @@ const Dashboard: React.FC = () => {
                 <div
                   className="rounded-lg p-6 backdrop-blur-[3px]"
                   style={{
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    border: theme === 'dark' 
+                      ? '1px solid rgba(255, 255, 255, 0.2)' 
+                      : '1px solid #b0d7b8',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    backgroundColor: 'rgba(30, 63, 32, 0.1)'
+                    backgroundColor: theme === 'dark' 
+                      ? 'rgba(30, 63, 32, 0.1)' 
+                      : '#f0f7f1'
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Trending</p>
+                      <p 
+                        className="text-sm font-medium" 
+                        style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+                      >
+                        Top Trending
+                      </p>
                       <button
                         onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.trending[0]?.symbol}.P`, '_blank')}
                         className="text-2xl font-bold cursor-pointer  hover:opacity-80"
-                        style={{ color: '#ffffff' }}
+                        style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
                       >
                         {data.trending[0]?.symbol.replace('USDT', '') || 'N/A'}
                       </button>
-                      <p className="text-xs" style={{ color: '#4a7c59' }}>
+                      <p 
+                        className="text-xs" 
+                        style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+                      >
                         Score: {data.trending[0]?.trendScore.toFixed(2) || 'N/A'}
                       </p>
                     </div>
-                    <TrendingUpIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
+                    <TrendingUpIcon 
+                      className="h-8 w-8" 
+                      style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }} 
+                    />
                   </div>
                 </div>
 
                 <div
                   className="rounded-lg p-6 backdrop-blur-[3px]"
                   style={{
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    border: theme === 'dark' 
+                      ? '1px solid rgba(255, 255, 255, 0.2)' 
+                      : '1px solid #b0d7b8',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    backgroundColor: 'rgba(30, 63, 32, 0.1)'
+                    backgroundColor: theme === 'dark' 
+                      ? 'rgba(30, 63, 32, 0.1)' 
+                      : '#f0f7f1'
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Gainer</p>
+                      <p 
+                        className="text-sm font-medium" 
+                        style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+                      >
+                        Top Gainer
+                      </p>
                       <button
                         onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.strongest[0]?.symbol}.P`, '_blank')}
                         className="text-2xl font-bold cursor-pointer  hover:opacity-80"
-                        style={{ color: '#ffffff' }}
+                        style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
                       >
                         {data.strongest[0]?.symbol.replace('USDT', '') || 'N/A'}
                       </button>
-                      <p className="text-xs" style={{ color: '#4a7c59' }}>
+                      <p 
+                        className="text-xs" 
+                        style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+                      >
                         +{chartInterval === '4h'
                           ? data.strongest[0]?.priceChange4h.toFixed(2)
                           : data.strongest[0]?.priceChange24h.toFixed(2)
                         }% ({chartInterval})
                       </p>
                     </div>
-                    <ArrowUpIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
+                    <ArrowUpIcon 
+                      className="h-8 w-8" 
+                      style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }} 
+                    />
                   </div>
                 </div>
 
                 <div
                   className="rounded-lg p-6 backdrop-blur-[3px]"
                   style={{
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    border: theme === 'dark' 
+                      ? '1px solid rgba(255, 255, 255, 0.2)' 
+                      : '1px solid #b0d7b8',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    backgroundColor: 'rgba(30, 63, 32, 0.1)'
+                    backgroundColor: theme === 'dark' 
+                      ? 'rgba(30, 63, 32, 0.1)' 
+                      : '#f0f7f1'
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: '#4a7c59' }}>Top Loser</p>
+                      <p 
+                        className="text-sm font-medium" 
+                        style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+                      >
+                        Top Loser
+                      </p>
                       <button
                         onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${data.weakest[0]?.symbol}.P`, '_blank')}
                         className="text-2xl font-bold cursor-pointer  hover:opacity-80"
-                        style={{ color: '#ffffff' }}
+                        style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
                       >
                         {data.weakest[0]?.symbol.replace('USDT', '') || 'N/A'}
                       </button>
-                      <p className="text-xs" style={{ color: '#4a7c59' }}>
+                      <p 
+                        className="text-xs" 
+                        style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+                      >
                         {chartInterval === '4h'
                           ? data.weakest[0]?.priceChange4h.toFixed(2)
                           : data.weakest[0]?.priceChange24h.toFixed(2)
                         }% ({chartInterval})
                       </p>
                     </div>
-                    <ArrowDownIcon className="h-8 w-8" style={{ color: '#4a7c59' }} />
+                    <ArrowDownIcon 
+                      className="h-8 w-8" 
+                      style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }} 
+                    />
                   </div>
                 </div>
               </div>
@@ -436,12 +545,19 @@ const Dashboard: React.FC = () => {
 
         {/* Enhanced Footer */}
         {data && !loading && (
-          <footer className="mt-16 py-8 border-t backdrop-blur-[4px]" style={{ 
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(30, 63, 32, 0.1)'
-          }}>
+          <footer 
+            className="mt-16 py-8 border-t backdrop-blur-[4px]" 
+            style={{ 
+              borderColor: theme === 'dark' 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : '#b0d7b8',
+              backgroundColor: theme === 'dark' 
+                ? 'rgba(30, 63, 32, 0.1)' 
+                : '#f2f8f3'
+            }}
+          >
             <div className="max-w-[140vh] items-center justify-center px-12 mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-5 md:relative">
             
             {/* Left Section - Brand & Description */}
             <div className="flex flex-col items-center md:items-start gap-2">
@@ -455,25 +571,25 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Center Section - Quick Links */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 md:absolute md:left-1/3 md:translate-x-1/3">
               <button 
                 onClick={() => window.open('/docs', '_blank')}
                 className="text-xs hover:opacity-80 transition-opacity"
-                style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : '#94a3b8' }}
               >
                 Docs
               </button>
               <button 
                 onClick={() => window.open('https://www.bybit.com', '_blank')}
                 className="text-xs hover:opacity-80 transition-opacity"
-                style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : '#94a3b8' }}
               >
                 Bybit
               </button>
                <button 
                 onClick={() => window.open('https://www.tradingview.com', '_blank')}
                 className="text-xs hover:opacity-80 transition-opacity"
-                style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : '#94a3b8' }}
               >
                 TradingView
               </button>
@@ -481,27 +597,22 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Right Section - Social Icons */}
-            <div className="flex items-center gap-4">
-              {/* GitHub */}
-              <button 
-                onClick={() => window.open('https://github.com', '_blank')}
-                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                title="GitHub"
-              >
-                <svg className="w-4 h-4" fill="currentColor" style={{ color: 'rgba(255, 255, 255, 0.6)' }} viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-              </button>
+            <div className="flex items-center justify-center gap-4">
+             
 
               {/* Twitter */}
               <button 
                 onClick={() => window.open('https://twitter.com', '_blank')}
-                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110 flex items-center justify-center"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9' }}
                 title="Twitter"
               >
-                <svg className="w-4 h-4" fill="currentColor" style={{ color: 'rgba(255, 255, 255, 0.6)' }} viewBox="0 0 24 24">
+                <svg 
+                  className="w-4 h-4" 
+                  fill="currentColor" 
+                  style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : '#64748b' }} 
+                  viewBox="0 0 24 24"
+                >
                   <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
                 </svg>
               </button>
@@ -509,11 +620,16 @@ const Dashboard: React.FC = () => {
               {/* Discord */}
               <button 
                 onClick={() => window.open('https://discord.com', '_blank')}
-                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110 flex items-center justify-center"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9' }}
                 title="Discord"
               >
-                <svg className="w-4 h-4" fill="currentColor" style={{ color: 'rgba(255, 255, 255, 0.6)' }} viewBox="0 0 24 24">
+                <svg 
+                  className="w-4 h-4" 
+                  fill="currentColor" 
+                  style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : '#64748b' }} 
+                  viewBox="0 0 24 24"
+                >
                   <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0190 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9460 2.4189-2.1568 2.4189Z"/>
                 </svg>
               </button>
@@ -521,11 +637,16 @@ const Dashboard: React.FC = () => {
               {/* Telegram */}
               <button 
                 onClick={() => window.open('https://telegram.org', '_blank')}
-                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                className="p-2 rounded-lg hover:opacity-80 transition-all duration-200 hover:scale-110 flex items-center justify-center"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9' }}
                 title="Telegram"
               >
-                <svg className="w-4 h-4" fill="currentColor" style={{ color: 'rgba(255, 255, 255, 0.6)' }} viewBox="0 0 24 24">
+                <svg 
+                  className="w-4 h-4" 
+                  fill="currentColor" 
+                  style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : '#64748b' }} 
+                  viewBox="0 0 24 24"
+                >
                   <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
                 </svg>
               </button>
@@ -533,43 +654,17 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Bottom Copyright */}
-          <div className="mt-6 pt-4 border-t" style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              {/* Left Section - Empty spacer to match brand section above */}
-              <div className="flex flex-col items-center md:items-start gap-2">
-                <div className="opacity-0">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src="/logo.svg" 
-                      alt="PerpFlow" 
-                      className="h-6 w-auto opacity-60"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Center Section - Copyright text aligned with quick links above */}
-              <div className="flex items-center">
-                <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.3)' }}>
-                  © 2025 PerpFlow. Advanced perpetual futures analytics platform.
-                </p>
-              </div>
-
-              {/* Right Section - Empty spacer to match social icons above */}
-              <div className="flex items-center gap-4 opacity-0">
-                <div className="p-2 rounded-lg">
-                  <div className="w-4 h-4"></div>
-                </div>
-                <div className="p-2 rounded-lg">
-                  <div className="w-4 h-4"></div>
-                </div>
-                <div className="p-2 rounded-lg">
-                  <div className="w-4 h-4"></div>
-                </div>
-                <div className="p-2 rounded-lg">
-                  <div className="w-4 h-4"></div>
-                </div>
-              </div>
+          <div 
+            className="mt-6 pt-4 border-t text-center pr-10" 
+            style={{ borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9' }}
+          >
+            <div className="flex justify-center pr-10">
+              <p 
+                className="text-xs text-center" 
+                style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : '#94a3b8' }}
+              >
+                © 2025 PerpFlow. Advanced analytics platform.
+              </p>
             </div>
           </div>
         </div>

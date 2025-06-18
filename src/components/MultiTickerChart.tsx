@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, To
 import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon, AlertTriangleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface HistoricalDataPoint {
   timestamp: number;
@@ -65,6 +66,7 @@ const CustomLineLabels = ({ selectedCoins, historicalData, chartColors }: {
 };
 
 const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) => {
+  const { theme } = useTheme();
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
@@ -391,8 +393,17 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
       const activePayload = payload.find(item => item.dataKey === hoveredTicker);
       if (activePayload && activePayload.dataKey) {
         return (
-          <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">{`Time: ${label}`}</p>
+          <div 
+            className="p-3 border rounded-lg shadow-lg"
+            style={{
+              backgroundColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8',
+              borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94'
+            }}
+          >
+            <p 
+              className="text-sm" 
+              style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+            >{`Time: ${label}`}</p>
             <p style={{ color: activePayload.color }} className="text-sm font-medium">
               {`${(activePayload.dataKey as string).replace('USDT', '')}: ${formatPercent(activePayload.value || 0)}`}
             </p>
@@ -407,7 +418,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg sm:text-2xl font-bold" style={{ color: '#ffffff' }}>
+          <h2 className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             <span className="hidden sm:inline">Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)</span>
             <span className="sm:hidden">Chart ({interval === '1d' ? '1d' : '4h'}%)</span>
           </h2>
@@ -415,15 +426,20 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             <div 
               className="px-3 py-1 rounded-lg text-sm font-medium"
               style={{
-                backgroundColor: btcChange >= 0 ? '#2d5a31' : '#1A1F16',
-                color: btcChange >= 0 ? '#ffffff' : '#ffffff'
+                backgroundColor: theme === 'dark' 
+                  ? (btcChange >= 0 ? '#2d5a31' : '#1A1F16')
+                  : (btcChange >= 0 ? '#16a34a' : '#dc2626'),
+                color: theme === 'dark' ? '#ffffff' : '#ffffff'
               }}
             >
               BTC: {formatPercent(btcChange)}
             </div>
           )}
           {error && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full" style={{ backgroundColor: '#1E3F20', color: '#ffffff' }}>
+            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full" style={{ 
+              backgroundColor: theme === 'dark' ? '#1E3F20' : '#c6e4cd', 
+              color: theme === 'dark' ? '#ffffff' : '#1A1F16' 
+            }}>
               <AlertTriangleIcon className="w-3 h-3" />
               Error
             </span>
@@ -433,7 +449,12 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <select
             value={coinLimit}
             onChange={(e) => setCoinLimit(Number(e.target.value) as 20 | 50 | 100)}
-            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2"
+            style={{
+              borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
+              backgroundColor: theme === 'dark' ? '#1E3F20' : '#f0f7f1',
+              color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+            }}
           >
             <option value={20}>Top 20</option>
             <option value={50}>Top 50</option>
@@ -442,7 +463,12 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value as 'trendScore' | 'volume24h')}
-            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2"
+            style={{
+              borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
+              backgroundColor: theme === 'dark' ? '#1E3F20' : '#f0f7f1',
+              color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+            }}
           >
             <option value="trendScore">Trend</option>
             <option value="volume24h">Volume</option>
@@ -452,8 +478,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
             onClick={refreshData}
             disabled={loading}
             variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 min-h-0"
           >
             <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -468,7 +493,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <RefreshCwIcon className="h-8 w-8 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
-              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading historical data...</p>
+              <p className="mt-2" style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>Loading historical data...</p>
             </div>
           </div>
         ) : historicalData.length > 0 ? (
@@ -482,8 +507,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
               }}>
                 <XAxis 
                   dataKey="time" 
-                  stroke="#666"
-                  className="dark:stroke-gray-400"
+                  stroke={theme === 'dark' ? '#666' : '#76ba94'}
                   tick={{ fontSize: isMobile ? 10 : 12 }}
                   minTickGap={isMobile ? 15 : 20}
                   angle={isMobile ? -45 : 0}
@@ -492,8 +516,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                   interval={isMobile ? 1 : 0}
                 />
                 <YAxis 
-                  stroke="#666"
-                  className="dark:stroke-gray-400"
+                  stroke={theme === 'dark' ? '#666' : '#76ba94'}
                   tick={{ fontSize: isMobile ? 10 : 12 }}
                   tickFormatter={formatPercent}
                   domain={['dataMin - 2', 'dataMax + 2']}
@@ -501,7 +524,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                 />
                 <Tooltip content={<CustomTooltip />} />
                 {/* Add a horizontal line at 0% */}
-                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="2 2" strokeWidth={1} />
+                <ReferenceLine y={0} stroke={theme === 'dark' ? '#6b7280' : '#76ba94'} strokeDasharray="2 2" strokeWidth={1} />
                 {selectedCoins.map((symbol, index) => (
                   <Line
                     key={symbol}
@@ -581,7 +604,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500 dark:text-gray-400">No historical data available</p>
+            <p style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>No historical data available</p>
           </div>
         )}
       </div>
@@ -589,7 +612,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
 
       <div className="space-y-1 sm:space-y-2">
-        <h3 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+        <h3 className="text-xs sm:text-sm font-medium" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
           <span className="hidden sm:inline">Select coins to display:</span>
           <span className="sm:hidden">Select coins:</span>
         </h3>
@@ -601,7 +624,9 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
               className={`px-0.5 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-xs rounded-full sm:rounded-full border-[1px] transition-colors whitespace-nowrap font-medium ${
                 selectedCoins.includes(coin.symbol)
                   ? 'text-white border-current'
-                  : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  : theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' 
+                    : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
               }`}
               style={
                 selectedCoins.includes(coin.symbol)

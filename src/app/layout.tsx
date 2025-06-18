@@ -10,7 +10,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Bybit Futures Analyzer | Real-time Crypto Trends",
+  title: "Perpflow  | Real-time Perpetual futures analytics",
   description: "Analyze Bybit perpetual futures data to identify trending, strongest, and weakest performing coins with advanced charting and real-time updates.",
   keywords: "bybit, crypto, futures, trading, analysis, trends, charts",
 };
