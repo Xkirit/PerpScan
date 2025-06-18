@@ -529,6 +529,13 @@ const InstitutionalActivity: React.FC = () => {
       
       if (binanceResponse.ok) {
         const binanceData = await binanceResponse.json();
+        
+        // Check if the response indicates a fallback is needed
+        if (binanceData.fallback || binanceData.error) {
+          // Binance API is unavailable (451 error or other issues), skip to Bybit
+          throw new Error('Binance API unavailable');
+        }
+        
         if (binanceData && binanceData.length > 0) {
           const latestData = binanceData[0];
           const longRatio = parseFloat(latestData.longShortRatio);
