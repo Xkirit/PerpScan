@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
 
+module.exports={
+  compiler:{
+    removeConsole:{
+      exclude:['error','info','warn'],
+    },
+  },
+
+}
+
 const nextConfig: NextConfig = {
+
+ 
   /* config options here */
   logging: false,
   // Completely disable ALL logging
@@ -15,6 +26,8 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
+
+
 
   // Reduce verbose output to minimum
   onDemandEntries: {
