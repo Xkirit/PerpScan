@@ -523,7 +523,7 @@ const Dashboard: React.FC = () => {
               <div className="space-y-6">
                 <DataTable data={data.trending} title="Trending Coins" category="trending" />
                 <DataTable data={data.strongest} title="Strongest Performers" category="strongest" />
-                <DataTable data={data.weakest} title="📉 Weakest Performers" category="weakest" />
+                <DataTable data={data.weakest} title="Weakest Performers" category="weakest" />
               </div>
             </div>
 
@@ -556,8 +556,8 @@ const Dashboard: React.FC = () => {
                 : '#f2f8f3'
             }}
           >
-            <div className="max-w-[140vh] items-center justify-center px-12 mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-5 md:relative">
+            <div className="max-w-[140vh] items-center justify-between px-12 mx-auto">
+          <div className="relative w-full flex flex-col md:flex-row items-center gap-8">
             
             {/* Left Section - Brand & Description */}
             <div className="flex flex-col items-center md:items-start gap-2">
@@ -571,7 +571,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Center Section - Quick Links */}
-            <div className="flex items-center gap-3 md:absolute md:left-1/3 md:translate-x-1/3">
+            <div className="flex items-center gap-3 mx-auto md:absolute md:left-1/2 md:-translate-x-1/2">
               <button 
                 onClick={() => window.open('/docs', '_blank')}
                 className="text-xs hover:opacity-80 transition-opacity"
@@ -597,7 +597,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Right Section - Social Icons */}
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 md:ml-auto">
              
 
               {/* Twitter */}
@@ -655,17 +655,15 @@ const Dashboard: React.FC = () => {
 
           {/* Bottom Copyright */}
           <div 
-            className="mt-6 pt-4 border-t text-center pr-10" 
+            className="mt-6 pt-4 border-t text-center mx-auto px-4" 
             style={{ borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9' }}
           >
-            <div className="flex justify-center pr-10">
-              <p 
-                className="text-xs text-center" 
-                style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : '#94a3b8' }}
-              >
-                © 2025 PerpFlow. Advanced analytics platform.
-              </p>
-            </div>
+            <p 
+              className="text-xs" 
+              style={{ color: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : '#94a3b8' }}
+            >
+              © 2025 PerpFlow. Advanced analytics platform.
+            </p>
           </div>
         </div>
       </footer>

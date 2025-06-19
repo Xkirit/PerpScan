@@ -1,12 +1,30 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, TooltipProps, ReferenceLine } from 'recharts';
 import { CoinAnalysis } from '@/types';
 import { RefreshCwIcon, AlertTriangleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { apiService } from '@/lib/api-service';
+
+// -----------------------------------------------------------------------------
+//  ⚙️  Design-system colour palette (centralises light / dark colours)
+// -----------------------------------------------------------------------------
+//  - primaryColor  : main foreground headings / body
+//  - accentColor   : muted accents (borders, captions, axis labels)
+//  - bgSoftGreen   : translucent green card background
+// -----------------------------------------------------------------------------
+const usePalette = (theme: string) => {
+  const isDark = theme === 'dark';
+  return {
+    isDark,
+    primaryColor: isDark ? '#ffffff' : '#1f2937',      // gray-900
+    accentColor : isDark ? '#4a7c59' : '#2f4f4f',      // slate-700
+    accentStroke: isDark ? '#666666' : '#76ba94',      // axis & strokes
+    bgSoftGreen : isDark ? 'rgba(30,63,32,0.10)' : 'rgba(172,225,181,0.15)'
+  };
+};
 
 interface HistoricalDataPoint {
   timestamp: number;
@@ -25,7 +43,7 @@ interface MultiTickerChartProps {
 const chartColors = [
   '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
   '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080',
-  '#000000', '#42d4f4', '#bfef45', '#dcbeff', '#a9a9a9', '#ffb347', '#bada55', '#ff69b4', '#c0c0c0', '#ff6347',
+  '#42d4f4', '#bfef45', '#dcbeff', '#a9a9a9', '#ffb347', '#bada55', '#ff69b4', '#c0c0c0', '#ff6347',
 ];
 
 // Custom component to render labels at the end of lines
@@ -68,17 +86,39 @@ const CustomLineLabels = ({ selectedCoins, historicalData, chartColors }: {
 
 const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) => {
   const { theme } = useTheme();
+  const palette = usePalette(theme);
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCoins, setSelectedCoins] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [btcChange, setBtcChange] = useState<number | null>(null);
-  const [coinLimit, setCoinLimit] = useState<20 | 50 | 100>(20);
-  const [filterType, setFilterType] = useState<'trendScore' | 'volume24h'>('trendScore');
+  const [coinLimit, setCoinLimit] = useState<10 | 20 | 50 | 100>(20);
+  const [filterType, setFilterType] = useState<'trendScore' | 'volume24h' | 'custom'>('trendScore');
   const [rawVolumeData, setRawVolumeData] = useState<{ symbol: string; volume24h: number; rawVolume: number; rawTurnover: number }[]>([]);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // ---------------------------------------------------------------------
+  // Unique colour assignment — avoids duplicates & excludes black.
+  // ---------------------------------------------------------------------
+  const colorMapRef = useRef<Record<string, string>>({});
+  const nextColorIndexRef = useRef(0);
+
+  const getColorForSymbol = useCallback((symbol: string) => {
+    if (!colorMapRef.current[symbol]) {
+      if (nextColorIndexRef.current < chartColors.length) {
+        // use next unused palette colour
+        colorMapRef.current[symbol] = chartColors[nextColorIndexRef.current];
+      } else {
+        // fallback: generate HSL colour so we never duplicate nor hit black
+        const hue = (nextColorIndexRef.current * 37) % 360;
+        colorMapRef.current[symbol] = `hsl(${hue} 70% 50%)`;
+      }
+      nextColorIndexRef.current += 1;
+    }
+    return colorMapRef.current[symbol];
+  }, []);
 
   // Track screen size for responsive behavior
   useEffect(() => {
@@ -94,19 +134,6 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
     // Cleanup
     return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  // Create stable color mapping based on coin symbol
-  const getColorForSymbol = useCallback((symbol: string) => {
-    // Create a simple hash from the symbol to get consistent color index
-    let hash = 0;
-    for (let i = 0; i < symbol.length; i++) {
-      const char = symbol.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    const colorIndex = Math.abs(hash) % chartColors.length;
-    return chartColors[colorIndex];
   }, []);
 
   // Fetch raw volume data from consolidated API service
@@ -137,11 +164,14 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     if (filterType === 'volume24h') {
       return rawVolumeData.slice(0, coinLimit);
     }
+    if (filterType === 'custom') {
+      // Always provide up to the top 100 alphabetical coins to choose from, ignoring coinLimit
+      return [...data].sort((a, b) => a.symbol.localeCompare(b.symbol)).slice(0, 100);
+    }
     
     let sorted = [...data];
-    if (filterType === 'trendScore') {
-      sorted.sort((a, b) => (b.trendScore ?? 0) - (a.trendScore ?? 0));
-    }
+    // trendScore path
+    sorted.sort((a, b) => (b.trendScore ?? 0) - (a.trendScore ?? 0));
     return sorted.slice(0, coinLimit);
   }, [data, coinLimit, filterType, rawVolumeData]);
 
@@ -259,12 +289,28 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     }
   }, [fetchHistoricalDataClientSide]);
 
+  // Auto-select only for non-custom filters
   useEffect(() => {
-    if (topCoins.length > 0) {
+    if (filterType !== 'custom' && topCoins.length > 0) {
       setSelectedCoins(topCoinSymbols);
       fetchHistoricalData(topCoinSymbols, interval);
     }
-  }, [topCoinSymbols, interval, topCoins.length, fetchHistoricalData]);
+  }, [filterType, topCoinSymbols, interval, topCoins.length, fetchHistoricalData]);
+
+  // Reset selections when entering custom mode
+  useEffect(() => {
+    if (filterType === 'custom') {
+      setSelectedCoins([]);
+      setHistoricalData([]);
+    }
+  }, [filterType]);
+
+  // Fetch whenever custom selections change
+  useEffect(() => {
+    if (filterType === 'custom' && selectedCoins.length > 0) {
+      fetchHistoricalData(selectedCoins, interval);
+    }
+  }, [filterType, selectedCoins, interval, fetchHistoricalData]);
 
   // Trigger animations when parameters change (filterType, coinLimit, interval)
   useEffect(() => {
@@ -298,7 +344,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     setTimeout(() => {
       setShouldAnimate(true);
       // Disable animation after it completes
-      setTimeout(() => setShouldAnimate(false), 4000);
+      setTimeout(() => setShouldAnimate(false), 6000);
     }, 100);
   };
 
@@ -325,13 +371,13 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <div 
             className="p-3 border rounded-lg shadow-lg"
             style={{
-              backgroundColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8',
-              borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94'
+              backgroundColor: palette.bgSoftGreen,
+              borderColor: palette.accentColor
             }}
           >
             <p 
               className="text-sm" 
-              style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+              style={{ color: palette.primaryColor }}
             >{`Time: ${label}`}</p>
             <p style={{ color: activePayload.color }} className="text-sm font-medium">
               {`${(activePayload.dataKey as string).replace('USDT', '')}: ${formatPercent(activePayload.value || 0)}`}
@@ -347,7 +393,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <h2 className="text-lg sm:text-2xl font-bold" style={{ color: palette.primaryColor }}>
             <span className="hidden sm:inline">Multi-Ticker Price Chart ({interval === '1d' ? '1d' : '4h'} % Change)</span>
             <span className="sm:hidden">Chart ({interval === '1d' ? '1d' : '4h'}%)</span>
           </h2>
@@ -377,30 +423,32 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
         <div className="flex items-center gap-2 sm:gap-3">
           <select
             value={coinLimit}
-            onChange={(e) => setCoinLimit(Number(e.target.value) as 20 | 50 | 100)}
+            onChange={(e) => setCoinLimit(Number(e.target.value) as 10 | 20 | 50 | 100)}
             className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2"
             style={{
-              borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
-              backgroundColor: theme === 'dark' ? '#1E3F20' : '#f0f7f1',
-              color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+              borderColor: palette.accentColor,
+              backgroundColor: palette.bgSoftGreen,
+              color: palette.primaryColor
             }}
           >
+            <option value={10}>Top 10</option>
             <option value={20}>Top 20</option>
             <option value={50}>Top 50</option>
             <option value={100}>Top 100</option>
           </select>
           <select
             value={filterType}
-            onChange={e => setFilterType(e.target.value as 'trendScore' | 'volume24h')}
+            onChange={e => setFilterType(e.target.value as 'trendScore' | 'volume24h' | 'custom')}
             className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2"
             style={{
-              borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
-              backgroundColor: theme === 'dark' ? '#1E3F20' : '#f0f7f1',
-              color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+              borderColor: palette.accentColor,
+              backgroundColor: palette.bgSoftGreen,
+              color: palette.primaryColor
             }}
           >
             <option value="trendScore">Trend</option>
             <option value="volume24h">Volume</option>
+            <option value="custom">Custom</option>
           </select>
 
           <Button
@@ -422,7 +470,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <RefreshCwIcon className="h-8 w-8 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
-              <p className="mt-2" style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>Loading historical data...</p>
+              <p className="mt-2" style={{ color: palette.accentColor }}>Loading historical data...</p>
             </div>
           </div>
         ) : historicalData.length > 0 ? (
@@ -436,7 +484,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
               }}>
                 <XAxis 
                   dataKey="time" 
-                  stroke={theme === 'dark' ? '#666' : '#76ba94'}
+                  stroke={palette.accentStroke}
                   tick={{ fontSize: isMobile ? 10 : 12 }}
                   minTickGap={isMobile ? 15 : 20}
                   angle={isMobile ? -45 : 0}
@@ -445,7 +493,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                   interval={isMobile ? 1 : 0}
                 />
                 <YAxis 
-                  stroke={theme === 'dark' ? '#666' : '#76ba94'}
+                  stroke={palette.accentStroke}
                   tick={{ fontSize: isMobile ? 10 : 12 }}
                   tickFormatter={formatPercent}
                   domain={['dataMin - 2', 'dataMax + 2']}
@@ -453,7 +501,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
                 />
                 <Tooltip content={<CustomTooltip />} />
                 {/* Add a horizontal line at 0% */}
-                <ReferenceLine y={0} stroke={theme === 'dark' ? '#6b7280' : '#76ba94'} strokeDasharray="2 2" strokeWidth={1} />
+                <ReferenceLine y={0} stroke={palette.accentStroke} strokeDasharray="2 2" strokeWidth={1} />
                 {selectedCoins.map((symbol, index) => (
                   <Line
                     key={symbol}
@@ -533,7 +581,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>No historical data available</p>
+            <p style={{ color: palette.accentColor }}>No historical data available</p>
           </div>
         )}
       </div>
@@ -541,7 +589,7 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
 
 
       <div className="space-y-1 sm:space-y-2">
-        <h3 className="text-xs sm:text-sm font-medium" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+        <h3 className="text-xs sm:text-sm font-medium" style={{ color: palette.accentColor }}>
           <span className="hidden sm:inline">Select coins to display:</span>
           <span className="sm:hidden">Select coins:</span>
         </h3>
@@ -552,14 +600,18 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
               onClick={() => toggleCoin(coin.symbol)}
               className={`px-0.5 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-xs rounded-full sm:rounded-full border-[1px] transition-colors whitespace-nowrap font-medium ${
                 selectedCoins.includes(coin.symbol)
-                  ? 'text-white border-current'
+                  ? 'border-current'
                   : theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' 
                     : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
               }`}
               style={
                 selectedCoins.includes(coin.symbol)
-                  ? { borderColor: getColorForSymbol(coin.symbol) }
+                  ? { 
+                      borderColor: getColorForSymbol(coin.symbol),
+                      backgroundColor: palette.bgSoftGreen,
+                      color: palette.primaryColor
+                    }
                   : {}
               }
             >

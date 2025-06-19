@@ -23,6 +23,20 @@ interface OpenInterestData {
 
 const OpenInterestChart: React.FC = () => {
   const { theme } = useTheme();
+
+  /*
+   * Color palette
+   * ------------------------------------------------------------
+   * We centralize the colors here so light-mode tweaks are easy.
+   *  - primaryColor:   main text / titles
+   *  - accentColor:    subtle text (borders, axis, etc.)
+   *  - bgSoftGreen:    translucent green card bg
+   */
+  const isDark = theme === 'dark';
+  const primaryColor = isDark ? '#ffffff' : '#1f2937';   // gray-900 for light mode
+  const accentColor  = isDark ? '#4a7c59' : '#2f4f4f';   // slate-700 for light mode
+  const bgSoftGreen  = isDark ? 'rgba(30, 63, 32, 0.1)' : 'rgba(172, 225, 181, 0.15)';
+
   const [openInterestData, setOpenInterestData] = useState<OpenInterestData[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -104,15 +118,15 @@ const OpenInterestChart: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-        <h2 className="text-lg sm:text-2xl font-bold flex items-center gap-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-          <BarChart3Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }} />
+        <h2 className="text-lg sm:text-2xl font-bold flex items-center gap-2" style={{ color: primaryColor }}>
+          <BarChart3Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: accentColor }} />
           <span className="hidden sm:inline">Open Interest Analysis</span>
           <span className="sm:hidden">OI Analysis</span>
-          {loading && <RefreshCwIcon className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }} />}
+          {loading && <RefreshCwIcon className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" style={{ color: accentColor }} />}
         </h2>
         <div className="flex items-center gap-2 sm:gap-3">
           {lastUpdated && (
-            <div className="text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+            <div className="text-xs sm:text-sm" style={{ color: accentColor }}>
               <span className="hidden sm:inline">Last updated: </span>
               {formatLastUpdated(lastUpdated)}
             </div>
@@ -135,64 +149,64 @@ const OpenInterestChart: React.FC = () => {
         <div 
           className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: `1px solid ${accentColor}`,
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+            backgroundColor: bgSoftGreen
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: primaryColor }}>
             <span className="hidden sm:inline">Total Assets</span>
             <span className="sm:hidden">Assets</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: primaryColor }}>
             {openInterestData.length}
           </div>
         </div>
         <div 
           className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: `1px solid ${accentColor}`,
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+            backgroundColor: bgSoftGreen
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: primaryColor }}>
             <span className="hidden sm:inline">Mega Whales</span>
             <span className="sm:hidden">Mega</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: primaryColor }}>
             {openInterestData.filter(item => item.whaleRating === 'mega').length}
           </div>
         </div>
         <div 
           className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: `1px solid ${accentColor}`,
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+            backgroundColor: bgSoftGreen
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: primaryColor }}>
             <span className="hidden sm:inline">Large Whales</span>
             <span className="sm:hidden">Large</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: primaryColor }}>
             {openInterestData.filter(item => item.whaleRating === 'large').length}
           </div>
         </div>
         <div 
           className="p-3 sm:p-4 rounded-lg backdrop-blur-[2px]" 
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: `1px solid ${accentColor}`,
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            backgroundColor: 'rgba(30, 63, 32, 0.1)'
+            backgroundColor: bgSoftGreen
           }}
         >
-          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-xs sm:text-sm font-medium truncate" style={{ color: primaryColor }}>
             <span className="hidden sm:inline">Total OI Value</span>
             <span className="sm:hidden">OI Value</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: primaryColor }}>
             ${(openInterestData.reduce((sum, item) => sum + item.openInterestValue, 0) / 1e9).toFixed(1)}B
           </div>
         </div>
@@ -203,12 +217,12 @@ const OpenInterestChart: React.FC = () => {
         <div 
           className="rounded-lg p-4 sm:p-6 backdrop-blur-[2px]" 
           style={{ 
-            border: '1px solid rgba(255, 255, 255, 0.2)', 
+            border: `1px solid ${accentColor}`, 
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', 
-            backgroundColor: 'rgba(30, 63, 32, 0.1)' 
+            backgroundColor: bgSoftGreen 
           }}
         >
-          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4" style={{ color: primaryColor }}>
             <span className="hidden sm:inline">OI vs Funding Rate</span>
             <span className="sm:hidden">OI Chart</span>
           </h3>
@@ -225,7 +239,7 @@ const OpenInterestChart: React.FC = () => {
               >
                 <XAxis 
                   dataKey="symbol" 
-                  stroke={theme === 'dark' ? '#4a7c59' : '#3c5d47'}
+                  stroke={accentColor}
                   tick={{ fontSize: isMobile ? 7 : 10 }}
                   angle={isMobile ? -30 : -45}
                   textAnchor="end"
@@ -235,14 +249,14 @@ const OpenInterestChart: React.FC = () => {
                 />
                 <YAxis 
                   yAxisId="left"
-                  stroke={theme === 'dark' ? '#4a7c59' : '#3c5d47'}
+                  stroke={accentColor}
                   tick={{ fontSize: isMobile ? 7 : 10 }}
                   tickFormatter={(value) => `$${(value / 1e6).toFixed(0)}M`}
                 />
                 <YAxis 
                   yAxisId="right"
                   orientation="right"
-                  stroke={theme === 'dark' ? '#4a7c59' : '#3c5d47'}
+                  stroke={accentColor}
                   tick={{ fontSize: isMobile ? 7 : 10 }}
                   tickFormatter={(value) => `${value.toFixed(2)}%`}
                 />
@@ -252,16 +266,16 @@ const OpenInterestChart: React.FC = () => {
                       const data = payload[0].payload;
                       return (
                         <div className="rounded-lg shadow-lg p-3 backdrop-blur-sm max-w-xs" style={{
-                          backgroundColor: theme === 'dark' ? '#1E3F20' : '#f0f7f1',
-                          border: `1px solid ${theme === 'dark' ? '#4a7c59' : '#3c5d47'}`
+                          backgroundColor: bgSoftGreen,
+                          border: `1px solid ${accentColor}`
                         }}>
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded flex items-center justify-center">
-                              <span className="font-bold text-xs" style={{ color: theme === 'dark' ? '#3b82f6' : '#1d4ed8' }}>
+                              <span className="font-bold text-xs" style={{ color: accentColor }}>
                                 {label?.toString().replace('USDT', '').slice(0, 2)}
                               </span>
                             </div>
-                            <h4 className="font-bold text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+                            <h4 className="font-bold text-sm" style={{ color: primaryColor }}>
                               {label?.toString().replace('USDT', '')}
                             </h4>
                           </div>
@@ -270,9 +284,9 @@ const OpenInterestChart: React.FC = () => {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                <span className="text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>OI</span>
+                                <span className="text-xs" style={{ color: accentColor }}>OI</span>
                               </div>
-                              <span className="font-bold text-xs" style={{ color: theme === 'dark' ? '#3b82f6' : '#1d4ed8' }}>
+                              <span className="font-bold text-xs" style={{ color: accentColor }}>
                                 ${(data.openInterestValue / 1e6).toFixed(1)}M
                               </span>
                             </div>
@@ -280,22 +294,22 @@ const OpenInterestChart: React.FC = () => {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                <span className="text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Funding</span>
+                                <span className="text-xs" style={{ color: accentColor }}>Funding</span>
                               </div>
                               <span className="font-bold text-xs" style={{ 
                                 color: data.fundingRate > 0 
-                                  ? (theme === 'dark' ? '#ef4444' : '#dc2626') 
-                                  : (theme === 'dark' ? '#16a34a' : '#15803d')
+                                  ? (isDark ? '#ef4444' : '#dc2626')  // red for positive funding
+                                  : (isDark ? '#16a34a' : '#15803d')  // green for negative funding
                               }}>
                                 {(data.fundingRate * 100).toFixed(3)}%
                               </span>
                             </div>
                             
                             <div className="flex items-center justify-between pt-1 border-t" style={{ 
-                              borderColor: theme === 'dark' ? '#4a7c59' : '#3c5d47' 
+                              borderColor: accentColor 
                             }}>
-                              <span className="text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Price</span>
-                              <span className="text-xs font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
+                              <span className="text-xs" style={{ color: accentColor }}>Price</span>
+                              <span className="text-xs font-medium" style={{ color: primaryColor }}>
                                 ${data.price?.toFixed(4)}
                               </span>
                             </div>
@@ -334,17 +348,17 @@ const OpenInterestChart: React.FC = () => {
           
           {/* Chart Legend */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t" style={{ 
-            borderColor: theme === 'dark' ? '#4a7c59' : '#3c5d47' 
+            borderColor: accentColor 
           }}>
             <div className="flex items-center gap-2">
               <div className="w-3 h-2 sm:w-4 sm:h-3 bg-blue-500 opacity-70 rounded-sm"></div>
-              <span className="text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Open Interest</span>
+              <span className="text-xs sm:text-sm" style={{ color: accentColor }}>Open Interest</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-0.5 sm:w-4 bg-red-500 rounded-full"></div>
-              <span className="text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Funding Rate</span>
+              <span className="text-xs sm:text-sm" style={{ color: accentColor }}>Funding Rate</span>
             </div>
-            <div className="text-[10px] sm:text-xs italic text-center" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+            <div className="text-[10px] sm:text-xs italic text-center" style={{ color: accentColor }}>
               <span className="hidden sm:inline">Click any bar to open TradingView chart</span>
               <span className="sm:hidden">Tap bars for charts</span>
             </div>
