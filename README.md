@@ -23,26 +23,33 @@ NODE_ENV=development
 3. Copy the REST URL and REST Token from the database details
 4. Add them to your `.env.local` file as `KV_REST_API_URL` and `KV_REST_API_TOKEN`
 
-### Geographic Restrictions & Proxy Support
+### Geographic Restrictions Solution
 
-This application includes **automatic proxy fallback** for regions where Bybit and Binance APIs are restricted:
+This application uses **Vercel Edge Functions** deployed to **unrestricted regions** to bypass geographic API restrictions:
 
 #### **How it Works**
-1. **Primary**: Direct API calls to Bybit/Binance
-2. **Fallback**: Automatic proxy via [Allorigins](https://allorigins.win/) if direct calls fail
-3. **Transparent**: No configuration needed - the app handles this automatically
+1. **Edge Runtime**: API routes run as Edge Functions instead of serverless functions
+2. **Regional Deployment**: Functions deploy to unrestricted regions only
+3. **Automatic Routing**: Vercel routes requests to the nearest unrestricted region
+4. **No Proxies Needed**: Direct API calls from compliant geographic locations
 
-#### **Supported Proxy Features**
-- ✅ **Bybit API**: Open Interest, Tickers, Account Ratios, Kline Data
-- ✅ **Binance API**: Long/Short Ratios  
-- ✅ **Automatic Fallback**: Seamless switching when direct APIs fail
-- ✅ **Error Handling**: Graceful degradation with detailed logging
-- ✅ **Caching**: Redis caching works with both direct and proxy data
+#### **Supported Regions** 🌍
+- **🇩🇪 Europe**: Frankfurt (`fra1`), Amsterdam (`ams1`), London (`lhr1`)
+- **🇸🇬 Asia-Pacific**: Singapore (`sin1`), Hong Kong (`hkg1`)
+- **🇨🇦 North America**: Toronto (`yyz1`) - unrestricted alternative to US
 
-The proxy automatically activates when:
-- Geographic restrictions block API access
-- Rate limiting occurs
-- Network connectivity issues arise
+#### **Benefits**
+- ✅ **Native Performance**: No proxy overhead or additional latency
+- ✅ **High Reliability**: Direct API calls from compliant regions
+- ✅ **Automatic Scaling**: Vercel Edge Network handles traffic distribution
+- ✅ **Transparent**: No configuration needed - deploy and it works
+- ✅ **Cost Effective**: No additional proxy services required
+
+#### **Configuration**
+The application automatically deploys to unrestricted regions via:
+- Edge Runtime configuration in API routes
+- `vercel.json` regional deployment settings
+- Automatic failover between available regions
 
 ## Getting Started
 

@@ -1,131 +1,166 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest } from 'next/server';
 
-const ALLORIGINS_PROXY = 'https://api.allorigins.win/get?url=';
+// Configure Edge Runtime with unrestricted regions
+export const runtime = 'edge';
+export const regions = [
+  'fra1',  // 🇩🇪 Frankfurt (Europe)
+  'sin1',  // 🇸🇬 Singapore (Asia-Pacific)
+  'ams1',  // 🇳🇱 Amsterdam (Europe)
+  'hkg1',  // 🇭🇰 Hong Kong (Asia-Pacific)
+  'lhr1',  // 🇬🇧 London (Europe)
+  'yyz1',  // 🇨🇦 Toronto (North America - unrestricted)
+];
 
-async function fetchWithAllorigins(url: string, symbol: string): Promise<any> {
-  const encodedUrl = encodeURIComponent(url);
-  const proxyUrl = `${ALLORIGINS_PROXY}${encodedUrl}`;
-  
-  console.log(`🌐 Using Allorigins proxy for ${symbol}: ${proxyUrl}`);
-  
-  const response = await fetch(proxyUrl, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Allorigins proxy failed: ${response.status} - ${response.statusText}`);
-  }
-
-  const proxyData = await response.json();
-  
-  if (!proxyData.contents) {
-    throw new Error('Invalid response from Allorigins proxy');
-  }
-
-  // Parse the actual API response from the proxy
-  return JSON.parse(proxyData.contents);
-}
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextRequest) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ message: 'Method not allowed' }), 
+      { status: 405, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
-  const { symbol, startTime, endTime } = req.query;
+  const url = new URL(req.url);
+  const symbol = url.searchParams.get('symbol');
+  const startTime = url.searchParams.get('startTime');
+  const endTime = url.searchParams.get('endTime');
 
   if (!symbol || !startTime || !endTime) {
-    return res.status(400).json({ message: 'Missing required parameters: symbol, startTime, endTime' });
+    return new Response(
+      JSON.stringify({ message: 'Missing required parameters: symbol, startTime, endTime' }), 
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
-    // Validate parameters
-    const symbolStr = Array.isArray(symbol) ? symbol[0] : symbol;
-    const startTimeStr = Array.isArray(startTime) ? startTime[0] : startTime;
-    const endTimeStr = Array.isArray(endTime) ? endTime[0] : endTime;
-
     // Validate timestamps
-    const startMs = parseInt(startTimeStr);
-    const endMs = parseInt(endTimeStr);
+    const startMs = parseInt(startTime);
+    const endMs = parseInt(endTime);
     
     if (isNaN(startMs) || isNaN(endMs)) {
-      return res.status(400).json({ message: 'Invalid timestamp format' });
+      return new Response(
+        JSON.stringify({ message: 'Invalid timestamp format' }), 
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
+    console.log(`🌍 Edge Function running in region: ${process.env.VERCEL_REGION || 'unknown'}`);
+    console.log(`📡 Fetching OI history for ${symbol} from unrestricted region...`);
+
     // Bybit API URL
-    const bybitUrl = `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbolStr}&intervalTime=1h&startTime=${startMs}&endTime=${endMs}&limit=50`;
+    const bybitUrl = `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&startTime=${startMs}&endTime=${endMs}&limit=50`;
     
-    // 🔄 ATTEMPT 1: Direct API call
+    // Make API call from unrestricted region
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     try {
-      console.log(`📡 Direct API call for ${symbolStr}...`);
-      
       const response = await fetch(bybitUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+          'Cache-Control': 'no-cache',
         },
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      // Success case
-      if (response.ok) {
-        const data = await response.json();
-
-        if (data.retCode === 0 && data.result && data.result.list) {
-          console.log(`✅ Direct API success for ${symbolStr}`);
-          return res.status(200).json(data);
-        }
+      if (!response.ok) {
+        console.log(`⚠️ Bybit API response not OK: ${response.status} - ${response.statusText}`);
+        return new Response(
+          JSON.stringify({ 
+            message: 'Bybit API error',
+            error: `HTTP ${response.status}: ${response.statusText}`,
+            symbol: symbol,
+            region: process.env.VERCEL_REGION || 'unknown'
+          }), 
+          { status: response.status, headers: { 'Content-Type': 'application/json' } }
+        );
       }
 
-      // If direct call fails, fall back to proxy
-      console.log(`⚠️ Direct API failed for ${symbolStr}: ${response.status} - ${response.statusText}`);
+      const data = await response.json();
+
+      if (data.retCode !== 0) {
+        console.log(`⚠️ Bybit business error: ${data.retMsg}`);
+        return new Response(
+          JSON.stringify({ 
+            message: 'Bybit API business error',
+            error: data.retMsg || 'Unknown business error',
+            symbol: symbol,
+            region: process.env.VERCEL_REGION || 'unknown'
+          }), 
+          { status: 502, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate response structure
+      if (!data.result || !data.result.list) {
+        console.log(`⚠️ Invalid response structure from Bybit API`);
+        return new Response(
+          JSON.stringify({ 
+            message: 'Invalid response structure',
+            error: 'Bybit API returned unexpected data format',
+            symbol: symbol,
+            region: process.env.VERCEL_REGION || 'unknown'
+          }), 
+          { status: 502, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`✅ Success from region ${process.env.VERCEL_REGION || 'unknown'} for ${symbol}`);
+
+      // Return successful response with region info
+      return new Response(
+        JSON.stringify(data), 
+        { 
+          status: 200, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Edge-Region': process.env.VERCEL_REGION || 'unknown',
+            'X-Cache-Status': 'MISS',
+          } 
+        }
+      );
 
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
-      console.log(`⚠️ Direct API error for ${symbolStr}:`, fetchError.message);
-    }
-
-    // 🔄 ATTEMPT 2: Allorigins Proxy Fallback
-    try {
-      console.log(`🌐 Fallback to Allorigins proxy for ${symbolStr}...`);
       
-      const proxyData = await fetchWithAllorigins(bybitUrl, symbolStr);
+      console.log(`❌ Fetch error in region ${process.env.VERCEL_REGION || 'unknown'}:`, fetchError.message);
       
-      // Validate proxy response structure
-      if (proxyData.retCode === 0 && proxyData.result && proxyData.result.list) {
-        console.log(`✅ Allorigins proxy success for ${symbolStr}`);
-        return res.status(200).json(proxyData);
-      } else {
-        throw new Error(`Bybit API error: ${proxyData.retMsg || 'Unknown business error'}`);
+      if (fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ 
+            message: 'Request timeout',
+            error: 'Bybit API took too long to respond',
+            symbol: symbol,
+            region: process.env.VERCEL_REGION || 'unknown'
+          }), 
+          { status: 504, headers: { 'Content-Type': 'application/json' } }
+        );
       }
 
-    } catch (proxyError: any) {
-      console.log(`❌ Allorigins proxy failed for ${symbolStr}:`, proxyError.message);
-      
-      // Final fallback - return service unavailable
-      return res.status(503).json({ 
-        message: 'Both direct API and proxy failed',
-        error: `Unable to fetch OI history for ${symbolStr}. Both Bybit API and Allorigins proxy are unavailable.`,
-        symbol: symbolStr,
-        attempts: ['direct_api', 'allorigins_proxy']
-      });
+      return new Response(
+        JSON.stringify({ 
+          message: 'Network error',
+          error: fetchError.message,
+          symbol: symbol,
+          region: process.env.VERCEL_REGION || 'unknown'
+        }), 
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
   } catch (error: any) {
-    console.error('💥 Unexpected error:', error.message);
-    res.status(500).json({ 
-      message: 'Failed to fetch OI history',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      symbol: Array.isArray(symbol) ? symbol[0] : symbol
-    });
+    console.error(`💥 Unexpected error in region ${process.env.VERCEL_REGION || 'unknown'}:`, error.message);
+    return new Response(
+      JSON.stringify({ 
+        message: 'Internal server error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        symbol: symbol,
+        region: process.env.VERCEL_REGION || 'unknown'
+      }), 
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 } 

@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Configure Edge Runtime with unrestricted regions
+export const runtime = 'edge';
+export const regions = [
+  'fra1',  // 🇩🇪 Frankfurt (Europe)
+  'sin1',  // 🇸🇬 Singapore (Asia-Pacific)
+  'ams1',  // 🇳🇱 Amsterdam (Europe)
+  'hkg1',  // 🇭🇰 Hong Kong (Asia-Pacific)
+  'lhr1',  // 🇬🇧 London (Europe)
+  'yyz1',  // 🇨🇦 Toronto (North America - unrestricted)
+];
+
 const ALLORIGINS_PROXY = 'https://api.allorigins.win/get?url=';
 
 async function fetchWithAllorigins(url: string, symbol: string): Promise<any> {
@@ -41,76 +52,85 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Symbol is required' }, { status: 400 });
     }
 
+    console.log(`🌍 Edge Function running in region: ${process.env.VERCEL_REGION || 'unknown'}`);
+    console.log(`📡 Fetching LS ratio for ${symbol} from unrestricted region...`);
+
     const binanceUrl = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=${limit}`;
 
-    // 🔄 ATTEMPT 1: Direct API call
+    // Make direct API call from unrestricted region
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     try {
-      console.log(`📡 Direct API call for ${symbol}...`);
-      
       const response = await fetch(binanceUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+          'Cache-Control': 'no-cache',
         },
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      // Success case
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Validate response structure
-        if (Array.isArray(data) && data.length > 0) {
-          console.log(`✅ Direct API success for ${symbol}`);
-          return NextResponse.json(data);
-        }
+      if (!response.ok) {
+        console.log(`⚠️ API response not OK: ${response.status} - ${response.statusText}`);
+        return NextResponse.json({ 
+          error: 'Binance API error', 
+          status: response.status,
+          region: process.env.VERCEL_REGION || 'unknown',
+          message: `Failed to fetch from region ${process.env.VERCEL_REGION || 'unknown'}`
+        }, { status: response.status });
       }
 
-      // If direct call fails or returns invalid data, fall back to proxy
-      console.log(`⚠️ Direct API failed for ${symbol}: ${response.status} - ${response.statusText}`);
+      const data = await response.json();
       
+      // Validate response structure
+      if (!Array.isArray(data) || data.length === 0) {
+        console.log(`⚠️ Invalid response structure from Binance API`);
+        return NextResponse.json({ 
+          error: 'Invalid response from Binance', 
+          region: process.env.VERCEL_REGION || 'unknown',
+          message: 'API returned invalid data structure'
+        }, { status: 502 });
+      }
+
+      console.log(`✅ Success from region ${process.env.VERCEL_REGION || 'unknown'} for ${symbol}`);
+      
+      // Add region info to response for debugging
+      return NextResponse.json(data, {
+        headers: {
+          'X-Edge-Region': process.env.VERCEL_REGION || 'unknown',
+          'X-Cache-Status': 'MISS',
+        }
+      });
+
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
-      console.log(`⚠️ Direct API error for ${symbol}:`, fetchError.message);
-    }
-
-    // 🔄 ATTEMPT 2: Allorigins Proxy Fallback
-    try {
-      console.log(`🌐 Fallback to Allorigins proxy for ${symbol}...`);
       
-      const proxyData = await fetchWithAllorigins(binanceUrl, symbol);
+      console.log(`❌ Fetch error in region ${process.env.VERCEL_REGION || 'unknown'}:`, fetchError.message);
       
-      // Validate proxy response structure
-      if (Array.isArray(proxyData) && proxyData.length > 0) {
-        console.log(`✅ Allorigins proxy success for ${symbol}`);
-        return NextResponse.json(proxyData);
-      } else {
-        throw new Error('Invalid response structure from proxied API');
+      if (fetchError.name === 'AbortError') {
+        return NextResponse.json({ 
+          error: 'Request timeout', 
+          region: process.env.VERCEL_REGION || 'unknown',
+          message: 'API request timed out'
+        }, { status: 504 });
       }
-
-    } catch (proxyError: any) {
-      console.log(`❌ Allorigins proxy failed for ${symbol}:`, proxyError.message);
       
-      // Final fallback - return service unavailable
       return NextResponse.json({ 
-        error: 'Both direct API and proxy failed', 
-        fallback: true,
-        message: `Unable to fetch data for ${symbol}. Both Binance API and Allorigins proxy are unavailable.`,
-        attempts: ['direct_api', 'allorigins_proxy']
+        error: 'Network error', 
+        region: process.env.VERCEL_REGION || 'unknown',
+        message: fetchError.message
       }, { status: 503 });
     }
 
   } catch (error: any) {
-    console.error(`💥 Unexpected error:`, error.message);
+    console.error(`💥 Unexpected error in region ${process.env.VERCEL_REGION || 'unknown'}:`, error.message);
     return NextResponse.json({ 
       error: 'Internal server error', 
-      fallback: true,
+      region: process.env.VERCEL_REGION || 'unknown',
       message: error.message || 'Unknown error'
     }, { status: 500 });
   }

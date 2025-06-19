@@ -77,12 +77,12 @@ class APIService {
   }
 
   private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
-    // 🔄 ATTEMPT 1: Direct API call
+    // Direct API call from unrestricted region (via Edge Functions)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     try {
-      console.log(`📡 Direct API call: ${url}`);
+      console.log(`📡 API call: ${url}`);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -98,56 +98,17 @@ class APIService {
 
       clearTimeout(timeoutId);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`✅ Direct API success`);
-        return data;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log(`⚠️ Direct API failed: ${response.status} - ${response.statusText}`);
+      const data = await response.json();
+      console.log(`✅ API success`);
+      return data;
     } catch (error: any) {
       clearTimeout(timeoutId);
-      console.log(`⚠️ Direct API error:`, error.message);
-    }
-
-    // 🔄 ATTEMPT 2: Allorigins Proxy Fallback
-    try {
-      console.log(`🌐 Fallback to Allorigins proxy...`);
-      
-      const encodedUrl = encodeURIComponent(url);
-      const proxyUrl = `${this.ALLORIGINS_PROXY}${encodedUrl}`;
-      
-      const proxyController = new AbortController();
-      const proxyTimeoutId = setTimeout(() => proxyController.abort(), 15000); // 15 second timeout for proxy
-
-      const response = await fetch(proxyUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
-        },
-        signal: proxyController.signal,
-        ...options,
-      });
-
-      clearTimeout(proxyTimeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Allorigins proxy failed: ${response.status} - ${response.statusText}`);
-      }
-
-      const proxyData = await response.json();
-      
-      if (!proxyData.contents) {
-        throw new Error('Invalid response from Allorigins proxy');
-      }
-
-      console.log(`✅ Allorigins proxy success`);
-      return JSON.parse(proxyData.contents);
-
-    } catch (proxyError: any) {
-      console.log(`❌ Allorigins proxy failed:`, proxyError.message);
-      throw new Error(`Both direct API and proxy failed: ${proxyError.message}`);
+      console.log(`❌ API error:`, error.message);
+      throw error;
     }
   }
 

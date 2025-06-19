@@ -1,0 +1,22 @@
+{
+  "functions": {
+    "src/pages/api/bybit-oi-history.ts": {
+      "runtime": "edge",
+      "regions": ["fra1", "sin1", "ams1", "hkg1", "lhr1", "yyz1"]
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/binance-ls-ratio",
+      "dest": "/api/binance-ls-ratio"
+    },
+    {
+      "src": "/api/bybit-oi-history",
+      "dest": "/api/bybit-oi-history"
+    }
+  ],
+  "regions": ["fra1", "sin1", "ams1", "hkg1", "lhr1", "yyz1"],
+  "env": {
+    "NODE_ENV": "production"
+  }
+} 
