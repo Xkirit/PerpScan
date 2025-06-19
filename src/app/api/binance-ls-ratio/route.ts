@@ -1,5 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const ALLORIGINS_PROXY = 'https://api.allorigins.win/get?url=';
+
+async function fetchWithAllorigins(url: string, symbol: string): Promise<any> {
+  const encodedUrl = encodeURIComponent(url);
+  const proxyUrl = `${ALLORIGINS_PROXY}${encodedUrl}`;
+  
+  console.log(`🌐 Using Allorigins proxy for ${symbol}: ${proxyUrl}`);
+  
+  const response = await fetch(proxyUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Allorigins proxy failed: ${response.status} - ${response.statusText}`);
+  }
+
+  const proxyData = await response.json();
+  
+  if (!proxyData.contents) {
+    throw new Error('Invalid response from Allorigins proxy');
+  }
+
+  // Parse the actual API response from the proxy
+  return JSON.parse(proxyData.contents);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,69 +41,73 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Symbol is required' }, { status: 400 });
     }
 
-    // Try to fetch from Binance with timeout and better error handling
+    const binanceUrl = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=${limit}`;
+
+    // 🔄 ATTEMPT 1: Direct API call
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
     try {
-      const response = await fetch(
-        `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=${limit}`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
-          },
-          signal: controller.signal,
-        }
-      );
+      console.log(`📡 Direct API call for ${symbol}...`);
+      
+      const response = await fetch(binanceUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+        },
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 
-      if (response.status === 451) {
-        // Binance is blocking the request - return graceful fallback
-        return NextResponse.json({ 
-          error: 'Binance API unavailable', 
-          fallback: true,
-          message: 'Geographic restrictions or rate limiting detected'
-        }, { status: 503 });
+      // Success case
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Validate response structure
+        if (Array.isArray(data) && data.length > 0) {
+          console.log(`✅ Direct API success for ${symbol}`);
+          return NextResponse.json(data);
+        }
       }
 
-      if (!response.ok) {
-        return NextResponse.json({ 
-          error: 'Failed to fetch from Binance', 
-          status: response.status,
-          fallback: true 
-        }, { status: response.status });
-      }
-
-      const data = await response.json();
+      // If direct call fails or returns invalid data, fall back to proxy
+      console.log(`⚠️ Direct API failed for ${symbol}: ${response.status} - ${response.statusText}`);
       
-      // Validate response structure
-      if (!Array.isArray(data) || data.length === 0) {
-        return NextResponse.json({ 
-          error: 'Invalid response from Binance', 
-          fallback: true 
-        }, { status: 502 });
-      }
-
-      return NextResponse.json(data);
-
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
+      console.log(`⚠️ Direct API error for ${symbol}:`, fetchError.message);
+    }
+
+    // 🔄 ATTEMPT 2: Allorigins Proxy Fallback
+    try {
+      console.log(`🌐 Fallback to Allorigins proxy for ${symbol}...`);
       
-      if (fetchError.name === 'AbortError') {
-        return NextResponse.json({ 
-          error: 'Request timeout', 
-          fallback: true,
-          message: 'Binance API took too long to respond'
-        }, { status: 504 });
+      const proxyData = await fetchWithAllorigins(binanceUrl, symbol);
+      
+      // Validate proxy response structure
+      if (Array.isArray(proxyData) && proxyData.length > 0) {
+        console.log(`✅ Allorigins proxy success for ${symbol}`);
+        return NextResponse.json(proxyData);
+      } else {
+        throw new Error('Invalid response structure from proxied API');
       }
+
+    } catch (proxyError: any) {
+      console.log(`❌ Allorigins proxy failed for ${symbol}:`, proxyError.message);
       
-      throw fetchError; // Re-throw to be caught by outer catch
+      // Final fallback - return service unavailable
+      return NextResponse.json({ 
+        error: 'Both direct API and proxy failed', 
+        fallback: true,
+        message: `Unable to fetch data for ${symbol}. Both Binance API and Allorigins proxy are unavailable.`,
+        attempts: ['direct_api', 'allorigins_proxy']
+      }, { status: 503 });
     }
 
   } catch (error: any) {
+    console.error(`💥 Unexpected error:`, error.message);
     return NextResponse.json({ 
       error: 'Internal server error', 
       fallback: true,

@@ -23,6 +23,27 @@ NODE_ENV=development
 3. Copy the REST URL and REST Token from the database details
 4. Add them to your `.env.local` file as `KV_REST_API_URL` and `KV_REST_API_TOKEN`
 
+### Geographic Restrictions & Proxy Support
+
+This application includes **automatic proxy fallback** for regions where Bybit and Binance APIs are restricted:
+
+#### **How it Works**
+1. **Primary**: Direct API calls to Bybit/Binance
+2. **Fallback**: Automatic proxy via [Allorigins](https://allorigins.win/) if direct calls fail
+3. **Transparent**: No configuration needed - the app handles this automatically
+
+#### **Supported Proxy Features**
+- ✅ **Bybit API**: Open Interest, Tickers, Account Ratios, Kline Data
+- ✅ **Binance API**: Long/Short Ratios  
+- ✅ **Automatic Fallback**: Seamless switching when direct APIs fail
+- ✅ **Error Handling**: Graceful degradation with detailed logging
+- ✅ **Caching**: Redis caching works with both direct and proxy data
+
+The proxy automatically activates when:
+- Geographic restrictions block API access
+- Rate limiting occurs
+- Network connectivity issues arise
+
 ## Getting Started
 
 First, install dependencies:
