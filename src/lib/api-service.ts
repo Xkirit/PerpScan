@@ -76,26 +76,12 @@ class APIService {
   }
 
   private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
-    // If a Cloudflare proxy is configured, pipe the request through it so that
-    // Bybit / Binance see the Worker's non-US IP address.
-    let finalUrl = url;
-    const proxyOrigin = process.env.PROXY_ORIGIN;
-    if (proxyOrigin) {
-      const encoded = encodeURIComponent(url);
-      finalUrl = `${proxyOrigin.replace(/\/$/, '')}/fetch?url=${encoded}`;
-    }
-
     const headers: HeadersInit = {
       'Accept': 'application/json',
       'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
     };
 
-    // Optional bearer auth for the proxy
-    if (proxyOrigin && process.env.PROXY_SECRET) {
-      headers['Authorization'] = `Bearer ${process.env.PROXY_SECRET}`;
-    }
-
-    const response = await fetch(finalUrl, {
+    const response = await fetch(url, {
       method: 'GET',
       headers,
       ...options,

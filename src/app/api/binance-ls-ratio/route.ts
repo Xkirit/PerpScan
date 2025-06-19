@@ -13,24 +13,12 @@ export async function GET(request: NextRequest) {
 
     const binanceUrl = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=${limit}`;
 
-    // If Cloudflare proxy is configured, send request through it
-    const proxyOrigin = process.env.PROXY_ORIGIN;
-    let fetchUrl = binanceUrl;
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
-    };
-
-    if (proxyOrigin) {
-      fetchUrl = `${proxyOrigin.replace(/\/$/, '')}/fetch?url=${encodeURIComponent(binanceUrl)}`;
-      if (process.env.PROXY_SECRET) {
-        headers['Authorization'] = `Bearer ${process.env.PROXY_SECRET}`;
-      }
-    }
-
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(binanceUrl, {
       method: 'GET',
-      headers,
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+      },
     });
 
     if (!response.ok) {

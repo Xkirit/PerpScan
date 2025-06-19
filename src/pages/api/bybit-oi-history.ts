@@ -23,23 +23,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Bybit API URL
     const bybitUrl = `https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&startTime=${startMs}&endTime=${endMs}&limit=50`;
 
-    const proxyOrigin = process.env.PROXY_ORIGIN;
-    let fetchUrl = bybitUrl;
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
-    };
-
-    if (proxyOrigin) {
-      fetchUrl = `${proxyOrigin.replace(/\/$/, '')}/fetch?url=${encodeURIComponent(bybitUrl)}`;
-      if (process.env.PROXY_SECRET) {
-        headers['Authorization'] = `Bearer ${process.env.PROXY_SECRET}`;
-      }
-    }
-
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(bybitUrl, {
       method: 'GET',
-      headers,
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+      },
     });
 
     if (!response.ok) {
