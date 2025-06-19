@@ -54,17 +54,18 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const forceRefresh = url.searchParams.get('force') === 'true';
     
-    // 🔍 DEBUG: Check Redis connection
+    // 🔍 DEBUG: Check Upstash Redis connection
     const redisHealth = await InstitutionalFlowsRedis.healthCheck();
     
-    // console.log('🔍 Redis Connection Debug:');
+    // console.log('🔍 Upstash Redis Connection Debug:');
     // console.log(`   Redis Health: ${redisHealth ? '✅ Connected' : '❌ Disconnected'}`);
-    // console.log(`   REDIS_URL: ${process.env.REDIS_URL ? '✅ Set' : '❌ Missing'}`);
+    // console.log(`   KV_REST_API_URL: ${process.env.KV_REST_API_URL ? '✅ Set' : '❌ Missing'}`);
+    // console.log(`   KV_REST_API_TOKEN: ${process.env.KV_REST_API_TOKEN ? '✅ Set' : '❌ Missing'}`);
   
     // if (!redisHealth) {
-    //   console.log('⚠️ Redis not available');
+    //   console.log('⚠️ Upstash Redis not available');
     // } else {
-    //   console.log('✅ Redis is connected and ready');
+    //   console.log('✅ Upstash Redis is connected and ready');
     // }
     
     if (forceRefresh) {
@@ -97,8 +98,9 @@ export async function GET(request: NextRequest) {
       lastUpdated: sortedFlows.length > 0 ? Math.max(...sortedFlows.map(f => f.timestamp)) : null,
       // Debug info
       debug: {
-        redisConnected: redisHealth,
-        redisUrl: !!process.env.REDIS_URL
+        upstashConnected: redisHealth,
+        hasKvUrl: !!process.env.KV_REST_API_URL,
+        hasKvToken: !!process.env.KV_REST_API_TOKEN
       }
     });
     

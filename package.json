@@ -10,16 +10,18 @@
     "start": "next start",
     "lint": "next lint",
     "test-cron": "curl -s https://perpflow.vercel.app/api/institutional-flows && echo '\\nCron test completed'",
-    "redis-info": "curl -s http://localhost:3000/api/redis-info | jq '.redis'",
-    "redis-info-full": "curl -s http://localhost:3000/api/redis-info | jq '.'",
-    "redis-debug": "curl -s http://localhost:3000/api/debug-redis | jq -r '.capturedLogs[]'",
-    "redis-debug-full": "curl -s http://localhost:3000/api/debug-redis | jq '.'",
+    "upstash-info": "curl -s http://localhost:3000/api/redis-info | jq '.redis'",
+    "upstash-info-full": "curl -s http://localhost:3000/api/redis-info | jq '.'",
+    "upstash-debug": "curl -s http://localhost:3000/api/debug-redis | jq -r '.capturedLogs[]'",
+    "upstash-debug-full": "curl -s http://localhost:3000/api/debug-redis | jq '.'",
+    "keep-warm": "node keep-warm.js",
+    "keep-warm:loop": "while true; do npm run keep-warm; sleep 300; done",
     "clean-privacy": "./scripts/clean-privacy.sh",
     "deploy-clean": "npm run clean-privacy && git add . && git commit -m 'Clean privacy deployment' && git push"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
-    "@types/redis": "^4.0.10",
+    "@upstash/redis": "^1.35.0",
     "@vercel/analytics": "^1.5.0",
     "@vercel/edge-config": "^1.4.0",
     "axios": "^1.9.0",
@@ -32,7 +34,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.3",
-    "redis": "^5.5.6",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {

@@ -3,25 +3,20 @@ import InstitutionalFlowsRedis from '@/lib/redis-client';
 
 export async function GET(request: NextRequest) {
   try {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const upstashUrl = process.env.KV_REST_API_URL || '';
+    const upstashToken = process.env.KV_REST_API_TOKEN || '';
     
-    // Determine database type
-    let databaseType = 'UNKNOWN';
+    // Determine database type and host
+    let databaseType = 'UPSTASH Redis (REST API)';
     let host = 'unknown';
     
-    if (redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
-      databaseType = 'LOCAL Redis (localhost)';
-      host = 'localhost';
-    } else if (redisUrl.includes('redis-cloud.com') || redisUrl.includes('redislabs.com')) {
-      databaseType = 'REDIS CLOUD (Vercel-managed)';
-      const hostMatch = redisUrl.match(/@([^:]+)/);
-      host = hostMatch ? hostMatch[1] : 'redis-cloud.com';
-    } else if (redisUrl.includes('upstash.io')) {
-      databaseType = 'UPSTASH Redis';
-      host = redisUrl.includes('@') ? redisUrl.split('@')[1].split(':')[0] : 'upstash.io';
-    } else {
-      databaseType = 'EXTERNAL Redis';
-      host = redisUrl.includes('@') ? redisUrl.split('@')[1].split(':')[0] : 'external';
+    if (upstashUrl) {
+      try {
+        const url = new URL(upstashUrl);
+        host = url.hostname;
+      } catch {
+        host = 'invalid-url';
+      }
     }
     
     // Test connection
@@ -34,33 +29,35 @@ export async function GET(request: NextRequest) {
         environment: process.env.NODE_ENV || 'development',
         databaseType,
         host,
-        hasPassword: redisUrl.includes('@'),
+        hasCredentials: !!(upstashUrl && upstashToken),
         isConnected: isHealthy,
         currentFlowsCount: flowsCount,
-        redisUrl: redisUrl.includes('localhost') ? redisUrl : redisUrl.replace(/\/\/.*@/, '//[HIDDEN]@'), // Hide credentials for security
-        connectionMode: process.env.NODE_ENV === 'production' ? 'Production' : 'Development'
+        upstashUrl: upstashUrl ? upstashUrl.replace(/\/\/.*@/, '//[HIDDEN]@') : '[NOT SET]',
+        connectionMode: process.env.NODE_ENV === 'production' ? 'Production' : 'Development',
+        apiType: 'REST API (Serverless-optimized)'
       },
       timestamp: new Date().toISOString()
     };
     
     // Log to console as well
-    console.log('\n🔍 Redis Database Connection Info:');
+    console.log('\n🔍 Upstash Redis Database Connection Info:');
     console.log('   Environment:', connectionInfo.redis.environment);
     console.log('   📍 Database Type:', connectionInfo.redis.databaseType);
     console.log('   🌐 Host:', connectionInfo.redis.host);
-    console.log('   🔑 Authentication:', connectionInfo.redis.hasPassword ? 'Yes (with password)' : 'No');
+    console.log('   🔑 Credentials:', connectionInfo.redis.hasCredentials ? 'Yes (URL + Token)' : 'No');
     console.log('   ✅ Connected:', connectionInfo.redis.isConnected);
     console.log('   📊 Current Flows:', connectionInfo.redis.currentFlowsCount);
     console.log('   🌍 Connection Mode:', connectionInfo.redis.connectionMode);
+    console.log('   🚀 API Type:', connectionInfo.redis.apiType);
     console.log('');
     
     return NextResponse.json(connectionInfo);
     
   } catch (error) {
-    console.error('❌ Redis info error:', error);
+    console.error('❌ Upstash Redis info error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Failed to get Redis information',
+      error: 'Failed to get Upstash Redis information',
       message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

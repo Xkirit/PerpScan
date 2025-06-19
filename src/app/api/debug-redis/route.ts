@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   };
   
   try {
-    logs.push('[DEBUG] Starting Redis connection test...');
+    logs.push('[DEBUG] Starting Upstash Redis connection test...');
     
     // Force a fresh Redis connection by testing health
     const isHealthy = await InstitutionalFlowsRedis.healthCheck();
@@ -31,24 +31,17 @@ export async function GET(request: NextRequest) {
     
     // Try to get actual flows
     const flows = await InstitutionalFlowsRedis.getFlows();
-    logs.push(`[DEBUG] Retrieved ${flows.length} flows from Redis`);
+    logs.push(`[DEBUG] Retrieved ${flows.length} flows from Upstash Redis`);
     
-    // Get Redis URL info
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    let databaseType = 'UNKNOWN';
-    
-    if (redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
-      databaseType = 'LOCAL Redis (localhost)';
-    } else if (redisUrl.includes('redis-cloud.com') || redisUrl.includes('redislabs.com')) {
-      databaseType = 'REDIS CLOUD (Vercel-managed)';
-    } else if (redisUrl.includes('upstash.io')) {
-      databaseType = 'UPSTASH Redis';
-    } else {
-      databaseType = 'EXTERNAL Redis';
-    }
+    // Get Upstash Redis URL info
+    const upstashUrl = process.env.KV_REST_API_URL || '';
+    const upstashToken = process.env.KV_REST_API_TOKEN || '';
+    const databaseType = 'UPSTASH Redis (REST API)';
     
     logs.push(`[DEBUG] Database type: ${databaseType}`);
     logs.push(`[DEBUG] Environment: ${process.env.NODE_ENV || 'development'}`);
+    logs.push(`[DEBUG] Has URL: ${!!upstashUrl}`);
+    logs.push(`[DEBUG] Has Token: ${!!upstashToken}`);
     
     // Restore original console functions
     console.log = originalLog;
@@ -61,7 +54,9 @@ export async function GET(request: NextRequest) {
         flowsCount,
         databaseType,
         environment: process.env.NODE_ENV || 'development',
-        redisUrl: redisUrl.includes('localhost') ? redisUrl : redisUrl.replace(/\/\/.*@/, '//[HIDDEN]@')
+        hasCredentials: !!(upstashUrl && upstashToken),
+        upstashUrl: upstashUrl ? upstashUrl.replace(/\/\/.*@/, '//[HIDDEN]@') : '[NOT SET]',
+        apiType: 'REST API (Serverless-optimized)'
       },
       capturedLogs: logs,
       flows: flows.slice(0, 3).map(f => ({
@@ -80,7 +75,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       success: false,
-      error: 'Redis debug failed',
+      error: 'Upstash Redis debug failed',
       capturedLogs: logs,
       message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });

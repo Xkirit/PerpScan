@@ -1,4 +1,4 @@
-import { createClient } from 'redis';
+import { Redis } from '@upstash/redis';
 
 interface InstitutionalFlow {
   symbol: string;
@@ -21,73 +21,41 @@ interface InstitutionalFlow {
   manipulationConfidence?: number;
 }
 
-// Redis client singleton
-let redisClient: any = null;
+// Upstash Redis client singleton
+let redisClient: Redis | null = null;
 
-async function getRedisClient(): Promise<any> {
-  if (redisClient && redisClient.isReady) {
+function getRedisClient(): Redis {
+  if (redisClient) {
     return redisClient;
   }
 
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  // Upstash Redis configuration (Vercel KV format)
+  const upstashUrl = process.env.KV_REST_API_URL;
+  const upstashToken = process.env.KV_REST_API_TOKEN;
   
+  if (!upstashUrl || !upstashToken) {
+    throw new Error('Missing KV_REST_API_URL or KV_REST_API_TOKEN environment variables');
+  }
+
   // 🔍 DATABASE CONNECTION LOGGING
-  console.log('🔗 Redis Database Connection Info:');
+  console.log('🔗 Upstash Redis Database Connection Info:');
   console.log('   Environment:', process.env.NODE_ENV || 'development');
-  console.log('   Redis URL:', redisUrl);
-  
-  if (redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
-    console.log('   📍 Database Type: LOCAL Redis (localhost)');
-  } else if (redisUrl.includes('redis-cloud.com') || redisUrl.includes('redislabs.com')) {
-    console.log('   📍 Database Type: REDIS CLOUD (Vercel-managed)');
-    const host = redisUrl.match(/@([^:]+)/)?.[1] || 'unknown';
-    console.log('   🌐 Host:', host);
-  } else if (redisUrl.includes('upstash.io')) {
-    console.log('   📍 Database Type: UPSTASH Redis');
-  } else {
-    console.log('   📍 Database Type: EXTERNAL Redis');
-  }
-  
-  console.log('   🔑 Authentication:', redisUrl.includes('@') ? 'Yes (with password)' : 'No');
+  console.log('   📍 Database Type: UPSTASH Redis (REST API)');
+  console.log('   🌐 Host:', upstashUrl);
+  console.log('   🔑 Authentication: Yes (with token)');
   console.log('   🌍 Connection Mode:', process.env.NODE_ENV === 'production' ? 'Production' : 'Development');
+  console.log('   🚀 API Type: REST API (Serverless-optimized)');
 
-  // Create Redis client
-  const client = createClient({
-    url: redisUrl,
-    // For production, you might want to add more config:
-    // password: process.env.REDIS_PASSWORD,
-    // socket: { tls: process.env.NODE_ENV === 'production' }
+  // Create Upstash Redis client
+  redisClient = new Redis({
+    url: upstashUrl,
+    token: upstashToken,
   });
 
-  client.on('error', (err) => {
-    console.error('❌ Redis Client Error:', err);
-  });
-
-  client.on('connect', () => {
-    console.log('🔗 Redis Client Connected Successfully');
-  });
-
-  client.on('ready', () => {
-    console.log('✅ Redis Client Ready and Operational');
-  });
-
-  client.on('end', () => {
-    console.log('🔌 Redis Client Connection Ended');
-  });
-
-  await client.connect();
-  redisClient = client;
+  console.log('✅ Upstash Redis Client Initialized');
+  console.log('🎯 Successfully configured Upstash Redis!\n');
   
-  // Additional connection verification
-  try {
-    const pingResult = await client.ping();
-    console.log('🏓 Redis Ping Test:', pingResult);
-    console.log('🎯 Successfully connected to Redis database!\n');
-  } catch (error) {
-    console.error('❌ Redis ping failed:', error);
-  }
-  
-  return client;
+  return redisClient;
 }
 
 const FLOWS_KEY = 'institutional:flows';
@@ -99,7 +67,7 @@ export class InstitutionalFlowsRedis {
   // Save flows to Redis with automatic expiry
   static async saveFlows(flows: InstitutionalFlow[]): Promise<void> {
     try {
-      const client = await getRedisClient();
+      const client = getRedisClient();
       
       const data = {
         flows,
@@ -107,31 +75,39 @@ export class InstitutionalFlowsRedis {
         totalFlows: flows.length
       };
       
-      // Store main data with TTL
-      await client.setEx(FLOWS_KEY, TTL_SECONDS, JSON.stringify(data));
+      // Store main data with TTL using Upstash Redis
+      await client.setex(FLOWS_KEY, TTL_SECONDS, JSON.stringify(data));
       
       // Clear existing priority sorted set
       await client.del(PRIORITY_KEY);
       
       // Add flows to sorted set by priority
       if (flows.length > 0) {
-        const zaddArgs: Array<{ score: number; value: string }> = flows.map(flow => ({
+        const zaddArgs: Array<{ score: number; member: string }> = flows.map(flow => ({
           score: flow.priorityScore || 0,
-          value: JSON.stringify(flow)
+          member: JSON.stringify(flow)
         }));
         
-        await client.zAdd(PRIORITY_KEY, zaddArgs);
+        // Use pipeline for batch operations
+        const pipeline = client.pipeline();
+        
+        // Add all flows to sorted set
+        for (const arg of zaddArgs) {
+          pipeline.zadd(PRIORITY_KEY, { score: arg.score, member: arg.member });
+        }
         
         // Keep only top 10 flows
-        await client.zRemRangeByRank(PRIORITY_KEY, 0, -11);
+        pipeline.zremrangebyrank(PRIORITY_KEY, 0, -11);
         
         // Set TTL on sorted set
-        await client.expire(PRIORITY_KEY, TTL_SECONDS);
+        pipeline.expire(PRIORITY_KEY, TTL_SECONDS);
+        
+        await pipeline.exec();
       }
       
-      console.log(`✅ Redis: Saved ${flows.length} flows with TTL ${TTL_SECONDS}s`);
+      console.log(`✅ Upstash Redis: Saved ${flows.length} flows with TTL ${TTL_SECONDS}s`);
     } catch (error) {
-      //console.error('❌ Redis save error:', error);
+      console.error('❌ Upstash Redis save error:', error);
       throw error;
     }
   }
@@ -139,33 +115,57 @@ export class InstitutionalFlowsRedis {
   // Get flows from Redis
   static async getFlows(): Promise<InstitutionalFlow[]> {
     try {
-      const client = await getRedisClient();
+      const client = getRedisClient();
       
       // Try to get from main key first
-      const dataString = await client.get(FLOWS_KEY);
+      const dataResult = await client.get(FLOWS_KEY);
       
-      if (dataString) {
-        const data = JSON.parse(dataString);
-        if (data && data.flows && Array.isArray(data.flows)) {
-          console.log(`📊 Redis: Retrieved ${data.flows.length} flows from main key`);
-          return data.flows;
+      if (dataResult) {
+        try {
+          // Handle both string and object responses from Upstash
+          let data;
+          if (typeof dataResult === 'string') {
+            data = JSON.parse(dataResult);
+          } else if (typeof dataResult === 'object') {
+            data = dataResult;
+          }
+          
+          if (data && data.flows && Array.isArray(data.flows)) {
+            console.log(`📊 Upstash Redis: Retrieved ${data.flows.length} flows from main key`);
+            return data.flows;
+          }
+        } catch (parseError) {
+          console.log('📊 Upstash Redis: Main key data parse error, trying sorted set');
         }
       }
       
       // Fallback: get from sorted set (highest priority first)
-      const flowsData = await client.zRange(PRIORITY_KEY, 0, 9, { REV: true });
+      const flowsData = await client.zrange(PRIORITY_KEY, 0, 9, { rev: true });
       
       if (flowsData && flowsData.length > 0) {
-        const flows = flowsData.map((item: string) => JSON.parse(item));
-        console.log(`📊 Redis: Retrieved ${flows.length} flows from sorted set`);
-        return flows;
+        try {
+          const flows = flowsData.map((item: any) => {
+            // Handle both string and object responses
+            if (typeof item === 'string') {
+              return JSON.parse(item);
+            } else if (typeof item === 'object') {
+              return item;
+            } else {
+              throw new Error('Invalid item type');
+            }
+          });
+          console.log(`📊 Upstash Redis: Retrieved ${flows.length} flows from sorted set`);
+          return flows;
+        } catch (parseError) {
+          console.error('❌ Upstash Redis: Error parsing sorted set data:', parseError);
+        }
       }
       
-      console.log('📊 Redis: No flows found');
+      console.log('📊 Upstash Redis: No flows found');
       return [];
       
     } catch (error) {
-      //console.error('❌ Redis get error:', error);
+      console.error('❌ Upstash Redis get error:', error);
       return [];
     }
   }
@@ -173,11 +173,11 @@ export class InstitutionalFlowsRedis {
   // Get flows count
   static async getFlowsCount(): Promise<number> {
     try {
-      const client = await getRedisClient();
-      const count = await client.zCard(PRIORITY_KEY);
+      const client = getRedisClient();
+      const count = await client.zcard(PRIORITY_KEY);
       return count || 0;
     } catch (error) {
-      ////console.error('❌ Redis count error:', error);
+      console.error('❌ Upstash Redis count error:', error);
       return 0;
     }
   }
@@ -185,37 +185,37 @@ export class InstitutionalFlowsRedis {
   // Clear all flows
   static async clearFlows(): Promise<void> {
     try {
-      const client = await getRedisClient();
-      await client.del(FLOWS_KEY);
-      await client.del(PRIORITY_KEY);
-      //console.log('🗑️ Redis: Cleared all flows');
+      const client = getRedisClient();
+      const pipeline = client.pipeline();
+      pipeline.del(FLOWS_KEY);
+      pipeline.del(PRIORITY_KEY);
+      await pipeline.exec();
+      console.log('🗑️ Upstash Redis: Cleared all flows');
     } catch (error) {
-      //console.error('❌ Redis clear error:', error);
+      console.error('❌ Upstash Redis clear error:', error);
     }
   }
   
   // Health check
   static async healthCheck(): Promise<boolean> {
     try {
-      const client = await getRedisClient();
+      const client = getRedisClient();
       const result = await client.ping();
       return result === 'PONG';
     } catch (error) {
-     // //console.error('❌ Redis health check failed:', error);
+      console.error('❌ Upstash Redis health check failed:', error);
       return false;
     }
   }
   
-  // Close connection (for cleanup)
+  // Close connection (for Upstash REST API, no connection to close)
   static async close(): Promise<void> {
     try {
-      if (redisClient && redisClient.isReady) {
-        await redisClient.quit();
-        redisClient = null;
-        //console.log('🔌 Redis connection closed');
-      }
+      // Upstash REST API doesn't require connection closing
+      redisClient = null;
+      console.log('🔌 Upstash Redis client reference cleared');
     } catch (error) {
-      //console.error('❌ Redis close error:', error);
+      console.error('❌ Upstash Redis close error:', error);
     }
   }
 }
