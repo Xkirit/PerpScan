@@ -1,0 +1,14 @@
+name = "exchange-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-06-01"
+
+# Environment variables will be injected from the Cloudflare dashboard or via `wrangler secret`.
+[vars]
+# Secret token to prevent public abuse of your proxy. Define with:
+#   wrangler secret put SECRET_TOKEN
+SECRET_TOKEN = ""
+
+# UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are your Upstash Redis REST
+# endpoint and API token. Store them as encrypted secrets:
+#   wrangler secret put UPSTASH_REDIS_REST_URL
+#   wrangler secret put UPSTASH_REDIS_REST_TOKEN 
