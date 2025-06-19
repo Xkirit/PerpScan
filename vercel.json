@@ -14,7 +14,7 @@
       "dest": "/api/bybit-oi-history"
     }
   ],
-  "regions": ["fra1", "sin1", "hkg1", "lhr1", "yyz1"],
+  "regions": ["fra1", "sin1", "hkg1"],
   "env": {
     "NODE_ENV": "production"
   }
