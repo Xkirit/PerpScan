@@ -1,8 +1,7 @@
 {
   "functions": {
     "src/pages/api/bybit-oi-history.ts": {
-      "runtime": "edge",
-      "regions": ["fra1", "sin1", "ams1", "hkg1", "lhr1", "yyz1"]
+      "runtime": "edge"
     }
   },
   "routes": [
