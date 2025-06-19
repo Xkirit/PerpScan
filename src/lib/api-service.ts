@@ -48,7 +48,6 @@ interface CachedData<T> {
 class APIService {
   private baseUrl = 'https://api.bybit.com';
   private cache = new Map<string, CachedData<any>>();
-  private readonly ALLORIGINS_PROXY = 'https://api.allorigins.win/get?url=';
   private readonly CACHE_DURATION = {
     TICKERS: 30 * 1000, // 30 seconds for tickers (high frequency)
     KLINE: 60 * 1000, // 1 minute for kline data
@@ -77,39 +76,20 @@ class APIService {
   }
 
   private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
-    // Direct API call from unrestricted region (via Edge Functions)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
+      },
+      ...options,
+    });
 
-    try {
-      console.log(`📡 API call: ${url}`);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-          'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
-        },
-        signal: controller.signal,
-        cache: 'no-cache',
-        ...options,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log(`✅ API success`);
-      return data;
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      console.log(`❌ API error:`, error.message);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+
+    return response.json();
   }
 
   // Consolidated tickers endpoint - used by multiple components
