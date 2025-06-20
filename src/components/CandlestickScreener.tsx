@@ -63,6 +63,15 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
 
   const isBullish = pattern.type === 'bullish';
   const priceChange = pattern.priceChange || ((pattern.currentCandle.close - pattern.previousCandle.close) / pattern.previousCandle.close) * 100;
+  
+  // Get the base symbol (remove USDT)
+  const baseSymbol = pattern.symbol.replace('USDT', '').toLowerCase();
+  
+  // Primary logo URL using CryptoIcons (more reliable for ticker symbols)
+  const logoUrl = `https://cryptoicons.org/api/icon/${baseSymbol}/32`;
+  
+  // Fallback logo URL using alternative service
+  const fallbackLogoUrl = `https://assets.coincap.io/assets/icons/${baseSymbol}@2x.png`;
 
   return (
     <div
@@ -93,18 +102,43 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
               />
         <div className="relative z-30">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-        <span 
-          className="font-bold text-sm sm:text-base truncate"
-          style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
-        >
-          {pattern.symbol.replace('USDT', '')}
-        </span>
-        {isBullish ? (
-          <TrendingUpIcon className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 flex-shrink-0" />
-        ) : (
-          <TrendingDownIcon className="h-4 w-4 sm:h-5 sm:w-5 text-red-400 flex-shrink-0" />
-        )}
-      </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="relative h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0">
+              <img 
+                src={logoUrl}
+                alt={`${baseSymbol} logo`}
+                className="h-full w-full rounded-full object-cover"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  if (img.src === logoUrl) {
+                    img.src = fallbackLogoUrl;
+                  } else {
+                    // Show a generic crypto icon as final fallback
+                    const parent = img.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div class="h-full w-full rounded-full flex items-center justify-center text-xs font-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                          ${baseSymbol.charAt(0).toUpperCase()}
+                        </div>
+                      `;
+                    }
+                  }
+                }}
+              />
+            </div>
+            <span 
+              className="font-bold text-sm sm:text-lg truncate"
+              style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+            >
+              {pattern.symbol.replace('USDT', '')}
+            </span>
+          </div>
+          {isBullish ? (
+            <TrendingUpIcon className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 flex-shrink-0" />
+          ) : (
+            <TrendingDownIcon className="h-4 w-4 sm:h-5 sm:w-5 text-red-400 flex-shrink-0" />
+          )}
+        </div>
       
       <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm">
         <div className="flex justify-between">
@@ -210,7 +244,7 @@ const TimeframeColumn: React.FC<{
     >
       <div className="mb-2 sm:mb-3 flex-shrink-0">
         <h3 
-          className="text-sm sm:text-base lg:text-lg font-bold mb-1 sm:mb-2 flex items-center justify-between gap-10 sm:gap-2"
+          className="text-sm sm:text-md lg:text-xl font-bold mb-1 sm:mb-2 flex items-center justify-between gap-10 sm:gap-2"
           style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
         >
           <span className="truncate">{title}</span>
@@ -496,7 +530,7 @@ const CandlestickScreener: React.FC = () => {
       )}
 
       {/* Timeframe Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 h-[150vh] sm:h-[92vh] lg:h-[75vh]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 h-[150vh] sm:h-[92vh] lg:h-[60vh] xl:h-[65vh]">
         <TimeframeColumn
           title="1 Hour"
           patterns={data?.['1h'] || []}
