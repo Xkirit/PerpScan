@@ -1,10 +1,10 @@
 {
   "functions": {
     "src/app/api/candlestick-compute/route.ts": {
-      "maxDuration": 180
+      "maxDuration": 59 
     },
     "src/app/api/candlestick-auto-update/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 59
     }
   },
   "crons": [
