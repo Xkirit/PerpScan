@@ -506,7 +506,7 @@ const CandlestickScreener: React.FC = () => {
               <select
                 value={globalSortBy}
                 onChange={(e) => setGlobalSortBy(e.target.value as SortBy)}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none backdrop-blur-[1px] flex-1 sm:flex-none"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none backdrop-blur-[1px] min-w-0 w-auto"
                 style={{
                   borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
                   color: theme === 'dark' ? '#ffffff' : '#1A1F16'
