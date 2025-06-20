@@ -310,7 +310,7 @@ const TimeframeColumn: React.FC<{
       
       <div className="flex-1 overflow-hidden">
         {loading ? (
-          <div className="space-y-2 sm:space-y-3 h-full overflow-y-auto">
+          <div className="space-y-2 sm:space-y-3 h-full overflow-y-scroll scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
@@ -322,7 +322,7 @@ const TimeframeColumn: React.FC<{
             ))}
           </div>
         ) : (
-          <div className="h-full py-2 overflow-y-auto space-y-1.5 sm:space-y-2 lg:space-y-4 pr-1 px-1">
+          <div className="h-full py-2 overflow-y-scroll scroll-smooth space-y-1.5 sm:space-y-2 lg:space-y-4 pr-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
             {patterns.length === 0 ? (
               <div 
                 className="text-center py-6 sm:py-8 text-xs sm:text-sm"
