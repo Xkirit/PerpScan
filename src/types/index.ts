@@ -54,4 +54,43 @@ export interface ChartDataPoint {
   timestamp: number;
   price: number;
   volume: number;
+}
+
+export interface EngulfingPattern {
+  symbol: string;
+  type: 'bullish' | 'bearish';
+  currentCandle: {
+    open: number;
+    close: number;
+    high: number;
+    low: number;
+    timestamp: number;
+    volume: number;
+  };
+  previousCandle: {
+    open: number;
+    close: number;
+    high: number;
+    low: number;
+    timestamp: number;
+    volume: number;
+  };
+  bodyRatio: number;
+  priceChange: number; // Percentage change from previous close to current close
+}
+
+export interface CandlestickScreenerResult {
+  '1h': EngulfingPattern[];
+  '4h': EngulfingPattern[];
+  '1d': EngulfingPattern[];
+  timestamp: string;
+  totalScanned: number;
+  nextUpdate?: {
+    '1h': number;
+    '4h': number;
+    '1d': number;
+  };
+  message?: string;
+  warning?: string;
+  isInitializing?: boolean;
 } 

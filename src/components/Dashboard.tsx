@@ -9,11 +9,12 @@ import InstitutionalActivity from './InstitutionalActivity';
 import OpenInterestChart from './OpenInterestChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon, ChartCandlestick } from 'lucide-react';
 import BtcPriceChange from './BtcPriceChange';
 import LiquidGlass from 'liquid-glass-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
 import { useTheme } from '@/contexts/ThemeContext';
+import CandlestickScreener from './CandlestickScreener';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -25,15 +26,32 @@ interface AnalysisResult {
 
 // Countdown Timer Component
 const CandleCountdown: React.FC = () => {
-  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [timeLeft1h, setTimeLeft1h] = useState<string>('');
+  const [timeLeft4h, setTimeLeft4h] = useState<string>('');
+  const [timeLeft1d, setTimeLeft1d] = useState<string>('');
+  const [showExpanded, setShowExpanded] = useState<boolean>(false);
   const { theme } = useTheme();
 
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
       const currentHour = now.getUTCHours();
+      const currentMinute = now.getUTCMinutes();
 
-      // Find next 4-hour candle close (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+      // 1 Hour countdown - next hour
+      const next1h = new Date(now);
+      next1h.setUTCHours(currentHour + 1, 0, 0, 0);
+      const timeDiff1h = next1h.getTime() - now.getTime();
+      
+      if (timeDiff1h > 0) {
+        const minutes = Math.floor((timeDiff1h % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDiff1h % (1000 * 60)) / 1000);
+        setTimeLeft1h(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setTimeLeft1h('00:00');
+      }
+
+      // 4 Hour countdown - Find next 4-hour candle close (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
       const candleHours = [0, 4, 8, 12, 16, 20];
       let nextCandleHour = candleHours.find(hour => hour > currentHour);
 
@@ -50,16 +68,32 @@ const CandleCountdown: React.FC = () => {
         nextCandle.setUTCDate(nextCandle.getUTCDate() + 1);
       }
 
-      const timeDiff = nextCandle.getTime() - now.getTime();
+      const timeDiff4h = nextCandle.getTime() - now.getTime();
 
-      if (timeDiff > 0) {
-        const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+      if (timeDiff4h > 0) {
+        const hours = Math.floor(timeDiff4h / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDiff4h % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDiff4h % (1000 * 60)) / 1000);
 
-        setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        setTimeLeft4h(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
       } else {
-        setTimeLeft('00:00:00');
+        setTimeLeft4h('00:00:00');
+      }
+
+      // 1 Day countdown - next midnight UTC
+      const next1d = new Date(now);
+      next1d.setUTCDate(next1d.getUTCDate() + 1);
+      next1d.setUTCHours(0, 0, 0, 0);
+      const timeDiff1d = next1d.getTime() - now.getTime();
+
+      if (timeDiff1d > 0) {
+        const hours = Math.floor(timeDiff1d / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDiff1d % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDiff1d % (1000 * 60)) / 1000);
+
+        setTimeLeft1d(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      } else {
+        setTimeLeft1d('00:00:00');
       }
     };
 
@@ -70,32 +104,108 @@ const CandleCountdown: React.FC = () => {
   }, []);
 
   return (
-    <div 
-      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg border h-8 sm:h-9"
-      style={{ 
-        backgroundColor: theme === 'dark' ? '#1E3F20' : '#c6e4cd',
-        borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94'
-      }}
-    >
-      <ClockIcon 
-        className="h-3 w-3 sm:h-4 sm:w-4" 
-        style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }} 
-      />
-      <div className="text-xs sm:text-sm">
-        <span 
-          className="font-medium" 
-          style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
-        >
-          <span className="hidden sm:inline">4H Close:</span>
-          <span className="sm:hidden">4H:</span>
-        </span>
-        <span 
-          className="ml-1 sm:ml-2 font-mono" 
-          style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
-        >
-          {timeLeft}
-        </span>
+    <div className="relative">
+      {/* Main countdown display */}
+      <div 
+        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg border h-8 sm:h-9 cursor-pointer hover:opacity-80 transition-opacity"
+        style={{ 
+          backgroundColor: theme === 'dark' ? '#1E3F20' : '#c6e4cd',
+          borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94'
+        }}
+        onMouseEnter={() => setShowExpanded(true)}
+        onMouseLeave={() => setShowExpanded(false)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowExpanded(!showExpanded);
+        }}
+      >
+        <ClockIcon 
+          className="h-3 w-3 sm:h-4 sm:w-4" 
+          style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }} 
+        />
+        <div className="text-xs sm:text-sm">
+          <span 
+            className="font-medium" 
+            style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+          >
+            <span className="hidden sm:inline">4H Close:</span>
+            <span className="sm:hidden">4H:</span>
+          </span>
+          <span 
+            className="ml-1 sm:ml-2 font-mono" 
+            style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+          >
+            {timeLeft4h}
+          </span>
+        </div>
       </div>
+
+      {/* Expanded dropdown */}
+      {showExpanded && (
+        <div 
+          className="absolute top-full left-0 mt-2 z-[60] rounded-lg border shadow-xl p-3 min-w-[190px] bg-opacity-95 backdrop-blur-sm"
+          style={{ 
+            backgroundColor: theme === 'dark' ? '#1A1F16' : '#ffffff',
+            borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
+            boxShadow: theme === 'dark' 
+              ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1)' 
+              : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}
+          onMouseEnter={() => setShowExpanded(true)}
+          onMouseLeave={() => setShowExpanded(false)}
+        >
+          <div className="space-y-2">
+            {/* 1 Hour */}
+            <div className="flex items-center justify-between">
+              <span 
+                className="text-xs font-medium"
+                style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+              >
+                1H Close:
+              </span>
+              <span 
+                className="text-xs font-mono"
+                style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+              >
+                {timeLeft1h}
+              </span>
+            </div>
+
+            {/* 4 Hour */}
+            <div className="flex items-center justify-between">
+              <span 
+                className="text-xs font-medium"
+                style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+              >
+                4H Close:
+              </span>
+              <span 
+                className="text-xs font-mono"
+                style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+              >
+                {timeLeft4h}
+              </span>
+            </div>
+
+            {/* 1 Day */}
+            <div className="flex items-center justify-between">
+              <span 
+                className="text-xs font-medium"
+                style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
+              >
+                1D Close:
+              </span>
+              <span 
+                className="text-xs font-mono"
+                style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
+              >
+                {timeLeft1d}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -104,7 +214,7 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'chart' | 'institutional' | 'openinterest'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'chart' | 'institutional' | 'openinterest' | 'candlestick'>('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
@@ -163,6 +273,11 @@ const Dashboard: React.FC = () => {
       id: 'openinterest' as const,
       label: 'Open Interest',
       icon: BarChart3Icon
+    },
+    {
+      id: 'candlestick' as const,
+      label: 'Candlestick Screener',
+      icon: ChartCandlestick
     }
   ];
 
@@ -219,7 +334,7 @@ const Dashboard: React.FC = () => {
               />
             </div>
            
-            <div className="flex items-center py-0 gap-2 sm:gap-3 overflow-x-auto">
+            <div className="flex items-center py-1 gap-2 sm:gap-3 overflow-x-wrap z-12">
               <BtcPriceChange interval={chartInterval} />
               <CandleCountdown /> 
               <ThemeToggle />
@@ -307,7 +422,8 @@ const Dashboard: React.FC = () => {
                         {tab.id === 'analysis' ? 'Analysis' : 
                          tab.id === 'chart' ? 'Chart' : 
                          tab.id === 'institutional' ? 'Institutional' : 
-                         'OI'}
+                         tab.id === 'openinterest' ? 'OI' :
+                         'Patterns'}
                       </span>
                     </button>
                   );
@@ -319,7 +435,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8 relative z-10">
+      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8 relative z-10 min-h-[calc(100vh-200px)]">
         {error ? (
           <div className="text-center py-12">
             <div
@@ -538,6 +654,10 @@ const Dashboard: React.FC = () => {
 
             <div className={activeTab === 'openinterest' ? 'block' : 'hidden'}>
               <OpenInterestChart />
+            </div>
+
+            <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
+              <CandlestickScreener />
             </div>
           </>
         ) : null}

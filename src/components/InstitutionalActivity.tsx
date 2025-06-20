@@ -498,6 +498,11 @@ const InstitutionalActivity: React.FC = () => {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [dbLastUpdated, setDbLastUpdated] = useState<Date | null>(null);
 
+  // Redis read caching to reduce redundant operations
+  const [lastRedisRead, setLastRedisRead] = useState<number>(0);
+  const [cachedFlows, setCachedFlows] = useState<OpenInterestData[]>([]);
+  const [redisReadInProgress, setRedisReadInProgress] = useState(false);
+
   // Enhanced L/S ratio fetching with Binance as primary source (91% coverage vs Bybit's 30%)
   const getLongShortRatio = async (symbol: string, priority: 'high' | 'medium' | 'low'): Promise<{
     buyRatio: number;
@@ -645,11 +650,35 @@ const InstitutionalActivity: React.FC = () => {
     }
   };
 
-  // Load institutional flows from Redis with improved data freshness
-  const loadInstitutionalFlows = useCallback(async (): Promise<void> => {
+  // Load institutional flows from Redis with intelligent caching to reduce redundant reads
+  const loadInstitutionalFlows = useCallback(async (forceRefresh: boolean = false): Promise<void> => {
+    const now = Date.now();
+    const timeSinceLastRead = now - lastRedisRead;
+    
+    // Use cached data if:
+    // 1. Not forcing refresh AND
+    // 2. Data is less than 2 minutes old AND  
+    // 3. We have cached data AND
+    // 4. No read is currently in progress
+    if (!forceRefresh && 
+        timeSinceLastRead < 2 * 60 * 1000 && 
+        cachedFlows.length > 0 && 
+        !redisReadInProgress) {
+      // Use cached data - no Redis call needed
+      setSuspiciousMovements(cachedFlows);
+      return;
+    }
+
+    // Prevent multiple simultaneous Redis reads
+    if (redisReadInProgress) {
+      return;
+    }
+
     try {
-      // Add timestamp to prevent caching issues
-      const timestamp = Date.now();
+      setRedisReadInProgress(true);
+      
+      // Add timestamp to prevent HTTP caching issues (but reduce Redis load)
+      const timestamp = now;
       const response = await fetch(`/api/institutional-flows?t=${timestamp}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
@@ -659,29 +688,39 @@ const InstitutionalActivity: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.flows) {
-          // Always update data to ensure freshness, but optimize re-renders
           const newFlows = data.flows as OpenInterestData[];
           
-          // Update flows with fresh data, current timestamp, and ensure manipulation confidence is calculated
+          // Update flows with fresh data and ensure manipulation confidence is calculated
           const freshFlows = newFlows.map(flow => ({
             ...flow,
-            timestamp: timestamp, // Ensure fresh timestamp
-            manipulationConfidence: flow.manipulationConfidence || calculateManipulationConfidence(flow) // Calculate if missing
+            timestamp: timestamp,
+            manipulationConfidence: flow.manipulationConfidence || calculateManipulationConfidence(flow)
           }));
           
+          // Update both state and cache
           setSuspiciousMovements(freshFlows);
+          setCachedFlows(freshFlows);
+          setLastRedisRead(now);
           
           if (data.lastUpdated) {
             setDbLastUpdated(new Date(data.lastUpdated));
           }
         }
       } else {
-        // console.warn('Failed to load institutional flows:', response.status);
+        // On error, use cached data if available
+        if (cachedFlows.length > 0) {
+          setSuspiciousMovements(cachedFlows);
+        }
       }
     } catch (error) {
-      // //console.error('Error loading institutional flows from Redis:', error);
+      // On error, use cached data if available  
+      if (cachedFlows.length > 0) {
+        setSuspiciousMovements(cachedFlows);
+      }
+    } finally {
+      setRedisReadInProgress(false);
     }
-  }, []); // Remove dependency to prevent unnecessary re-renders
+  }, [lastRedisRead, cachedFlows, redisReadInProgress]); // Add dependencies for caching logic
 
   // Save institutional flows to Redis with enhanced metadata
   const saveInstitutionalFlows = useCallback(async (flows: OpenInterestData[], replaceMode: boolean = false): Promise<void> => {
@@ -709,6 +748,10 @@ const InstitutionalActivity: React.FC = () => {
           if (data.protectedCoins && data.protectedCoins.length > 0) {
             }
           setDbLastUpdated(new Date(data.lastUpdated));
+          
+          // Invalidate cache since we just wrote new data to Redis
+          setLastRedisRead(0); // Force next read to bypass cache
+          setCachedFlows([]); // Clear cached data
         }
       }
     } catch (error) {
@@ -1010,11 +1053,11 @@ const InstitutionalActivity: React.FC = () => {
       if (shouldUpdateEdgeDetector) {
         // Wait a moment for database update to complete, then load fresh data
         setTimeout(async () => {
-          await loadInstitutionalFlows();
+          await loadInstitutionalFlows(true); // Force refresh after database update
         }, 500); // 500ms delay to ensure database update is complete
       } else {
-        // Regular refresh without waiting
-        await loadInstitutionalFlows();
+        // Regular refresh - use cache if available
+        await loadInstitutionalFlows(false); // Use cached data if recent enough
       }
       
       // Processed tickers
@@ -1243,8 +1286,8 @@ const InstitutionalActivity: React.FC = () => {
   useEffect(() => {
     // Starting Smart Money Tracker - loading from Redis first
     
-    // Load existing data from Redis immediately
-    loadInstitutionalFlows().then(() => {
+    // Load existing data from Redis immediately (force refresh on initial load)
+    loadInstitutionalFlows(true).then(() => {
       // Database coins loaded, starting fresh scan
       // Then start fresh scan
       fetchOpenInterestData();
@@ -1534,26 +1577,7 @@ const InstitutionalActivity: React.FC = () => {
         
         {suspiciousMovements.length > 0 ? (
           <>
-            {/* Database info banner */}
-            {/* <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-4">
-                  <span className="text-blue-700 dark:text-blue-300 font-medium">
-                    💾 Database Status: {suspiciousMovements.length}/10 coins stored
-                  </span>
-                  {dbLastUpdated && (
-                    <span className="text-blue-600 dark:text-blue-400">
-                      Last updated: {dbLastUpdated.toLocaleTimeString()}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">
-                    Priority range: {Math.min(...suspiciousMovements.map(c => c.priorityScore || 0)).toFixed(0)} - {Math.max(...suspiciousMovements.map(c => c.priorityScore || 0)).toFixed(0)}
-                  </span>
-                </div>
-              </div>
-            </div> */}
+
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-full overflow-y-auto py-4 sm:py-6 px-1 sm:px-2 overflow-x-hidden">
               {suspiciousMovements.map((coin, index) => (

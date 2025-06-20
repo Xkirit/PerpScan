@@ -424,10 +424,9 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <select
             value={coinLimit}
             onChange={(e) => setCoinLimit(Number(e.target.value) as 10 | 20 | 50 | 100)}
-            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2 bg-transparent backdrop-blur-[3px]"
             style={{
-              borderColor: palette.accentColor,
-              backgroundColor: palette.bgSoftGreen,
+              borderColor: theme === 'dark' ? '#2d5a31' : palette.accentColor,
               color: palette.primaryColor
             }}
           >
@@ -439,10 +438,9 @@ const MultiTickerChart: React.FC<MultiTickerChartProps> = ({ data, interval }) =
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value as 'trendScore' | 'volume24h' | 'custom')}
-            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none focus:ring-2 bg-transparent backdrop-blur-[3px]"
             style={{
-              borderColor: palette.accentColor,
-              backgroundColor: palette.bgSoftGreen,
+              borderColor: theme === 'dark' ? '#2d5a31' : palette.accentColor,
               color: palette.primaryColor
             }}
           >

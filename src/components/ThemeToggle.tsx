@@ -21,7 +21,7 @@ export function ThemeToggle() {
       <Button
       variant="outline"
       onClick={handleToggle}
-      className="flex items-center gap-0 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 h-4 sm:h-9 text-xs sm:text-sm min-h-0 bg-background text-foreground border-accent"
+      className="flex items-center gap-0 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 h-5 sm:h-9 text-xs sm:text-sm min-h-0 bg-background text-foreground border-accent"
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? (

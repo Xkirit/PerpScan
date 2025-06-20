@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/candlestick-compute",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/candlestick-compute/route.ts": {
+      "maxDuration": 180
+    }
+  }
+} 

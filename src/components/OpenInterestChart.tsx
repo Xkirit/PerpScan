@@ -139,7 +139,7 @@ const OpenInterestChart: React.FC = () => {
           >
             <RefreshCwIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
-            <span className="sm:hidden">↻</span>
+            
           </Button>
         </div>
       </div>
