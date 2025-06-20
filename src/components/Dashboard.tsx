@@ -406,7 +406,7 @@ const Dashboard: React.FC = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap"
+                      className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap"
                       style={{
                         borderColor: activeTab === tab.id 
                           ? (theme === 'dark' ? '#ffffff' : '#1A1F16') 
@@ -416,7 +416,7 @@ const Dashboard: React.FC = () => {
                           : (theme === 'dark' ? '#4a7c59' : '#76ba94')
                       }}
                     >
-                      <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <Icon className="hidden sm:block h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden sm:inline">{tab.label}</span>
                       <span className="sm:hidden">
                         {tab.id === 'analysis' ? 'Analysis' : 
@@ -435,7 +435,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8 relative z-10 min-h-[calc(100vh-200px)]">
+      <div className="max-w-[140vh] mx-auto px-8 lg:px-12 py-8 relative z-10 min-h-[90vh]">
         {error ? (
           <div className="text-center py-12">
             <div

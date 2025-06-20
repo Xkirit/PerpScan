@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCwIcon, TrendingUpIcon, TrendingDownIcon, SearchIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, TrendingDownIcon, SearchIcon, BarChart3Icon } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -43,6 +43,8 @@ interface ScreenerResult {
   warning?: string;
   isInitializing?: boolean;
 }
+
+
 
 // Helper function to format volume
 const formatVolume = (volume: number): string => {
@@ -352,6 +354,7 @@ const CandlestickScreener: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [globalSortBy, setGlobalSortBy] = useState<SortBy>('bodyRatio');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '4h' | '1d'>('1h');
   const { theme } = useTheme();
 
   const fetchData = useCallback(async (force: boolean = false) => {
@@ -446,9 +449,10 @@ const CandlestickScreener: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div className="flex-1">
           <h2 
-            className="text-xl sm:text-2xl font-bold"
+            className="text-xl sm:text-2xl font-bold flex items-center gap-2"
             style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
           >
+            <BarChart3Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: theme === 'dark' ? '#4a7c59' : '#2f4f4f'}} />
             Candlestick Screener
           </h2>
           <p 
@@ -496,26 +500,52 @@ const CandlestickScreener: React.FC = () => {
           
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 text-xs sm:text-sm">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span 
-                className="text-xs sm:text-sm"
-                style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}
-              >
-                Sort by:
-              </span>
-              <select
-                value={globalSortBy}
-                onChange={(e) => setGlobalSortBy(e.target.value as SortBy)}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none backdrop-blur-[1px] min-w-0 w-auto"
-                style={{
-                  borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
-                  color: theme === 'dark' ? '#ffffff' : '#1A1F16'
-                }}
-              >
-                <option value="bodyRatio">Body Ratio</option>
-                <option value="volume">Volume</option>
-                <option value="priceChange">Price Change</option>
-              </select>
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              {/* Mobile Timeframe Selector */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <span 
+                  className="text-xs"
+                  style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}
+                >
+                  Timeframe:
+                </span>
+                <select
+                  value={selectedTimeframe}
+                  onChange={(e) => setSelectedTimeframe(e.target.value as '1h' | '4h' | '1d')}
+                  className="px-2 py-1 text-xs rounded-md border focus:outline-none backdrop-blur-[1px] min-w-0 w-auto"
+                  style={{
+                    borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
+                    color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+                  }}
+                >
+                  <option value="1h">1 Hour</option>
+                  <option value="4h">4 Hour</option>
+                  <option value="1d">1 Day</option>
+                </select>
+              </div>
+              
+              {/* Sort By Selector */}
+              <div className="flex items-center">
+                <span 
+                  className="text-xs sm:text-sm"
+                  style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}
+                >
+                  Sort by:
+                </span>
+                <select
+                  value={globalSortBy}
+                  onChange={(e) => setGlobalSortBy(e.target.value as SortBy)}
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md border focus:outline-none backdrop-blur-[1px] min-w-0 w-auto"
+                  style={{
+                    borderColor: theme === 'dark' ? '#4a7c59' : '#76ba94',
+                    color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+                  }}
+                >
+                  <option value="bodyRatio">Body Ratio</option>
+                  <option value="volume">Volume</option>
+                  <option value="priceChange">Price Change</option>
+                </select>
+              </div>
             </div>
             {/* <span 
               className="text-xs sm:text-sm text-center sm:text-right"
@@ -530,28 +560,42 @@ const CandlestickScreener: React.FC = () => {
       )}
 
       {/* Timeframe Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 h-[150vh] sm:h-[92vh] lg:h-[60vh] xl:h-[65vh]">
-        <TimeframeColumn
-          title="1 Hour"
-          patterns={data?.['1h'] || []}
-          theme={theme}
-          loading={loading}
-          sortBy={globalSortBy}
-        />
-        <TimeframeColumn
-          title="4 Hour"
-          patterns={data?.['4h'] || []}
-          theme={theme}
-          loading={loading}
-          sortBy={globalSortBy}
-        />
-        <TimeframeColumn
-          title="1 Day"
-          patterns={data?.['1d'] || []}
-          theme={theme}
-          loading={loading}
-          sortBy={globalSortBy}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 h-[100vh] sm:h-[92vh] lg:h-[60vh] xl:h-[65vh]">
+        {/* Mobile: Show only selected timeframe */}
+        <div className="lg:hidden max-h-[100vh]">
+          <TimeframeColumn
+            title={selectedTimeframe === '1h' ? '1 Hour' : selectedTimeframe === '4h' ? '4 Hour' : '1 Day'}
+            patterns={data?.[selectedTimeframe] || []}
+            theme={theme}
+            loading={loading}
+            sortBy={globalSortBy}
+          />
+        </div>
+        
+        {/* Desktop: Show all timeframes */}
+        <div className="hidden lg:contents">
+          <TimeframeColumn
+            title="1 Hour"
+            patterns={data?.['1h'] || []}
+            theme={theme}
+            loading={loading}
+            sortBy={globalSortBy}
+          />
+          <TimeframeColumn
+            title="4 Hour"
+            patterns={data?.['4h'] || []}
+            theme={theme}
+            loading={loading}
+            sortBy={globalSortBy}
+          />
+          <TimeframeColumn
+            title="1 Day"
+            patterns={data?.['1d'] || []}
+            theme={theme}
+            loading={loading}
+            sortBy={globalSortBy}
+          />
+        </div>
       </div>
     </div>
   );
