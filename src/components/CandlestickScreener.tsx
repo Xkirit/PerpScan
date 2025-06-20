@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCwIcon, TrendingUpIcon, TrendingDownIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, TrendingDownIcon, SearchIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -66,32 +66,47 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
 
   return (
     <div
-      className="p-2 sm:p-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity border touch-manipulation flex-shrink-0"
+      className="p-2 sm:p-3 rounded-xl cursor-pointer hover:scale-[1.01] transition-all duration-300 ease-out border backdrop-blur-xl touch-manipulation flex-shrink-0 hover:shadow-lg relative overflow-hidden group z-20"
       style={{
         backgroundColor: theme === 'dark' 
-          ? (isBullish ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)')
-          : (isBullish ? '#f0f9ff' : '#fef7f7'),
+          ? (isBullish ? 'rgba(6, 78, 59, 0.4)' : 'rgba(69, 10, 10, 0.4)')
+          : (isBullish ? 'rgba(236, 253, 245, 0.95)' : 'rgba(254, 242, 242, 0.95)'),
         borderColor: theme === 'dark'
-          ? (isBullish ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)')
-          : (isBullish ? '#22c55e' : '#ef4444')
+          ? (isBullish ? 'rgba(16, 185, 129, 0.3)' : 'rgba(248, 113, 113, 0.3)')
+          : (isBullish ? 'rgba(16, 185, 129, 0.4)' : 'rgba(248, 113, 113, 0.4)'),
+        boxShadow: theme === 'dark'
+          ? `0 4px 16px -4px ${isBullish ? 'rgba(16, 185, 129, 0.1)' : 'rgba(248, 113, 113, 0.1)'}`
+          : `0 2px 8px -2px ${isBullish ? 'rgba(16, 185, 129, 0.15)' : 'rgba(248, 113, 113, 0.15)'}`
       }}
       onClick={handleSymbolClick}
     >
-      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+      {/* Glass shimmer effect */}
+      <div 
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background: `linear-gradient(135deg, ${
+            isBullish 
+              ? 'rgba(16, 185, 129, 0.1) 0%, transparent 50%, rgba(16, 185, 129, 0.05) 100%'
+              : 'rgba(248, 113, 113, 0.1) 0%, transparent 50%, rgba(248, 113, 113, 0.05) 100%'
+          })`
+        }}
+              />
+        <div className="relative z-30">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
         <span 
-          className="font-bold text-xs sm:text-sm truncate"
+          className="font-bold text-sm sm:text-base truncate"
           style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
         >
           {pattern.symbol.replace('USDT', '')}
         </span>
         {isBullish ? (
-          <TrendingUpIcon className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+          <TrendingUpIcon className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 flex-shrink-0" />
         ) : (
-          <TrendingDownIcon className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
+          <TrendingDownIcon className="h-4 w-4 sm:h-5 sm:w-5 text-red-400 flex-shrink-0" />
         )}
       </div>
       
-      <div className="space-y-0.5 sm:space-y-1 text-[10px] sm:text-xs">
+      <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm">
         <div className="flex justify-between">
           <span 
             style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
@@ -100,7 +115,7 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
           </span>
           <span 
             className="font-medium"
-            style={{ color: isBullish ? '#22c55e' : '#ef4444' }}
+            style={{ color: isBullish ? '#10b981' : '#f87171' }}
           >
             {pattern.type.charAt(0).toUpperCase() + pattern.type.slice(1)}
           </span>
@@ -128,7 +143,7 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
           </span>
           <span 
             className="font-medium"
-            style={{ color: priceChange >= 0 ? '#22c55e' : '#ef4444' }}
+            style={{ color: priceChange >= 0 ? '#10b981' : '#f87171' }}
           >
             {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
           </span>
@@ -147,6 +162,7 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
             {formatVolume(pattern.currentCandle.volume)}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -181,7 +197,7 @@ const TimeframeColumn: React.FC<{
   }, [patterns, sortBy]);
   return (
     <div
-      className="rounded-lg p-2 sm:p-3 lg:p-4 backdrop-blur-[3px] flex flex-col h-full max-h-[75vh] sm:max-h-[100vh] lg:max-h-[60vh] overflow-hidden"
+      className="rounded-lg p-3 sm:p-5 lg:p-6 backdrop-blur-[3px] flex flex-col h-full overflow-hidden"
       style={{
         border: theme === 'dark' 
           ? '1px solid rgba(255, 255, 255, 0.2)' 
@@ -194,19 +210,67 @@ const TimeframeColumn: React.FC<{
     >
       <div className="mb-2 sm:mb-3 flex-shrink-0">
         <h3 
-          className="text-sm sm:text-base lg:text-lg font-bold mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2"
+          className="text-sm sm:text-base lg:text-lg font-bold mb-1 sm:mb-2 flex items-center justify-between gap-10 sm:gap-2"
           style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
         >
           <span className="truncate">{title}</span>
-          <span 
-            className="text-xs font-normal px-1 sm:px-1.5 lg:px-2 py-0.5 rounded-full flex-shrink-0"
-            style={{ 
-              backgroundColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8',
-              color: theme === 'dark' ? '#ffffff' : '#1A1F16'
-            }}
-          >
-            {loading ? '...' : patterns.length}
-          </span>
+          <div className="flex items-center justify-between gap-1 flex-shrink-0">
+            {loading ? (
+              <span 
+                className="text-xs font-normal px-1 sm:px-1.5 lg:px-2 py-0.5 rounded-full"
+                style={{ 
+                  backgroundColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8',
+                  color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+                }}
+              >
+                ...
+              </span>
+            ) : (
+              <>
+                {(() => {
+                  const bullishCount = patterns.filter(p => p.type === 'bullish').length;
+                  const bearishCount = patterns.filter(p => p.type === 'bearish').length;
+                  return (
+                    <>
+                      {bullishCount > 0 && (
+                        <span 
+                          className="text-xs font-normal px-1 sm:px-1.5 py-0.5 rounded-md"
+                          style={{ 
+                            backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(236, 253, 245, 0.8)',
+                            color: '#10b981'
+                          }}
+                        >
+                          {bullishCount}
+                        </span>
+                      )}
+                      {bearishCount > 0 && (
+                        <span 
+                          className="text-xs font-normal px-1 sm:px-1.5 py-0.5 rounded-lg"
+                          style={{ 
+                            backgroundColor: theme === 'dark' ? 'rgba(248, 113, 113, 0.2)' : 'rgba(254, 242, 242, 0.8)',
+                            color: '#f87171'
+                          }}
+                        >
+                          {bearishCount}
+                        </span>
+                      )}
+                      {patterns.length === 0 && (
+                        <span 
+                          className="text-xs font-normal px-1 sm:px-1.5 lg:px-2 py-0.5 rounded-full"
+                          style={{ 
+                            backgroundColor: theme === 'dark' ? '#2d5a31' : '#b0d7b8',
+                            color: theme === 'dark' ? '#ffffff' : '#1A1F16'
+                          }}
+                        >
+                          0
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
+          </div>
         </h3>
       </div>
       
@@ -224,7 +288,7 @@ const TimeframeColumn: React.FC<{
             ))}
           </div>
         ) : (
-          <div className="h-full overflow-y-auto space-y-1.5 sm:space-y-2 lg:space-y-3 pr-1">
+          <div className="h-full py-2 overflow-y-auto space-y-1.5 sm:space-y-2 lg:space-y-4 pr-1 px-1">
             {patterns.length === 0 ? (
               <div 
                 className="text-center py-6 sm:py-8 text-xs sm:text-sm"
@@ -334,7 +398,7 @@ const CandlestickScreener: React.FC = () => {
           >
             {error}
           </p>
-          <Button onClick={handleRefresh} variant="outline">
+          <Button onClick={handleForceRefresh} variant="outline">
             Try Again
           </Button>
         </div>
@@ -368,15 +432,27 @@ const CandlestickScreener: React.FC = () => {
           </p>
         </div>
         
-        <Button
-          onClick={handleRefresh}
-          disabled={loading}
-          variant="outline"
-          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 min-h-0 max-w-fit"
-        >
-          <RefreshCwIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleRefresh}
+            disabled={loading}
+            variant="outline"
+            className="flex items-center gap-1 px-2 sm:px-3 min-h-0"
+          >
+            <RefreshCwIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="text-xs sm:text-sm">Refresh</span>
+          </Button>
+          
+          <Button
+            onClick={handleForceRefresh}
+            disabled={loading}
+            variant="default"
+            className="flex items-center gap-1 px-2 sm:px-3 min-h-0"
+          >
+            <SearchIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-pulse' : ''}`} />
+            <span className="text-xs sm:text-sm">Scan Now</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary Stats & Sorting */}
@@ -420,7 +496,7 @@ const CandlestickScreener: React.FC = () => {
       )}
 
       {/* Timeframe Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 h-[80vh] sm:h-[82vh] lg:h-[75vh]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 h-[150vh] sm:h-[92vh] lg:h-[75vh]">
         <TimeframeColumn
           title="1 Hour"
           patterns={data?.['1h'] || []}

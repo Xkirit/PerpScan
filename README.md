@@ -12,6 +12,9 @@ This project requires Upstash Redis for data storage. You'll need to set up the 
 KV_REST_API_URL=https://your-redis-url.upstash.io
 KV_REST_API_TOKEN=your-redis-token
 
+# Candlestick Auto-Update Configuration
+CANDLESTICK_CRON_SECRET=your-secure-cron-secret
+
 # Application Configuration
 NODE_ENV=development
 ```
@@ -84,9 +87,37 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Features
 
 - Real-time cryptocurrency data analysis
+- **Candlestick Pattern Screener** with automated updates
 - Institutional flow tracking
 - Redis-based data caching with Upstash
 - Responsive dashboard interface
+
+### Candlestick Pattern Screener
+
+The application includes an advanced candlestick pattern screener that:
+
+- 🔍 **Scans 300 USDT pairs** across three timeframes (1H, 4H, 1D)
+- 📊 **Detects engulfing patterns** with volume and price change analysis
+- ⚡ **Auto-updates on candle close** - clears and repopulates data when new candles form
+- 🚀 **99% faster** with Redis caching (50ms vs 30+ seconds)
+- 📱 **Mobile responsive** with glassmorphism UI design
+
+#### Auto-Update Schedule
+- **1H**: Updates every hour at 00:00-00:02 UTC
+- **4H**: Updates every 4 hours (0, 4, 8, 12, 16, 20 UTC) at 00:00-00:02 UTC  
+- **1D**: Updates daily at 00:00-00:02 UTC
+
+#### Testing Auto-Updates
+```bash
+# Check current status and schedule
+node test-auto-update.js status
+
+# Manually trigger auto-update
+node test-auto-update.js trigger
+
+# Force update specific timeframes
+node test-auto-update.js force 1h,4h
+```
 
 ## Learn More
 

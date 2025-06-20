@@ -68,8 +68,8 @@ const CANDLESTICK_KEYS = {
 
 // TTL for different timeframes (in seconds)
 const CANDLESTICK_TTL = {
-  '1h': 65 * 60,      // 65 minutes (5 min buffer after 1h)
-  '4h': 4 * 65 * 60,  // 4 hours + 5 min buffer
+  '1h': 2 * 60 * 60,  // 2 hours (1 hour buffer after 1h update)
+  '4h': 5 * 60 * 60,  // 5 hours (1 hour buffer after 4h update)
   '1d': 25 * 60 * 60, // 25 hours (1 hour buffer after 1d)
   metadata: 25 * 60 * 60 // Same as daily
 };
@@ -220,6 +220,34 @@ export class CandlestickCache {
       return true; // On error, assume needs update
     }
   }
+
+  // Check which timeframes need updating based on candle close times
+  static getTimeframesToUpdate(): Array<'1h' | '4h' | '1d'> {
+    const now = new Date();
+    const currentMinute = now.getUTCMinutes();
+    const currentHour = now.getUTCHours();
+    const timeframesToUpdate: Array<'1h' | '4h' | '1d'> = [];
+
+    // Check if we're at the start of a new candle (first few minutes)
+    const isNewCandle = currentMinute <= 2; // Within first 2 minutes of the hour
+
+    if (isNewCandle) {
+      // Always update 1h at every hour
+      timeframesToUpdate.push('1h');
+
+      // Update 4h at 0, 4, 8, 12, 16, 20 UTC
+      if (currentHour % 4 === 0) {
+        timeframesToUpdate.push('4h');
+      }
+
+      // Update 1d at 0 UTC (start of new day)
+      if (currentHour === 0) {
+        timeframesToUpdate.push('1d');
+      }
+    }
+
+    return timeframesToUpdate;
+  }
   
   // Get the age of cached data in minutes
   static async getDataAge(): Promise<{ '1h': number; '4h': number; '1d': number } | null> {
@@ -253,6 +281,19 @@ export class CandlestickCache {
     }
   }
   
+  // Clear specific timeframe data
+  static async clearTimeframe(timeframe: '1h' | '4h' | '1d'): Promise<void> {
+    try {
+      const client = getCandlestickRedisClient();
+      await client.del(CANDLESTICK_KEYS[timeframe]);
+      console.log(`🗑️ Cleared ${timeframe} candlestick cache`);
+      
+    } catch (error) {
+      console.error(`❌ Error clearing ${timeframe} candlestick cache:`, error);
+      throw error;
+    }
+  }
+
   // Clear all candlestick cache
   static async clearCache(): Promise<void> {
     try {

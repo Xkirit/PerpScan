@@ -53,36 +53,60 @@ function isEngulfingPattern(current: string[], previous: string[]): EngulfingPat
   const currentBody = Math.abs(currentClose - currentOpen);
   const prevBody = Math.abs(prevClose - prevOpen);
 
-  // Current body must be bigger than previous body
-  if (currentBody <= prevBody) {
-    return null;
-  }
+  // Calculate candle ranges (high to low)
+  const currentRange = currentHigh - currentLow;
+  const prevRange = prevHigh - prevLow;
 
   // Determine if previous candle was bullish or bearish
   const prevIsBullish = prevClose > prevOpen;
   const currentIsBullish = currentClose > currentOpen;
 
-  // Must be opposite direction
+  // CRITICAL: Must be opposite direction for true reversal pattern
+  // We only want bearish engulfing bullish OR bullish engulfing bearish
   if (prevIsBullish === currentIsBullish) {
+    return null; // Same direction = not a reversal pattern
+  }
+
+  // Enhanced filtering for meaningful patterns:
+  
+  // 1. Current body must be significantly bigger than previous body (at least 1.5x)
+  if (currentBody <= prevBody * 1.5) {
+    return null;
+  }
+  
+  // 2. Previous candle must have a meaningful body (not just a doji/small candle)
+  // Previous body should be at least 30% of its range
+  if (prevRange > 0 && (prevBody / prevRange) < 0.3) {
+    return null;
+  }
+  
+  // 3. Current candle body should be at least 50% of its range (strong directional move)
+  if (currentRange > 0 && (currentBody / currentRange) < 0.5) {
+    return null;
+  }
+  
+  // 4. Minimum price movement requirement (at least 0.5% move)
+  const priceChangeAbs = Math.abs((currentClose - prevClose) / prevClose) * 100;
+  if (priceChangeAbs < 0.5) {
     return null;
   }
 
-  // More practical engulfing pattern: current candle body must completely contain previous candle body
+  // Check for true reversal engulfing patterns
   let isEngulfing = false;
   let type: 'bullish' | 'bearish';
 
   if (currentIsBullish && !prevIsBullish) {
-    // Bullish engulfing: current candle's range engulfs previous bearish candle
-    // Current open should be <= previous close, current close should be >= previous open
-    isEngulfing = currentOpen <= Math.max(prevOpen, prevClose) && currentClose >= Math.min(prevOpen, prevClose);
+    // BULLISH ENGULFING: Green candle engulfs red candle (bullish reversal)
+    // Current bullish candle must completely engulf previous bearish candle
+    isEngulfing = currentOpen <= prevClose && currentClose >= prevOpen;
     type = 'bullish';
   } else if (!currentIsBullish && prevIsBullish) {
-    // Bearish engulfing: current candle's range engulfs previous bullish candle
-    // Current open should be >= previous close, current close should be <= previous open
-    isEngulfing = currentOpen >= Math.min(prevOpen, prevClose) && currentClose <= Math.max(prevOpen, prevClose);
+    // BEARISH ENGULFING: Red candle engulfs green candle (bearish reversal)  
+    // Current bearish candle must completely engulf previous bullish candle
+    isEngulfing = currentOpen >= prevClose && currentClose <= prevOpen;
     type = 'bearish';
   } else {
-    return null;
+    return null; // This should never hit due to earlier check, but safety net
   }
 
   if (!isEngulfing) {
