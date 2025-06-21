@@ -258,7 +258,7 @@ const OpenInterestChart: React.FC = () => {
                   orientation="right"
                   stroke={accentColor}
                   tick={{ fontSize: isMobile ? 7 : 10 }}
-                  tickFormatter={(value) => `${value.toFixed(2)}%`}
+                  tickFormatter={(value) => `${(value * 100).toFixed(3)}%`}
                 />
                 <Tooltip 
                   content={({ active, payload, label }) => {
