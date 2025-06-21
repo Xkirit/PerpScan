@@ -218,32 +218,78 @@ export async function GET(request: NextRequest) {
     if (forceCompute) {
       console.log('🔄 Force compute requested, triggering background computation...');
       
-      // Trigger background computation
+      // Trigger background computation without waiting for completion
+      // This prevents timeout issues on Vercel
       try {
-        const computeResponse = await fetch(`${request.nextUrl.origin}/api/candlestick-compute`, {
+        // Determine which timeframes actually need updating based on candle close times
+        const timeframesToUpdate = CandlestickCache.getTimeframesToUpdate();
+        
+        // If no timeframes need updating based on candle closes, check if any are stale
+        let finalTimeframes = timeframesToUpdate;
+        if (timeframesToUpdate.length === 0) {
+          console.log('🔍 No timeframes need updating based on candle closes, checking for stale data...');
+          
+          // Check which timeframes have stale data (older than their expected update intervals)
+          const staleTimeframes: Array<'1h' | '4h' | '1d'> = [];
+          for (const tf of ['1h', '4h', '1d'] as const) {
+            const needsUpdate = await CandlestickCache.needsUpdate(tf);
+            if (needsUpdate) {
+              staleTimeframes.push(tf);
+            }
+          }
+          finalTimeframes = staleTimeframes;
+        }
+        
+        if (finalTimeframes.length === 0) {
+          console.log('✅ All timeframes are up to date, no scan needed');
+          
+          // Return existing data with a message that no scan was needed
+          const existingData = await CandlestickCache.getPatterns();
+          if (existingData) {
+            return NextResponse.json({
+              ...existingData,
+              message: 'All timeframes are up to date - no scan needed',
+              scanning: false,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+        
+        console.log(`🎯 Smart scan: updating timeframes [${finalTimeframes.join(', ')}] based on candle closes`);
+        
+        // Fire and forget - don't await the response
+        fetch(`${request.nextUrl.origin}/api/candlestick-compute`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.CANDLESTICK_CRON_SECRET || 'default-secret'}`
           },
           body: JSON.stringify({ 
-            timeframes: ['1h', '4h', '1d'],
+            timeframes: finalTimeframes,
             force: true
           })
+        }).catch(error => {
+          console.error('❌ Background computation trigger failed:', error);
         });
         
-        if (computeResponse.ok) {
-          const computeResult = await computeResponse.json();
-          console.log('✅ Background computation completed');
+        console.log('🚀 Background computation triggered (fire-and-forget)');
+        
+        // Return existing data immediately with a message about background processing
+        const existingData = await CandlestickCache.getPatterns();
+        if (existingData) {
+          const timeframeText = finalTimeframes.length === 1 
+            ? `${finalTimeframes[0]} timeframe`
+            : `${finalTimeframes.join(', ')} timeframes`;
           
-          // Get the freshly computed data
-          const freshData = await CandlestickCache.getPatterns();
-          if (freshData) {
-            return NextResponse.json(freshData);
-          }
-        } else {
-          console.error('❌ Background computation failed:', await computeResponse.text());
+          return NextResponse.json({
+            ...existingData,
+            message: `Background scan initiated for ${timeframeText} - refresh in 15-30 seconds for updated results`,
+            scanning: true,
+            scanningTimeframes: finalTimeframes,
+            timestamp: new Date().toISOString()
+          });
         }
+        
       } catch (computeError) {
         console.error('❌ Error triggering background computation:', computeError);
       }

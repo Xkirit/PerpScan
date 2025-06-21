@@ -42,6 +42,8 @@ interface ScreenerResult {
   message?: string;
   warning?: string;
   isInitializing?: boolean;
+  scanning?: boolean;
+  scanningTimeframes?: Array<'1h' | '4h' | '1d'>;
 }
 
 
@@ -355,6 +357,7 @@ const CandlestickScreener: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [globalSortBy, setGlobalSortBy] = useState<SortBy>('bodyRatio');
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '4h' | '1d'>('1h');
+  const [isScanning, setIsScanning] = useState(false);
   const { theme } = useTheme();
 
   const fetchData = useCallback(async (force: boolean = false) => {
@@ -371,6 +374,24 @@ const CandlestickScreener: React.FC = () => {
       const result: ScreenerResult = await response.json();
       setData(result);
       setLastUpdated(new Date());
+      
+      // Handle scanning state
+      if (result.scanning) {
+        setIsScanning(true);
+        const timeframes = result.scanningTimeframes || ['1h', '4h', '1d'];
+        console.log(`Background scan initiated for ${timeframes.join(', ')}, will refresh automatically...`);
+        
+        // Smart auto-refresh timing based on number of timeframes being scanned
+        const refreshDelay = timeframes.length === 1 ? 20000 : // 20s for single timeframe
+                           timeframes.length === 2 ? 35000 : // 35s for two timeframes  
+                           50000; // 50s for all three timeframes
+        
+        setTimeout(() => {
+          fetchData(false);
+        }, refreshDelay);
+      } else {
+        setIsScanning(false);
+      }
       
       // If this is the first load and data is initializing, show a helpful message
       if (result.isInitializing) {
@@ -467,6 +488,12 @@ const CandlestickScreener: React.FC = () => {
                 <span className="sm:hidden block text-xs mt-1">Updated: {formatLastUpdated(lastUpdated)}</span>
               </>
             )}
+            {isScanning && (
+              <>
+                <span className="hidden sm:inline"> • Background scan in progress...</span>
+                <span className="sm:hidden block text-xs mt-1 text-yellow-500">Scanning...</span>
+              </> 
+            )}
           </p>
         </div>
         
@@ -483,12 +510,14 @@ const CandlestickScreener: React.FC = () => {
           
           <Button
             onClick={handleForceRefresh}
-            disabled={loading}
+            disabled={loading || isScanning}
             variant="default"
             className="flex items-center gap-1 px-2 sm:px-3 min-h-0"
           >
-            <SearchIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-pulse' : ''}`} />
-            <span className="text-xs sm:text-sm">Scan Now</span>
+            <SearchIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading || isScanning ? 'animate-pulse' : ''}`} />
+            <span className="text-xs sm:text-sm">
+              {isScanning ? 'Scanning...' : 'Scan Now'}
+            </span>
           </Button>
         </div>
       </div>
