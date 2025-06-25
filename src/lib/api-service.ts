@@ -1,4 +1,6 @@
 // Centralized API service to eliminate duplicate Bybit API calls
+import crypto from 'crypto';
+
 interface BybitTickerData {
   symbol: string;
   lastPrice: string;
@@ -75,11 +77,41 @@ class APIService {
     });
   }
 
-  private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
+  // Generate Bybit API signature for authenticated requests
+  private generateSignature(params: string, timestamp: string, apiSecret: string): string {
+    const hmac = crypto.createHmac('sha256', apiSecret);
+    hmac.update(timestamp + process.env.BYBIT_API_KEY + '5000' + params);
+    return hmac.digest('hex');
+  }
+
+  // Create authenticated headers for Bybit API
+  private createAuthHeaders(params: string = ''): HeadersInit {
     const headers: HeadersInit = {
       'Accept': 'application/json',
+      'Content-Type': 'application/json',
       'User-Agent': 'Mozilla/5.0 (compatible; PerpFlow/1.0)',
     };
+
+    // Add authentication if API credentials are available
+    if (process.env.BYBIT_API_KEY && process.env.BYBIT_API_SECRET) {
+      const timestamp = Date.now().toString();
+      const signature = this.generateSignature(params, timestamp, process.env.BYBIT_API_SECRET);
+      
+      headers['X-BAPI-API-KEY'] = process.env.BYBIT_API_KEY;
+      headers['X-BAPI-SIGN'] = signature;
+      headers['X-BAPI-TIMESTAMP'] = timestamp;
+      headers['X-BAPI-RECV-WINDOW'] = '5000';
+    }
+
+    return headers;
+  }
+
+  private async makeRequest<T>(url: string, options?: RequestInit): Promise<T> {
+    // Extract query parameters for signature generation
+    const urlObj = new URL(url);
+    const params = urlObj.search.substring(1); // Remove the '?' prefix
+    
+    const headers = this.createAuthHeaders(params);
 
     const response = await fetch(url, {
       method: 'GET',
