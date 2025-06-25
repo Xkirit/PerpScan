@@ -9,9 +9,5 @@
     "src/app/api/candlestick-auto-update/route.ts": {
       "maxDuration": 60
     }
-  },
-  "env": {
-    "BYBIT_API_KEY": "@bybit-api-key",
-    "BYBIT_API_SECRET": "@bybit-api-secret"
   }
 } 
