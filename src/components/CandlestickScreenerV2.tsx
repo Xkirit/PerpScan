@@ -81,6 +81,17 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
       }}
       onClick={handleSymbolClick}
     >
+      {/* Glass shimmer effect */}
+      <div 
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background: `linear-gradient(135deg, ${
+            isBullish 
+              ? 'rgba(16, 185, 129, 0.1) 0%, transparent 50%, rgba(16, 185, 129, 0.05) 100%'
+              : 'rgba(248, 113, 113, 0.1) 0%, transparent 50%, rgba(248, 113, 113, 0.05) 100%'
+          })`
+        }}
+      />
       <div className="relative z-30">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -187,15 +198,17 @@ const TimeframeColumn: React.FC<{
 
   return (
     <div
-      className="rounded-lg p-3 sm:p-5 lg:p-6 backdrop-blur-[3px] flex flex-col h-full overflow-hidden"
+      className="rounded-xl p-3 sm:p-5 lg:p-6 backdrop-blur-[4px] flex flex-col h-full overflow-hidden"
       style={{
         border: theme === 'dark' 
-          ? '1px solid rgba(255, 255, 255, 0.2)' 
-          : '1px solid #b0d7b8',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          ? '1px solid rgba(255, 255, 255, 0.15)' 
+          : '1px solid rgba(176, 215, 184, 0.8)',
+        boxShadow: theme === 'dark'
+          ? '0 8px 32px -8px rgba(0, 0, 0, 0.4), 0 4px 16px -4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+          : '0 4px 16px -4px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
         backgroundColor: theme === 'dark' 
-          ? 'rgba(30, 63, 32, 0.1)' 
-          : '#f0f7f1'
+          ? 'rgba(30, 63, 32, 0.08)' 
+          : 'rgba(240, 247, 241, 0.7)'
       }}
     >
       <div className="mb-2 sm:mb-3 flex-shrink-0">
@@ -477,13 +490,15 @@ const CandlestickScreenerV2: React.FC = () => {
     return (
       <div className="text-center py-12">
         <div
-          className="rounded-lg p-6 max-w-md mx-auto"
+          className="rounded-xl p-6 max-w-md mx-auto backdrop-blur-[4px]"
           style={{
             border: theme === 'dark' 
-              ? '1px solid rgba(255, 255, 255, 0.2)' 
-              : '1px solid #b0d7b8',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            backgroundColor: theme === 'dark' ? 'rgba(30, 63, 32, 0.1)' : '#f0f7f1'
+              ? '1px solid rgba(255, 255, 255, 0.15)' 
+              : '1px solid rgba(176, 215, 184, 0.8)',
+            boxShadow: theme === 'dark'
+              ? '0 8px 32px -8px rgba(0, 0, 0, 0.4), 0 4px 16px -4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              : '0 4px 16px -4px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+            backgroundColor: theme === 'dark' ? 'rgba(30, 63, 32, 0.08)' : 'rgba(240, 247, 241, 0.7)'
           }}
         >
           <h3 className="text-lg font-medium mb-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
@@ -546,9 +561,18 @@ const CandlestickScreenerV2: React.FC = () => {
       {/* Controls */}
       {data && !loading && (
         <div
-          className="rounded-lg p-3 sm:p-4 mb-4"
-          
-          
+          className="rounded-xl p-3 sm:p-4 mb-4 backdrop-blur-[4px]"
+          style={{
+            border: theme === 'dark' 
+              ? '1px solid rgba(255, 255, 255, 0.1)' 
+              : '1px solid rgba(176, 215, 184, 0.6)',
+            boxShadow: theme === 'dark'
+              ? '0 4px 16px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+              : '0 2px 8px -2px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+            backgroundColor: theme === 'dark' 
+              ? 'rgba(30, 63, 32, 0.05)' 
+              : 'rgba(240, 247, 241, 0.6)'
+          }}
         >
 
           
