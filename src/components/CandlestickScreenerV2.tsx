@@ -39,26 +39,6 @@ interface ScreenerResult {
     '4h': number;
     '1d': number;
   };
-  message?: string;
-  warning?: string;
-  isInitializing?: boolean;
-  scanning?: boolean;
-  scanningTimeframes?: Array<'1h' | '4h' | '1d'>;
-  duration?: number;
-  performance?: {
-    apiCallsPerSecond: number;
-    totalApiCalls: number;
-  };
-  optimizations?: {
-    parallelTimeframes: boolean;
-    largerBatches: boolean;
-    filteredSymbols: boolean;
-    concurrentBatches: boolean;
-  };
-  vercelOptimized?: boolean;
-  chunkMode?: boolean;
-  remainingTimeframes?: Array<'1h' | '4h' | '1d'>;
-  timeframesComputed?: Array<'1h' | '4h' | '1d'>;
 }
 
 // Helper function to format volume
@@ -81,13 +61,8 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
   const isBullish = pattern.type === 'bullish';
   const priceChange = pattern.priceChange || ((pattern.currentCandle.close - pattern.previousCandle.close) / pattern.previousCandle.close) * 100;
   
-  // Get the base symbol (remove USDT)
   const baseSymbol = pattern.symbol.replace('USDT', '').toLowerCase();
-  
-  // Primary logo URL using CryptoIcons (more reliable for ticker symbols)
   const logoUrl = `https://cryptoicons.org/api/icon/${baseSymbol}/32`;
-  
-  // Fallback logo URL using alternative service
   const fallbackLogoUrl = `https://assets.coincap.io/assets/icons/${baseSymbol}@2x.png`;
 
   return (
@@ -106,18 +81,7 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
       }}
       onClick={handleSymbolClick}
     >
-      {/* Glass shimmer effect */}
-      <div 
-        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background: `linear-gradient(135deg, ${
-            isBullish 
-              ? 'rgba(16, 185, 129, 0.1) 0%, transparent 50%, rgba(16, 185, 129, 0.05) 100%'
-              : 'rgba(248, 113, 113, 0.1) 0%, transparent 50%, rgba(248, 113, 113, 0.05) 100%'
-          })`
-        }}
-              />
-        <div className="relative z-30">
+      <div className="relative z-30">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0">
@@ -130,7 +94,6 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
                   if (img.src === logoUrl) {
                     img.src = fallbackLogoUrl;
                   } else {
-                    // Show a generic crypto icon as final fallback
                     const parent = img.parentElement;
                     if (parent) {
                       parent.innerHTML = `
@@ -157,63 +120,35 @@ const PatternCard: React.FC<{ pattern: EngulfingPattern; theme: 'light' | 'dark'
           )}
         </div>
       
-      <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm">
-        <div className="flex justify-between">
-          <span 
-            style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
-          >
-            Type:
-          </span>
-          <span 
-            className="font-medium"
-            style={{ color: isBullish ? '#10b981' : '#f87171' }}
-          >
-            {pattern.type.charAt(0).toUpperCase() + pattern.type.slice(1)}
-          </span>
+        <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm">
+          <div className="flex justify-between">
+            <span style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>Type:</span>
+            <span className="font-medium" style={{ color: isBullish ? '#10b981' : '#f87171' }}>
+              {pattern.type.charAt(0).toUpperCase() + pattern.type.slice(1)}
+            </span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>Body Ratio:</span>
+            <span className="font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+              {pattern.bodyRatio != null ? pattern.bodyRatio.toFixed(2) : '1.00'}x
+            </span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>Change:</span>
+            <span className="font-medium" style={{ color: priceChange >= 0 ? '#10b981' : '#f87171' }}>
+              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+            </span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>Volume:</span>
+            <span className="font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+              {formatVolume(pattern.currentCandle.volume)}
+            </span>
+          </div>
         </div>
-        
-        <div className="flex justify-between">
-          <span 
-            style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
-          >
-            Body Ratio:
-          </span>
-          <span 
-            className="font-medium"
-            style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
-          >
-            {pattern.bodyRatio != null ? pattern.bodyRatio.toFixed(2) : '1.00'}x
-          </span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span 
-            style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
-          >
-            Change:
-          </span>
-          <span 
-            className="font-medium"
-            style={{ color: priceChange >= 0 ? '#10b981' : '#f87171' }}
-          >
-            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
-          </span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span 
-            style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
-          >
-            Volume:
-          </span>
-          <span 
-            className="font-medium"
-            style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
-          >
-            {formatVolume(pattern.currentCandle.volume)}
-          </span>
-        </div>
-      </div>
       </div>
     </div>
   );
@@ -297,7 +232,7 @@ const TimeframeColumn: React.FC<{
                 color: theme === 'dark' ? '#ffffff' : '#1A1F16'
               }}
             >
-              {isScanning ? 'Scanning...' : '...'}
+              {isScanning ? 'Scanning...' : 'Loading...'}
             </span>
           ) : (
             <>
@@ -385,7 +320,7 @@ const TimeframeColumn: React.FC<{
   );
 };
 
-const CandlestickScreener: React.FC = () => {
+const CandlestickScreenerV2: React.FC = () => {
   const [data, setData] = useState<ScreenerResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -393,10 +328,10 @@ const CandlestickScreener: React.FC = () => {
   const [globalSortBy, setGlobalSortBy] = useState<SortBy>('bodyRatio');
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '4h' | '1d'>('1h');
   const [scanningTimeframes, setScanningTimeframes] = useState<Set<'1h' | '4h' | '1d'>>(new Set());
+  const [autoScanning, setAutoScanning] = useState<boolean>(true);
   const { theme } = useTheme();
 
-  // Derived state for backward compatibility
-  const isScanning = scanningTimeframes.size > 0;
+
 
   // Fetch cached data from screener endpoint
   const fetchData = useCallback(async () => {
@@ -473,22 +408,60 @@ const CandlestickScreener: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleScanAll = useCallback(async () => {
-    // Scan all timeframes sequentially to avoid timeout
-    for (const tf of ['1h', '4h', '1d'] as const) {
-      await scanTimeframe(tf);
-      // Small delay between scans
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  // Check if it's time to auto-scan based on candle close times
+  const checkAutoScanTrigger = useCallback(async () => {
+    if (!autoScanning) return;
+    
+    const now = new Date();
+    const currentMinute = now.getUTCMinutes();
+    const currentHour = now.getUTCHours();
+    
+    // Check if we're at the start of a new candle (first 2 minutes)
+    const isNewCandle = currentMinute <= 2;
+    
+    if (isNewCandle) {
+      const timeframesToScan: Array<'1h' | '4h' | '1d'> = [];
+      
+      // Always scan 1h at every hour
+      timeframesToScan.push('1h');
+      
+      // Scan 4h at 0, 4, 8, 12, 16, 20 UTC
+      if (currentHour % 4 === 0) {
+        timeframesToScan.push('4h');
+      }
+      
+      // Scan 1d at 0 UTC (start of new day)
+      if (currentHour === 0) {
+        timeframesToScan.push('1d');
+      }
+      
+      // Trigger scans for the appropriate timeframes
+      for (const timeframe of timeframesToScan) {
+        // Check if we're not already scanning this timeframe
+        if (!scanningTimeframes.has(timeframe)) {
+          console.log(`🕒 Auto-triggering ${timeframe} scan at candle close`);
+          await scanTimeframe(timeframe);
+          // Small delay between auto-scans
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
     }
-  }, [scanTimeframe]);
+  }, [autoScanning, scanningTimeframes, scanTimeframe]);
 
   useEffect(() => {
     fetchData();
     
     // Auto-refresh every 5 minutes
-    const interval = setInterval(() => fetchData(), 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    const dataInterval = setInterval(() => fetchData(), 5 * 60 * 1000);
+    
+    // Check for auto-scan triggers every minute
+    const autoScanInterval = setInterval(checkAutoScanTrigger, 60 * 1000);
+    
+    return () => {
+      clearInterval(dataInterval);
+      clearInterval(autoScanInterval);
+    };
+  }, [fetchData, checkAutoScanTrigger]);
 
   const formatLastUpdated = (date: Date) => {
     return date.toLocaleString('en-US', {
@@ -513,16 +486,10 @@ const CandlestickScreener: React.FC = () => {
             backgroundColor: theme === 'dark' ? 'rgba(30, 63, 32, 0.1)' : '#f0f7f1'
           }}
         >
-          <h3 
-            className="text-lg font-medium mb-2" 
-            style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}
-          >
+          <h3 className="text-lg font-medium mb-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             Failed to Load Candlestick Screener
           </h3>
-          <p 
-            className="mb-4 text-sm" 
-            style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}
-          >
+          <p className="mb-4 text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#76ba94' }}>
             {error}
           </p>
           <Button onClick={handleRefresh} variant="outline">
@@ -544,6 +511,11 @@ const CandlestickScreener: React.FC = () => {
           >
             <BarChart3Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: theme === 'dark' ? '#4a7c59' : '#2f4f4f'}} />
             Candlestick Screener
+            {autoScanning && (
+              <span className="ml-2 px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                AUTO
+              </span>
+            )}
           </h2>
           <p 
             className="text-xs sm:text-sm mt-1"
@@ -557,16 +529,25 @@ const CandlestickScreener: React.FC = () => {
                 <span className="sm:hidden block text-xs mt-1">Updated: {formatLastUpdated(lastUpdated)}</span>
               </>
             )}
-            {isScanning && (
-              <>
-                <span className="hidden sm:inline"> • Background scan in progress...</span>
-                <span className="sm:hidden block text-xs mt-1 text-yellow-500">Scanning...</span>
-              </> 
-            )}
           </p>
+          
+
         </div>
         
         <div className="flex gap-2">
+          {/* Auto-scan toggle */}
+          <Button
+            onClick={() => setAutoScanning(!autoScanning)}
+            variant={autoScanning ? "default" : "outline"}
+            size="sm"
+            className="flex items-center gap-1 px-2 sm:px-3 min-h-full"
+          >
+            <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="text-xs sm:text-sm">
+              {autoScanning ? 'Auto: ON' : 'Auto: OFF'}
+            </span>
+          </Button>
+          
           <Button
             onClick={handleRefresh}
             disabled={loading}
@@ -576,144 +557,23 @@ const CandlestickScreener: React.FC = () => {
             <RefreshCwIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="text-xs sm:text-sm">Refresh</span>
           </Button>
-          
-          <Button
-            onClick={handleScanAll}
-            disabled={loading || isScanning}
-            variant="default"
-            className="flex items-center gap-1 px-2 sm:px-3 min-h-0"
-          >
-            <SearchIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading || isScanning ? 'animate-pulse' : ''}`} />
-            <span className="text-xs sm:text-sm">
-              {isScanning ? 'Scanning...' : 'Scan Now'}
-            </span>
-          </Button>
         </div>
       </div>
 
-      {/* Performance & Summary Stats */}
+      {/* Controls */}
       {data && !loading && (
         <div
           className="rounded-lg p-3 sm:p-4 mb-4"
-          style={{
-            border: theme === 'dark' 
-              ? '1px solid rgba(255, 255, 255, 0.1)' 
-              : '1px solid #e5e7eb',
-            backgroundColor: theme === 'dark' 
-              ? 'rgba(17, 24, 39, 0.3)' 
-              : 'rgba(249, 250, 251, 0.8)'
-          }}
-        >
-          {/* Performance Metrics */}
-          {/* {(data.duration || data.performance) && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-3">
-              {data.duration && (
-                <div className="flex items-center gap-2">
-                  <ClockIcon className="h-4 w-4" style={{ color: theme === 'dark' ? '#10b981' : '#059669' }} />
-                  <div>
-                    <div 
-                      className="text-xs font-medium"
-                      style={{ color: theme === 'dark' ? '#ffffff' : '#1f2937' }}
-                    >
-                      Scan Time
-                    </div>
-                    <div 
-                      className="text-lg font-bold"
-                      style={{ color: theme === 'dark' ? '#10b981' : '#059669' }}
-                    >
-                      {data.duration}s
-                    </div>
-                  </div>
-                </div>
-              )} */}
-              
-              {/* {data.performance?.apiCallsPerSecond && (
-                <div className="flex items-center gap-2">
-                  <ZapIcon className="h-4 w-4" style={{ color: theme === 'dark' ? '#f59e0b' : '#d97706' }} />
-                  <div>
-                    <div 
-                      className="text-xs font-medium"
-                      style={{ color: theme === 'dark' ? '#ffffff' : '#1f2937' }}
-                    >
-                      API/sec
-                    </div>
-                    <div 
-                      className="text-lg font-bold"
-                      style={{ color: theme === 'dark' ? '#f59e0b' : '#d97706' }}
-                    >
-                      {data.performance.apiCallsPerSecond}
-                    </div>
-                  </div>
-                </div>
-              )} */}
-              
-              {/* <div className="flex items-center gap-2">
-                <BarChart3Icon className="h-4 w-4" style={{ color: theme === 'dark' ? '#3b82f6' : '#2563eb' }} />
-                <div>
-                  <div 
-                    className="text-xs font-medium"
-                    style={{ color: theme === 'dark' ? '#ffffff' : '#1f2937' }}
-                  >
-                    Scanned
-                  </div>
-                  <div 
-                    className="text-lg font-bold"
-                    style={{ color: theme === 'dark' ? '#3b82f6' : '#2563eb' }}
-                  >
-                    {data.totalScanned}
-                  </div>
-                </div>
-              </div>
-               */}
-              {/* <div className="flex items-center gap-2">
-                <TrendingUpIcon className="h-4 w-4" style={{ color: theme === 'dark' ? '#8b5cf6' : '#7c3aed' }} />
-                <div>
-                  <div 
-                    className="text-xs font-medium"
-                    style={{ color: theme === 'dark' ? '#ffffff' : '#1f2937' }}
-                  >
-                    Found
-                  </div>
-                  <div 
-                    className="text-lg font-bold"
-                    style={{ color: theme === 'dark' ? '#8b5cf6' : '#7c3aed' }}
-                  >
-                    {(data['1h']?.length || 0) + (data['4h']?.length || 0) + (data['1d']?.length || 0)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )} */}
           
-          {/* Optimization Status */}
-          {/* {data.optimizations && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {Object.entries(data.optimizations).map(([key, enabled]) => (
-                enabled && (
-                  <span
-                    key={key}
-                    className="px-2 py-1 text-xs rounded-full flex items-center gap-1"
-                    style={{
-                      backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(236, 253, 245, 0.8)',
-                      color: '#10b981'
-                    }}
-                  >
-                    <ZapIcon className="h-3 w-3" />
-                    {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                  </span>
-                )
-              ))}
-            </div>
-          )} */}
+          
+        >
+
           
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {/* Mobile Timeframe Selector */}
               <div className="flex items-center gap-2 sm:hidden">
-                <span 
-                  className="text-xs"
-                  style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}
-                >
+                <span className="text-xs" style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}>
                   Timeframe:
                 </span>
                 <select
@@ -727,16 +587,13 @@ const CandlestickScreener: React.FC = () => {
                 >
                   <option value="1h">1 Hour</option>
                   <option value="4h">4 Hour</option>
-                  <option value="1d">1 Day</option >
+                  <option value="1d">1 Day</option>
                 </select>
               </div>
                
               {/* Sort By Selector */}
               <div className="flex items-center">
-                <span 
-                  className="text-xs sm:text-sm"
-                  style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}
-                >
+                <span className="text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#3d6549' : '#5a9c76' }}>
                   Sort by:
                 </span>
                 <select
@@ -783,8 +640,8 @@ const CandlestickScreener: React.FC = () => {
             theme={theme}
             loading={loading}
             sortBy={globalSortBy}
-            onScan={(timeframe) => setSelectedTimeframe(timeframe)}
-            isScanning={isScanning}
+            onScan={scanTimeframe}
+            isScanning={scanningTimeframes.has('1h')}
           />
           <TimeframeColumn
             title="4 Hour"
@@ -793,8 +650,8 @@ const CandlestickScreener: React.FC = () => {
             theme={theme}
             loading={loading}
             sortBy={globalSortBy}
-            onScan={(timeframe) => setSelectedTimeframe(timeframe)}
-            isScanning={isScanning}
+            onScan={scanTimeframe}
+            isScanning={scanningTimeframes.has('4h')}
           />
           <TimeframeColumn
             title="1 Day"
@@ -803,8 +660,8 @@ const CandlestickScreener: React.FC = () => {
             theme={theme}
             loading={loading}
             sortBy={globalSortBy}
-            onScan={(timeframe) => setSelectedTimeframe(timeframe)}
-            isScanning={isScanning}
+            onScan={scanTimeframe}
+            isScanning={scanningTimeframes.has('1d')}
           />
         </div>
       </div>
@@ -812,4 +669,4 @@ const CandlestickScreener: React.FC = () => {
   );
 };
 
-export default CandlestickScreener; 
+export default CandlestickScreenerV2; 

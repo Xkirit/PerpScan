@@ -14,7 +14,7 @@ import BtcPriceChange from './BtcPriceChange';
 import LiquidGlass from 'liquid-glass-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
 import { useTheme } from '@/contexts/ThemeContext';
-import CandlestickScreener from './CandlestickScreener';
+import CandlestickScreenerV2 from './CandlestickScreenerV2';
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -657,7 +657,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
-              <CandlestickScreener />
+              <CandlestickScreenerV2 />
             </div>
           </>
         ) : null}
