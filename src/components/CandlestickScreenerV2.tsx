@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCwIcon, TrendingUpIcon, TrendingDownIcon, SearchIcon, BarChart3Icon, ZapIcon, ClockIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, TrendingDownIcon, SearchIcon, BarChart3Icon, ZapIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -328,7 +328,7 @@ const CandlestickScreenerV2: React.FC = () => {
   const [globalSortBy, setGlobalSortBy] = useState<SortBy>('bodyRatio');
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '4h' | '1d'>('1h');
   const [scanningTimeframes, setScanningTimeframes] = useState<Set<'1h' | '4h' | '1d'>>(new Set());
-  const [autoScanning, setAutoScanning] = useState<boolean>(true);
+  const autoScanning = true; // Always keep auto-scanning enabled
   const { theme } = useTheme();
 
 
@@ -511,11 +511,6 @@ const CandlestickScreenerV2: React.FC = () => {
           >
             <BarChart3Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: theme === 'dark' ? '#4a7c59' : '#2f4f4f'}} />
             Candlestick Screener
-            {autoScanning && (
-              <span className="ml-2 px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                AUTO
-              </span>
-            )}
           </h2>
           <p 
             className="text-xs sm:text-sm mt-1"
@@ -535,23 +530,11 @@ const CandlestickScreenerV2: React.FC = () => {
         </div>
         
         <div className="flex gap-2">
-          {/* Auto-scan toggle */}
-          <Button
-            onClick={() => setAutoScanning(!autoScanning)}
-            variant={autoScanning ? "default" : "outline"}
-            size="sm"
-            className="flex items-center gap-1 px-2 sm:px-3 min-h-full"
-          >
-            <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="text-xs sm:text-sm">
-              {autoScanning ? 'Auto: ON' : 'Auto: OFF'}
-            </span>
-          </Button>
-          
           <Button
             onClick={handleRefresh}
             disabled={loading}
             variant="outline"
+            size="sm"
             className="flex items-center gap-1 px-2 sm:px-3 min-h-0"
           >
             <RefreshCwIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
