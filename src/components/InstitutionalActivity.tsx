@@ -930,11 +930,19 @@ const InstitutionalActivity: React.FC = () => {
           const oiChange = Math.abs(item.oiChangePercent);
           const volumeOiRatio = item.volume24h / item.openInterestValue;
           
-          // 🚨 CRITICAL: Only show coins with ACTUAL OI movement (not building data)
-          const hasRealOIData = oiChange >= 0.1; // Must have meaningful OI change data
+          // 🚨 MODIFIED: Include coins with institutional significance even without OI change data
+          const hasRealOIData = oiChange >= 0.1; // Has meaningful OI change data
+          const hasInstitutionalSignificance = (
+            item.whaleRating === 'mega' || 
+            item.whaleRating === 'large' || 
+            item.openInterestValue > 50000000 || // >$50M OI value
+            volumeOiRatio < 2 || // Very low turnover (potential institutional accumulation)
+            abnormality > 1.5 // High statistical anomaly
+          );
           
-          if (!hasRealOIData) {
-            return false; // Skip coins still building historical data
+          // Skip only if no OI change AND no institutional significance
+          if (!hasRealOIData && !hasInstitutionalSignificance) {
+            return false; // Skip coins with neither OI movement nor institutional indicators
           }
           
           // Check coin detection criteria
@@ -971,6 +979,20 @@ const InstitutionalActivity: React.FC = () => {
             return true;
           }
           
+          // 🏦 INSTITUTIONAL PRIORITY: Coins with institutional significance even without OI movement
+          if (hasInstitutionalSignificance && !hasRealOIData) {
+            // Include mega/large whales, high OI value coins, or low turnover coins even without OI change data
+            if (item.whaleRating === 'mega' || item.whaleRating === 'large') {
+              return true;
+            }
+            if (item.openInterestValue > 100000000) { // >$100M OI value
+              return true;
+            }
+            if (volumeOiRatio < 1.5 && abnormality > 1.0) { // Very low turnover + statistical anomaly
+              return true;
+            }
+          }
+          
           return false;
         })
                  .map(item => ({
@@ -990,14 +1012,24 @@ const InstitutionalActivity: React.FC = () => {
         // Get all coins that meet threshold criteria
         const qualifyingCoins = currentSuspicious
           .filter(item => {
-            // STRICT CRITERIA for institutional detection - MUST have real OI movement
+            // ENHANCED CRITERIA for institutional detection - OI movement OR institutional significance
             const abnormality = item.abnormalityScore || 0;
             const oiChange = Math.abs(item.oiChangePercent);
             const volumeOiRatio = item.volume24h / item.openInterestValue;
             const priorityScore = item.priorityScore || 0;
             
-            // Must have actual OI change data (not building)
-            if (oiChange < 0.1) return false;
+            // Allow coins without OI change if they have institutional significance
+            const hasOIMovement = oiChange >= 0.1;
+            const hasInstitutionalValue = (
+              item.whaleRating === 'mega' || 
+              item.whaleRating === 'large' || 
+              item.openInterestValue > 50000000 || // >$50M OI
+              volumeOiRatio < 2 || // Low turnover
+              abnormality > 1.5 // High statistical anomaly
+            );
+            
+            // Require either OI movement OR institutional significance
+            if (!hasOIMovement && !hasInstitutionalValue) return false;
             
             // Include coins with significant institutional activity
             return (
@@ -1007,7 +1039,14 @@ const InstitutionalActivity: React.FC = () => {
               (priorityScore > 50 && oiChange > 2) || // High priority + any meaningful OI movement
               (item.whaleRating === 'mega' && oiChange > 2) || // Mega whale activity
               (item.whaleRating === 'large' && oiChange > 3) || // Large whale activity
-              (item.whaleRating === 'medium' && oiChange > 5) // Medium whale activity
+              (item.whaleRating === 'medium' && oiChange > 5) || // Medium whale activity
+              // NEW: Include institutional significance without OI movement requirement
+              (hasInstitutionalValue && !hasOIMovement && (
+                item.whaleRating === 'mega' || // Always include mega whales
+                item.whaleRating === 'large' || // Always include large whales  
+                (item.openInterestValue > 100000000 && volumeOiRatio < 1.5) || // >$100M OI + low turnover
+                (abnormality > 2.0 && volumeOiRatio < 2.0) // High anomaly + low turnover
+              ))
             );
           })
           .map(item => ({
