@@ -272,11 +272,9 @@ const TickerCard = memo(({ coin, index, theme }: { coin: OpenInterestData; index
               <div className="flex justify-between items-center">
                 <span style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>OI Change:</span>
                 <span className={`font-bold text-sm sm:text-lg ${
-                  Math.abs(coin.oiChangePercent) < 0.1 ? (theme === 'dark' ? 'text-gray-500' : 'text-gray-700') :
                   coin.oiChangePercent > 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {Math.abs(coin.oiChangePercent) < 0.1 ? 'Building...' : 
-                   `${coin.oiChangePercent > 0 ? '+' : ''}${coin.oiChangePercent.toFixed(1)}%`}
+                  {`${coin.oiChangePercent > 0 ? '+' : ''}${coin.oiChangePercent.toFixed(1)}%`}
                 </span>
               </div>
 
