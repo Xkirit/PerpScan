@@ -94,175 +94,194 @@ interface OpenInterestData {
   };
 }
 
-// Priority scoring function for low volume institutional activity detection with directional bias
-const calculatePriorityScore = (item: OpenInterestData, lowVolumeThreshold: number, mediumVolumeThreshold: number): number => {
-  let score = 0;
-  const abnormality = item.abnormalityScore || 0;
-  const oiChange = Math.abs(item.oiChangePercent);
-  const volumeOiRatio = item.volume24h / item.openInterestValue;
-  
-  // Volume category bonus (lower volume = higher priority)
-  if (item.volume24h < lowVolumeThreshold) {
-    score += 50; // High bonus for low volume
-  } else if (item.volume24h < mediumVolumeThreshold) {
-    score += 25; // Medium bonus for medium volume
+// Add the new Suspicion Score to the type
+interface OpenInterestDataWithSuspicion extends OpenInterestData {
+  suspicion: {
+    bullishScore: number;
+    bearishScore: number;
+    dominantSignal: string;
+    signalDetails: string[];
+  };
+}
+
+// New function to calculate suspicion scores
+const calculateSuspicionScore = (coin: OpenInterestData): { bullishScore: number; bearishScore: number; dominantSignal: string; signalDetails: string[] } => {
+  let bullishScore = 0;
+  let bearishScore = 0;
+  const signals: { type: 'bullish' | 'bearish'; message: string; score: number }[] = [];
+
+  const {
+    oiChangePercent,
+    priceChange24h,
+    fundingRate,
+    longShortRatio,
+    volume24h,
+    openInterestValue,
+    abnormalityScore = 0,
+  } = coin;
+
+  const volumeOiRatio = openInterestValue > 0 ? volume24h / openInterestValue : 0;
+
+  // 1. OI vs Price Divergence (Classic accumulation/distribution signal)
+  if (oiChangePercent > 5 && Math.abs(priceChange24h) < 3) {
+    const score = oiChangePercent * 1.5;
+    signals.push({ type: 'bullish', message: 'Stealth Accumulation', score });
+  }
+  if (oiChangePercent < -5 && Math.abs(priceChange24h) < 3) {
+    const score = Math.abs(oiChangePercent) * 1.5;
+    signals.push({ type: 'bearish', message: 'Stealth Distribution', score });
+  }
+
+  // 2. Squeeze Potential (Pressure cooker for big moves)
+  if (fundingRate > 0.0002 && oiChangePercent > 3) { // High positive funding, longs are paying
+    const score = (fundingRate * 10000) * 3 + (longShortRatio?.buyRatio ?? 0.5) * 20;
+    signals.push({ type: 'bearish', message: 'Long Squeeze Risk', score });
+  }
+  if (fundingRate < -0.0002 && oiChangePercent > 3) { // High negative funding, shorts are paying
+    const score = Math.abs(fundingRate * 10000) * 3 + (longShortRatio?.sellRatio ?? 0.5) * 20;
+    signals.push({ type: 'bullish', message: 'Short Squeeze Risk', score });
+  }
+
+  // 3. Absorption / Trapped Traders (Institutions absorbing retail)
+  if (longShortRatio) {
+    if (longShortRatio.buyRatio > 0.6 && priceChange24h < 0) {
+      const score = (longShortRatio.buyRatio - 0.5) * 50 + Math.abs(priceChange24h);
+      signals.push({ type: 'bearish', message: 'Longs Trapped', score });
+    }
+    if (longShortRatio.sellRatio > 0.6 && priceChange24h > 0) {
+      const score = (longShortRatio.sellRatio - 0.5) * 50 + priceChange24h;
+      signals.push({ type: 'bullish', message: 'Shorts Trapped', score });
+    }
   }
   
-  // Abnormality score bonus
-  score += abnormality * 15;
-  
-  // OI change bonus
-  score += oiChange * 2;
-  
-  // Low turnover bonus (accumulation signal)
-  if (volumeOiRatio < 2) score += 30;
-  else if (volumeOiRatio < 3) score += 15;
-  
-  // Whale bonus
-  if (item.whaleRating === 'mega') score += 40;
-  else if (item.whaleRating === 'large') score += 25;
-  else if (item.whaleRating === 'medium') score += 10;
-  
-  // Directional bias bonus - smart money moves WITH clear bias
-  if (item.longShortRatio) {
-    const bias = item.longShortRatio.bias;
-    const strength = item.longShortRatio.biasStrength;
-    
-    // Strong directional bias indicates institutional positioning
-    if (strength === 'strong') {
-      score += 25; // High bonus for strong directional moves
-    } else if (strength === 'moderate') {
-      score += 15; // Medium bonus for moderate directional moves
-    }
-    
-    // Additional bonus if OI increase aligns with funding pressure direction
-    if (oiChange > 5) {
-      if ((bias === 'bullish' && item.fundingRate > 0) || 
-          (bias === 'bearish' && item.fundingRate < 0)) {
-        score += 20; // Confirmation bonus when directional bias aligns with funding
+  // 4. Low Turnover Accumulation
+  if (volumeOiRatio > 0 && volumeOiRatio < 2 && oiChangePercent > 3) {
+      const score = (4 - volumeOiRatio) * 5 + oiChangePercent;
+      signals.push({ type: 'bullish', message: 'Low Turnover Accumulation', score });
+  }
+
+  // 5. Statistical Anomaly
+  if (abnormalityScore > 2.0) {
+      const score = abnormalityScore * 15;
+      if(oiChangePercent > 0) {
+        signals.push({ type: 'bullish', message: `OI Anomaly (+${oiChangePercent.toFixed(1)}%)`, score });
+      } else {
+        signals.push({ type: 'bearish', message: `OI Anomaly (${oiChangePercent.toFixed(1)}%)`, score });
       }
+  }
+
+  // 6. Unusual Funding vs OI Divergence (New signal replacing whale activity)
+  if (Math.abs(fundingRate) > 0.0001 && oiChangePercent > 2) {
+    const score = Math.abs(fundingRate * 10000) * 2 + oiChangePercent;
+    if (fundingRate > 0 && oiChangePercent > 0) {
+      signals.push({ type: 'bearish', message: 'Funding Pressure Build', score });
+    } else if (fundingRate < 0 && oiChangePercent > 0) {
+      signals.push({ type: 'bullish', message: 'Short Pressure Build', score });
     }
   }
   
-  return score;
+  signals.forEach(signal => {
+    if(signal.type === 'bullish') bullishScore += signal.score;
+    if(signal.type === 'bearish') bearishScore += signal.score;
+  });
+
+  const sortedSignals = signals.sort((a,b) => b.score - a.score);
+  const dominantSignal = sortedSignals.length > 0 ? sortedSignals[0].message : 'N/A';
+  const signalDetails = sortedSignals.map(s => `${s.message} (${s.score.toFixed(0)})`);
+
+  return {
+    bullishScore,
+    bearishScore,
+    dominantSignal,
+    signalDetails
+  };
 };
 
-// Manipulation confidence calculator for edge detectionƒ
 // Memoized ticker component to prevent unnecessary re-renders
-const TickerCard = memo(({ coin, index, theme }: { coin: OpenInterestData; index: number; theme: string }) => {
-  // Enhanced directional bias determination using long/short ratio
-  const hasDirectionalData = coin.longShortRatio;
-  const directionalBias = hasDirectionalData ? coin.longShortRatio?.bias : null;
-  const biasStrength = hasDirectionalData ? coin.longShortRatio?.biasStrength : null;
+const TickerCard = memo(({ coin, theme }: { coin: OpenInterestDataWithSuspicion; theme: string }) => {
+  const { suspicion } = coin;
+  const totalScore = suspicion.bullishScore + suspicion.bearishScore;
+  const bullRatio = totalScore > 0 ? (suspicion.bullishScore / totalScore) * 100 : 50;
   
-  // L/S ratio display data processed
-  
-  // Determine overall sentiment combining OI change and long/short bias
-  const oiChange = coin.oiChangePercent;
-  const isBullish = directionalBias === 'bullish' || (directionalBias === 'neutral' && oiChange > 0);
-  const isBearish = directionalBias === 'bearish' || (directionalBias === 'neutral' && oiChange < 0);
-  const isNeutral = directionalBias === 'neutral' && Math.abs(oiChange) < 0.1;
-  
-  // Enhanced color scheme based on directional bias and sentiment
-  const colorScheme = isNeutral ? {
-    background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%)',
-    border: '1px solid rgba(107, 114, 128, 0.3)',
-    boxShadow: '0 4px 6px -1px rgba(107, 114, 128, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-  } : isBullish ? {
+  const dominantSentiment = suspicion.bullishScore > suspicion.bearishScore ? 'bullish' : 'bearish';
+
+  const colorScheme = dominantSentiment === 'bullish' ? {
     background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%)',
     border: '1px solid rgba(16, 185, 129, 0.3)',
     boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-  } : isBearish ? {
+  } : {
     background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%)',
     border: '1px solid rgba(239, 68, 68, 0.3)',
     boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-  } : {
-    background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(147, 51, 234, 0.1) 100%)',
-    border: '1px solid rgba(147, 51, 234, 0.3)',
-    boxShadow: '0 4px 6px -1px rgba(147, 51, 234, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
   };
-
+  
   return (
-    <CardContainer className="inter-var">
-            <CardBody 
-        className="relative group/card hover:shadow-2xl rounded-xl p-2 sm:p-3 md:p-4 border cursor-pointer h-full w-full"
+    <CardContainer className="inter-var h-full">
+      <CardBody 
+        className="relative group/card hover:shadow-2xl rounded-xl p-4 border cursor-pointer h-full w-full flex flex-col transform transition-all duration-300 hover:scale-[1.02]"
         onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${coin.symbol}.P`, '_blank')}
         style={{ 
           background: colorScheme.background,
           border: colorScheme.border,
-          boxShadow: colorScheme.boxShadow
+          boxShadow: colorScheme.boxShadow,
+          minHeight: '280px'
         }}
       >
-        
-        <CardItem translateZ="50" className="relative z-10 w-full">
-          <div className="flex items-start justify-between mb-2 sm:mb-4 md:mb-6 w-full">
-             <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+        <CardItem translateZ="50" className="relative z-10 w-full flex-1 flex flex-col">
+          {/* Header section with consistent spacing */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
               <CardItem translateZ="60" rotateX={5} rotateY={5}>
-                <div className="relative">
-                                     <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg overflow-hidden">
-                    <img 
-                      src={`https://assets.coincap.io/assets/icons/${coin.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
-                      alt={coin.symbol.replace('USDT', '')}
-                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 object-contain"
-                      onError={(e) => {
-                        // Fallback to letters if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = `<span class="font-bold text-sm sm:text-lg text-blue-600 dark:text-blue-400">${coin.symbol.replace('USDT', '').slice(0, 2)}</span>`;
-                        }
-                      }}
-                    />
-                  </div>
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+                  <img 
+                    src={`https://assets.coincap.io/assets/icons/${coin.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
+                    alt={coin.symbol.replace('USDT', '')}
+                    className="w-7 h-7 object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `<span class="font-bold text-sm text-blue-600 dark:text-blue-400">${coin.symbol.replace('USDT', '').slice(0, 2)}</span>`;
+                      }
+                    }}
+                  />
                 </div>
               </CardItem>
-              <div>
+              <div className="min-w-0 flex-1">
                 <CardItem translateZ="50">
-                  <span className="font-bold text-lg sm:text-xl" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+                  <h3 className="font-bold text-xl truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                     {coin.symbol.replace('USDT', '')}
-                  </span>
+                  </h3>
                 </CardItem>
-                                  <CardItem translateZ="40">
-                   <div className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                     <span className="hidden sm:inline">Detected </span>
-                     {new Date(coin.timestamp).toLocaleTimeString()}
-                   </div>
-                 </CardItem>
+                <CardItem translateZ="40">
+                  <div className="text-xs opacity-70 mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+                    {new Date(coin.timestamp).toLocaleTimeString()}
+                  </div>
+                </CardItem>
               </div>
             </div>
-            <CardItem translateZ="60">
-              <div className="flex items-center gap-0.5 sm:gap-1">
-                <span className={`px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium ${
-                  coin.volumeCategory === 'low' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' :
-                  coin.volumeCategory === 'medium' ? 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200' :
-                  'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                }`}>
-                  {coin.volumeCategory === 'low' ? 'L' : coin.volumeCategory === 'medium' ? 'M' : 'H'}
-                </span>
-                <span className={`px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium ${
-                  coin.whaleRating === 'mega' ? 'bg-purple-200 text-purple-800 dark:bg-purple-800 dark:text-purple-200' :
-                  coin.whaleRating === 'large' ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' :
-                  coin.whaleRating === 'medium' ? 'bg-orange-200 text-orange-800 dark:bg-orange-800 dark:text-orange-200' :
-                  'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                }`}>
-                  {coin.whaleRating === 'mega' ? 'XL' : coin.whaleRating === 'large' ? 'L' : coin.whaleRating === 'medium' ? 'M' : 'S'}
-                </span>
-                {/* {(coin.abnormalityScore || 0) > 2.5 && (
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-1 sm:px-1.5 py-0.5 text-xs rounded font-medium animate-pulse">
-                    <span className="hidden sm:inline">🚀</span>
-                  </span>
-                )} */}
-              </div>
-            </CardItem>
           </div>
+
+          {/* Dominant Signal Badge */}
+          <CardItem translateZ="60" className="mb-4">
+            <div className={`inline-block px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+              dominantSentiment === 'bullish' 
+                ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                : 'bg-red-500/20 text-red-300 border border-red-500/30'
+            }`}>
+              {suspicion.dominantSignal}
+            </div>
+          </CardItem>
           
-          {/* Main metrics */}
-          <CardItem translateZ="40">
-            <div className="space-y-1 sm:space-y-1.5 md:space-y-2 text-xs sm:text-sm mb-1.5 sm:mb-2 md:mb-3">
-              <div className="flex justify-between">
-                <span style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>OI Value:</span>
-                <span className="font-bold text-sm sm:text-lg" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
+          {/* Main metrics with consistent spacing */}
+          <CardItem translateZ="40" className="mb-4 flex-1">
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-xs opacity-80" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+                  OI Value:
+                </span>
+                <span className="font-bold text-sm" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                   {coin.openInterestValue > 1e9 
                     ? `$${(coin.openInterestValue / 1e9).toFixed(2)}B` 
                     : `$${(coin.openInterestValue / 1e6).toFixed(1)}M`
@@ -270,87 +289,63 @@ const TickerCard = memo(({ coin, index, theme }: { coin: OpenInterestData; index
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>OI Change:</span>
-                <span className={`font-bold text-sm sm:text-lg ${
+                <span className="text-xs opacity-80" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+                  OI Change (24h):
+                </span>
+                <span className={`font-bold text-sm transition-colors duration-200 ${
                   coin.oiChangePercent > 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {`${coin.oiChangePercent > 0 ? '+' : ''}${coin.oiChangePercent.toFixed(1)}%`}
                 </span>
               </div>
-
-            </div>
-          </CardItem>
-          
-          {/* Advanced metrics */}
-          <CardItem translateZ="30">
-            <div className="grid grid-cols-2 gap-1 sm:gap-1.5 md:gap-2 text-xs sm:text-sm mb-1.5 sm:mb-2">
-              <div className="bg-green-100 dark:bg-green-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#16a34a' : '#15803d' }}>Priority Score</div>
-                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#22c55e' : '#166534' }}>
-                  {(coin.priorityScore || 0).toFixed(0)}
-                </div>
-              </div>
-              <div className="bg-blue-100 dark:bg-blue-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#3b82f6' : '#1d4ed8' }}>Volume/OI</div>
-                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#60a5fa' : '#1e3a8a' }}>
-                  {(coin.volume24h / coin.openInterestValue).toFixed(1)}x
-                </div>
-              </div>
-              <div className="bg-red-100 dark:bg-red-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#ef4444' : '#dc2626' }}>Abnormality</div>
-                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#f87171' : '#991b1b' }}>
-                  {(coin.abnormalityScore || 0).toFixed(1)}
-                </div>
-              </div>
-              <div className="bg-purple-100 dark:bg-purple-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#a855f7' : '#7c3aed' }}>
-                  <span className="hidden sm:inline">24h Volume</span>
-                  <span className="sm:hidden">Volume</span>
-                </div>
-                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#c084fc' : '#581c87' }}>
-                  ${(coin.volume24h / 1e6).toFixed(1)}M
-                </div>
-              </div>
-              <div className="bg-green-100 dark:bg-green-900/20 p-1 sm:p-1.5 md:p-2 rounded-lg">
-                <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1" style={{ color: theme === 'dark' ? '#16a34a' : '#15803d' }}>Manipulation</div>
-                <div className="font-bold text-xs sm:text-sm" style={{ color: theme === 'dark' ? '#22c55e' : '#166534' }}>
-                  {(coin.manipulationConfidence || 0).toFixed(0)}%
-                </div>
-              </div>
-              {hasDirectionalData && (
-                <div className={`p-1 sm:p-1.5 md:p-2 rounded-lg ${
-                  directionalBias === 'bullish' ? 'bg-green-100 dark:bg-green-900/20' :
-                  directionalBias === 'bearish' ? 'bg-red-100 dark:bg-red-900/20' :
-                  'bg-gray-100 dark:bg-gray-900/20'
-                }`}>
-                  <div className="text-[9px] sm:text-[10px] mb-0.5 sm:mb-1 flex items-center justify-between" style={{ 
-                    color: directionalBias === 'bullish' ? (theme === 'dark' ? '#16a34a' : '#15803d') :
-                           directionalBias === 'bearish' ? (theme === 'dark' ? '#ef4444' : '#dc2626') :
-                           (theme === 'dark' ? '#4a7c59' : '#3c5d47')
-                  }}>
-                    <span>L/S Bias</span>
-                    
-                  </div>
-                  
-                  <div className="text-xs sm:text-sm mt-0.5 sm:mt-1 flex items-center gap-1">
-                    <span className="font-bold" style={{ color: theme === 'dark' ? '#22c55e' : '#166534' }}>
-                      {coin.longShortRatio ? `${(coin.longShortRatio.buyRatio * 100).toFixed(0)}%` : ''}
-                    </span>
-                    <span style={{ color: theme === 'dark' ? '#6b7280' : '#4b5563' }}>/</span>
-                    <span className="font-bold" style={{ color: theme === 'dark' ? '#f87171' : '#991b1b' }}>
-                      {coin.longShortRatio ? `${(coin.longShortRatio.sellRatio * 100).toFixed(0)}%` : ''}
-                    </span>
-                  </div>
+              {coin.longShortRatio && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs opacity-80" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
+                    L/S Ratio:
+                  </span>
+                  <span className={`font-bold text-sm transition-colors duration-200 ${
+                    coin.longShortRatio.buyRatio > coin.longShortRatio.sellRatio
+                      ? 'text-green-500'
+                      : 'text-red-500'
+                  }`}>
+                    {coin.longShortRatio.buyRatio > coin.longShortRatio.sellRatio ? 'L' : 'S'}
+                    {' '}
+                    {(Math.max(coin.longShortRatio.buyRatio, coin.longShortRatio.sellRatio) * 100).toFixed(1)}%
+                  </span>
                 </div>
               )}
             </div>
           </CardItem>
           
-          {/* Time indicator */}
-          <CardItem translateZ="20">
-            <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-center" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-              <span className="hidden sm:inline">Last seen: </span>
-              {new Date(coin.timestamp).toLocaleTimeString()}
+          {/* Suspicion Score visualization */}
+          <CardItem translateZ="30" className="mt-auto">
+            <div className="w-full bg-gray-200 dark:bg-gray-700/50 rounded-full h-3 relative overflow-hidden border border-gray-500/20 mb-3">
+              <div 
+                className="bg-green-500 h-full transition-all duration-700 ease-out" 
+                style={{ width: `${bullRatio}%` }}>
+              </div>
+              <div 
+                className="bg-red-500 h-full absolute top-0 right-0 transition-all duration-700 ease-out"
+                style={{ width: `${100 - bullRatio}%` }}>
+              </div>
+            </div>
+            <div className="flex justify-between text-xs mb-3">
+              <span className="font-medium text-green-400 transition-opacity duration-200">
+                Bull: {suspicion.bullishScore.toFixed(0)}
+              </span>
+              <span className="font-medium text-red-400 transition-opacity duration-200">
+                Bear: {suspicion.bearishScore.toFixed(0)}
+              </span>
+            </div>
+            <div 
+              className="text-center text-xs font-medium py-2 px-3 rounded border transition-all duration-200"
+              style={{
+                backgroundColor: dominantSentiment === 'bullish' ? 'rgba(22, 163, 74, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                borderColor: dominantSentiment === 'bullish' ? 'rgba(22, 163, 74, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+                color: dominantSentiment === 'bullish' ? 'rgb(34, 197, 94)' : 'rgb(248, 113, 113)'
+              }}
+            >
+              {dominantSentiment.toUpperCase()} SIGNAL
             </div>
           </CardItem>
         </CardItem>
@@ -358,147 +353,58 @@ const TickerCard = memo(({ coin, index, theme }: { coin: OpenInterestData; index
     </CardContainer>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison function - only re-render if key display data changed
+  // More relaxed comparison function for smoother updates
   const prev = prevProps.coin;
   const next = nextProps.coin;
   
-  // If it's the same symbol, check if display-relevant data changed
-  if (prev.symbol !== next.symbol) return false;
+  // Always re-render if symbol changes or theme changes
+  if (prev.symbol !== next.symbol || prevProps.theme !== nextProps.theme) {
+    return false;
+  }
   
-  // IMPORTANT: Always re-render if theme changes (for immediate color updates)
-  if (prevProps.theme !== nextProps.theme) return false;
+  // Check for significant changes in key values
+  const bullScoreDiff = Math.abs(prev.suspicion.bullishScore - next.suspicion.bullishScore);
+  const bearScoreDiff = Math.abs(prev.suspicion.bearishScore - next.suspicion.bearishScore);
+  const oiChangeDiff = Math.abs(prev.oiChangePercent - next.oiChangePercent);
   
-  // Round values to avoid re-rendering on tiny changes
-  const prevPriority = Math.round(prev.priorityScore || 0);
-  const nextPriority = Math.round(next.priorityScore || 0);
-  const prevOI = Math.round(prev.oiChangePercent * 10) / 10; // 1 decimal place
-  const nextOI = Math.round(next.oiChangePercent * 10) / 10;
-  const prevValue = Math.round(prev.openInterestValue / 1000000); // Round to millions
-  const nextValue = Math.round(next.openInterestValue / 1000000);
-  const prevAbnormality = Math.round((prev.abnormalityScore || 0) * 10) / 10;
-  const nextAbnormality = Math.round((next.abnormalityScore || 0) * 10) / 10;
-  const prevConfidence = Math.round(prev.manipulationConfidence || 0);
-  const nextConfidence = Math.round(next.manipulationConfidence || 0);
+  // Re-render if there are significant changes (threshold of 5 points for scores, 1% for OI change)
+  if (bullScoreDiff >= 5 || bearScoreDiff >= 5 || oiChangeDiff >= 1) {
+    return false;
+  }
   
-  // Compare long/short ratio data
-  const prevLongRatio = prev.longShortRatio ? Math.round(prev.longShortRatio.buyRatio * 100) : null;
-  const nextLongRatio = next.longShortRatio ? Math.round(next.longShortRatio.buyRatio * 100) : null;
-  const prevBias = prev.longShortRatio?.bias || null;
-  const nextBias = next.longShortRatio?.bias || null;
+  // Check if dominant signal changed
+  if (prev.suspicion.dominantSignal !== next.suspicion.dominantSignal) {
+    return false;
+  }
   
-  // Only re-render if rounded values actually changed
-  return (
-    prevPriority === nextPriority &&
-    prevOI === nextOI &&
-    prevValue === nextValue &&
-    prevAbnormality === nextAbnormality &&
-    prevConfidence === nextConfidence &&
-    prev.whaleRating === next.whaleRating &&
-    prev.volumeCategory === next.volumeCategory &&
-    prevLongRatio === nextLongRatio &&
-    prevBias === nextBias
-  );
+  // Check if L/S ratio changed significantly
+  if (prev.longShortRatio?.buyRatio !== next.longShortRatio?.buyRatio) {
+    return false;
+  }
+  
+  // No significant changes, skip re-render
+  return true;
 });
 
 TickerCard.displayName = 'TickerCard';
 
-const calculateManipulationConfidence = (item: OpenInterestData): number => {
-  let confidence = 0;
-  const abnormality = item.abnormalityScore || 0;
-  const oiChange = Math.abs(item.oiChangePercent);
-  const volumeOiRatio = item.volume24h / item.openInterestValue;
-  
-  // Statistical anomaly confidence
-  if (abnormality > 3) confidence += 40;
-  else if (abnormality > 2) confidence += 25;
-  else if (abnormality > 1.5) confidence += 15;
-  
-  // OI movement confidence
-  if (oiChange > 20) confidence += 30;
-  else if (oiChange > 15) confidence += 20;
-  else if (oiChange > 10) confidence += 10;
-  
-  // Low turnover manipulation signal
-  if (volumeOiRatio < 1.5) confidence += 25;
-  else if (volumeOiRatio < 2) confidence += 15;
-  
-  // Whale activity confidence
-  if (item.whaleRating === 'mega') confidence += 20;
-  else if (item.whaleRating === 'large') confidence += 15;
-  
-  // Directional bias manipulation indicators
-  if (item.longShortRatio) {
-    const bias = item.longShortRatio.bias;
-    const strength = item.longShortRatio.biasStrength;
-    
-    // Strong directional bias with large OI moves suggests coordinated activity
-    if (strength === 'strong' && oiChange > 10) {
-      confidence += 20; // High confidence for strong bias + large OI moves
-    } else if (strength === 'moderate' && oiChange > 15) {
-      confidence += 15; // Medium confidence for moderate bias + very large OI moves
-    }
-    
-    // Extreme long/short ratio imbalance indicates potential manipulation
-    const extremeRatio = Math.max(item.longShortRatio.buyRatio, item.longShortRatio.sellRatio);
-    if (extremeRatio > 0.7) {
-      confidence += 15; // Very skewed positioning suggests institutional coordination
-    } else if (extremeRatio > 0.6) {
-      confidence += 10; // Moderately skewed positioning
-    }
-  }
-  
-  return Math.min(99, confidence);
-};
-
-// Smart database replacement logic - only replace when truly warranted
-const shouldReplaceDbCoins = (currentDbCoins: OpenInterestData[], newCoins: OpenInterestData[]): {
-  shouldReplace: boolean;
-  coinsToReplace: OpenInterestData[];
-  minDbPriority: number;
-  maxNewPriority: number;
-} => {  
-  if (currentDbCoins.length < 10) {
-    return {
-      shouldReplace: true,
-      coinsToReplace: newCoins,
-      minDbPriority: 0,
-      maxNewPriority: Math.max(...newCoins.map(c => c.priorityScore || 0))
-    };
-  }
-  
-  const minDbPriority = Math.min(...currentDbCoins.map(coin => coin.priorityScore || 0));
-  const maxNewPriority = Math.max(...newCoins.map(c => c.priorityScore || 0));
-  const coinsToReplace = newCoins.filter(newCoin => (newCoin.priorityScore || 0) > minDbPriority);
-  
-  return {
-    shouldReplace: coinsToReplace.length > 0,
-    coinsToReplace,
-    minDbPriority,
-    maxNewPriority
-  };
-};
-
 const InstitutionalActivity: React.FC = () => {
   const { theme } = useTheme();
   const [openInterestData, setOpenInterestData] = useState<OpenInterestData[]>([]);
-  const [institutionalSignals, setInstitutionalSignals] = useState<InstitutionalSignal[]>([]);
-  const [whaleSignals, setWhaleSignals] = useState<InstitutionalSignal[]>([]);
-  const [squeezeSignals, setSqueezeSignals] = useState<InstitutionalSignal[]>([]);
-  const [anomalySignals, setAnomalySignals] = useState<InstitutionalSignal[]>([]);
   const [loading, setLoading] = useState(false);
   const [signalsLoading, setSignalsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [historicalOIData, setHistoricalOIData] = useState<Map<string, number[]>>(new Map());
-  const [suspiciousMovements, setSuspiciousMovements] = useState<OpenInterestData[]>([]);
+  const [suspiciousMovements, setSuspiciousMovements] = useState<OpenInterestDataWithSuspicion[]>([]);
   const [countdown, setCountdown] = useState<string>('Soon');
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [dbLastUpdated, setDbLastUpdated] = useState<Date | null>(null);
 
   // Redis read caching to reduce redundant operations
   const [lastRedisRead, setLastRedisRead] = useState<number>(0);
-  const [cachedFlows, setCachedFlows] = useState<OpenInterestData[]>([]);
+  const [cachedFlows, setCachedFlows] = useState<OpenInterestDataWithSuspicion[]>([]);
   const [redisReadInProgress, setRedisReadInProgress] = useState(false);
 
   // Enhanced L/S ratio fetching with Binance as primary source (91% coverage vs Bybit's 30%)
@@ -568,8 +474,6 @@ const InstitutionalActivity: React.FC = () => {
             bias = 'bearish';
           }
           
-
-          
           return {
             buyRatio,
             sellRatio,
@@ -584,67 +488,47 @@ const InstitutionalActivity: React.FC = () => {
       // Silent fallback to Bybit
     }
     
-    // 🔄 FALLBACK SOURCE: Bybit (for coins not available on Binance)
+    // 🟡 SECONDARY SOURCE: Bybit (backup)
     try {
-      const now = Date.now();
-      const oneHourAgo = now - (60 * 60 * 1000); // 1 hour ago
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
-      
-      const result = await apiService.getAccountRatio(symbol, '1h', 1, oneHourAgo, now);
-      return result;
-      
-    } catch (error) {
-      return null; // Silent fallback for stability
-    }
-  };
+      const bybitResponse = await fetch(`https://api.bybit.com/v5/market/account-ratio?symbol=${symbol}&period=1h&limit=1`);
+      if (bybitResponse.ok) {
+        const bybitData = await bybitResponse.json();
+        if (bybitData.result && bybitData.result.list && bybitData.result.list.length > 0) {
+          const latestData = bybitData.result.list[0];
+          const buyRatio = parseFloat(latestData.buyRatio);
+          const sellRatio = 1 - buyRatio;
 
-  // Optimized 24h OI change calculation with reduced API calls
-  const get24hOIChange = async (symbol: string, currentOI: number, priority: 'high' | 'medium' | 'low'): Promise<number> => {
-    // Skip API calls for low priority coins to reduce requests
-    if (priority === 'low') {
-      return 0;
+          const ratioDiff = buyRatio - sellRatio;
+          let bias: 'bullish' | 'bearish' | 'neutral' = 'neutral';
+          let biasStrength: 'weak' | 'moderate' | 'strong' = 'weak';
+
+          if (Math.abs(ratioDiff) > 0.15) biasStrength = 'strong';
+          else if (Math.abs(ratioDiff) > 0.08) biasStrength = 'moderate';
+          
+          if (buyRatio > 0.55) bias = 'bullish';
+          else if (sellRatio > 0.55) bias = 'bearish';
+
+          return { buyRatio, sellRatio, bias, biasStrength, timestamp: Date.now(), source: 'bybit' };
+        }
+      }
+    } catch(e) {
+      // Both failed
     }
     
+    return null;
+  };
+
+  const get24hOIChange = async (symbol: string): Promise<number | null> => {
     try {
-      const now = Date.now();
-      const yesterday = now - (24 * 60 * 60 * 1000);
-      
-      // Shorter timeout for stability
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
-      
-      const response = await fetch(
-        `/api/bybit-oi-history?symbol=${symbol}&startTime=${yesterday}&endTime=${now}`,
-        {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          signal: controller.signal,
-        }
-      );
-      
-      clearTimeout(timeoutId);
-      
+      const response = await fetch(`/api/historical-oi?symbol=${symbol}`);
       if (!response.ok) {
-        return 0; // Silent fallback
+        return null;
       }
-      
       const data = await response.json();
-      if (data.message || !data.result?.list?.length) {
-        return 0;
-      }
-      
-      const oldestOI = parseFloat(data.result.list[data.result.list.length - 1].openInterest);
-      
-      if (oldestOI > 0) {
-        const change = ((currentOI - oldestOI) / oldestOI) * 100;
-        return change;
-      }
-      
-      return 0;
+      return data.oldOpenInterestValue;
     } catch (error) {
-      return 0; // Silent fallback for stability
+      console.error(`Failed to fetch 24h OI for ${symbol}`, error);
+      return null;
     }
   };
 
@@ -686,13 +570,13 @@ const InstitutionalActivity: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.flows) {
-          const newFlows = data.flows as OpenInterestData[];
+          const newFlows = data.flows as OpenInterestDataWithSuspicion[];
           
           // Update flows with fresh data and ensure manipulation confidence is calculated
           const freshFlows = newFlows.map(flow => ({
             ...flow,
             timestamp: timestamp,
-            manipulationConfidence: flow.manipulationConfidence || calculateManipulationConfidence(flow)
+            suspicion: flow.suspicion || calculateSuspicionScore(flow)
           }));
           
           // Update both state and cache
@@ -718,10 +602,10 @@ const InstitutionalActivity: React.FC = () => {
     } finally {
       setRedisReadInProgress(false);
     }
-  }, [lastRedisRead, cachedFlows, redisReadInProgress]); // Add dependencies for caching logic
+  }, [lastRedisRead, cachedFlows, redisReadInProgress]);
 
   // Save institutional flows to Redis with enhanced metadata
-  const saveInstitutionalFlows = useCallback(async (flows: OpenInterestData[], replaceMode: boolean = false): Promise<void> => {
+  const saveInstitutionalFlows = useCallback(async (flows: OpenInterestDataWithSuspicion[]): Promise<void> => {
     try {
       const response = await fetch('/api/institutional-flows', {
         method: 'POST',
@@ -730,21 +614,15 @@ const InstitutionalActivity: React.FC = () => {
           'Accept': 'application/json',
         },
         body: JSON.stringify({ 
-          flows,
-          replaceMode, // Whether to use strict priority-based replacement
-          maxFlows: 10, // Enforce 10 coin limit
-          currentDbSize: suspiciousMovements.length // Current database size for context
+          flows: flows.slice(0, 16), // Save top 16 highest score coins
+          replaceMode: true, // Always replace the DB with the new top coins
+          maxFlows: 16, 
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          if (data.priorityReplacement) {
-            // Priority-based replacement is active
-          }
-          if (data.protectedCoins && data.protectedCoins.length > 0) {
-            }
           setDbLastUpdated(new Date(data.lastUpdated));
           
           // Invalidate cache since we just wrote new data to Redis
@@ -755,7 +633,7 @@ const InstitutionalActivity: React.FC = () => {
     } catch (error) {
       // //console.error('Error saving institutional flows to Redis:', error);
     }
-  }, [suspiciousMovements.length]);
+  }, []);
 
   // Enhanced OI tracking with real 24h historical data from Bybit API
   const fetchOpenInterestData = useCallback(async (): Promise<void> => {
@@ -765,7 +643,7 @@ const InstitutionalActivity: React.FC = () => {
       setLoadingProgress(0);
       setLoadingMessage('Fetching market data...');
     } else {
-      setLoadingMessage('Refreshing institutional flows...');
+      setLoadingMessage('Refreshing market analysis...');
     }
     try {
       // Scanning Bybit futures for institutional flows
@@ -787,7 +665,7 @@ const InstitutionalActivity: React.FC = () => {
     
       if (isFirstLoad) {
         setLoadingProgress(40);
-        setLoadingMessage(`Analyzing ${topUsdtTickers.length} institutional flows...`);
+        setLoadingMessage(`Analyzing ${topUsdtTickers.length} assets...`);
       }
       
       // Process tickers with optimized batch processing - reduced concurrency
@@ -810,25 +688,35 @@ const InstitutionalActivity: React.FC = () => {
              const newHistorical = [...historical.slice(-19), currentOI]; // Keep last 20 data points
              
              // Prioritized API calls - reduce requests for stability
-             let realOIChange = 0;
+             let realOIChange = 0; // This will be percentage change
+             let realOIChangeAbsolute = 0; // This will be absolute change
              let longShortData = null;
              const priority = index < 20 ? 'high' : index < 60 ? 'medium' : 'low'; // Reduced priority ranges for fewer API calls
              
              // Fetch both OI change and long/short ratio for top coins only
-             if (index < 50) { // Further reduced to top 50 coins to minimize API calls
-               [realOIChange, longShortData] = await Promise.all([
-                 get24hOIChange(symbol, currentOI, priority),
+             if (index < 80) { // Increased from 50 to 80 to accommodate 16 display coins
+               const [oldOIValue, lsData] = await Promise.all([
+                 get24hOIChange(symbol),
                  getLongShortRatio(symbol, priority)
                ]);
+               
+               // Calculate 24h change if we have historical data
+               if (oldOIValue !== null && oldOIValue > 0) {
+                 realOIChangeAbsolute = currentOI - oldOIValue;
+                 realOIChange = (realOIChangeAbsolute / oldOIValue) * 100;
+               }
+               
+               longShortData = lsData;
                
                // L/S data fetching completed silently
              }
              
-             // For all coins: Use local historical data as primary source (much faster)
+             // For all coins: Use local historical data as fallback (much faster)
              if (realOIChange === 0 && historical.length > 0) {
                const previousOI = historical[historical.length - 1];
                if (previousOI > 0) {
-                 realOIChange = ((currentOI - previousOI) / previousOI) * 100;
+                 realOIChangeAbsolute = currentOI - previousOI;
+                 realOIChange = (realOIChangeAbsolute / previousOI) * 100;
                }
              }
              
@@ -876,8 +764,8 @@ const InstitutionalActivity: React.FC = () => {
                symbol,
                openInterest: currentOI,
                openInterestValue: oiValue,
-               oiChange24h: realOIChange, // Real 24h change from Bybit API
-               oiChangePercent: realOIChange, // Use real 24h change
+               oiChange24h: realOIChangeAbsolute, // Absolute change in OI
+               oiChangePercent: realOIChange, // Percentage change in OI
                price: parseFloat(ticker.lastPrice || '0'),
                priceChange24h: parseFloat(ticker.price24hPcnt || '0'),
                volume24h: parseFloat(ticker.turnover24h || '0'),
@@ -903,188 +791,44 @@ const InstitutionalActivity: React.FC = () => {
 
       if (isFirstLoad) {
         setLoadingProgress(70);
-        setLoadingMessage('Detecting smart money patterns...');
+        setLoadingMessage('Calculating suspicion scores...');
       }
       
       // Update historical data map
       setHistoricalOIData(new Map(historicalOIData));
+
+      // ** NEW ALGORITHM LOGIC **
+      const scoredAssets: OpenInterestDataWithSuspicion[] = allUsdtTickers.map(coin => ({
+        ...coin,
+        suspicion: calculateSuspicionScore(coin),
+      }));
+
+      // Filter for coins with a minimum score to be considered
+      const filteredAssets = scoredAssets.filter(
+        coin => (coin.suspicion.bullishScore + coin.suspicion.bearishScore) > 20
+      );
+
+      // Sort by the highest score (either bullish or bearish)
+      const sortedBySuspicion = filteredAssets.sort((a, b) => {
+        const scoreA = Math.max(a.suspicion.bullishScore, a.suspicion.bearishScore);
+        const scoreB = Math.max(b.suspicion.bullishScore, b.suspicion.bearishScore);
+        return scoreB - scoreA;
+      });
+
+      // Update the main display list
+      setSuspiciousMovements(sortedBySuspicion);
       
-      // Sort by OI value and abnormality
-      const sortedByValue = [...allUsdtTickers].sort((a, b) => b.openInterestValue - a.openInterestValue);
-      
-      // 🎯 FOCUS ON LOW VOLUME + INSTITUTIONAL ACTIVITY (Quality over Quantity)
-      const now = Date.now();
-      
-      // Calculate volume percentiles to identify low volume coins
-      const volumes = allUsdtTickers.map((t: OpenInterestData) => t.volume24h).sort((a: number, b: number) => a - b);
-      const lowVolumeThreshold = volumes[Math.floor(volumes.length * 0.4)]; // Bottom 40% volume
-      const mediumVolumeThreshold = volumes[Math.floor(volumes.length * 0.7)]; // Bottom 70% volume
-      
-      const currentSuspicious = [...allUsdtTickers]
-        .filter(item => {
-          const isLowVolume = item.volume24h < lowVolumeThreshold;
-          const isMediumVolume = item.volume24h < mediumVolumeThreshold;
-          const abnormality = item.abnormalityScore || 0;
-          const oiChange = Math.abs(item.oiChangePercent);
-          const volumeOiRatio = item.volume24h / item.openInterestValue;
-          
-          // 🚨 MODIFIED: Include coins with institutional significance even without OI change data
-          const hasRealOIData = oiChange >= 0.1; // Has meaningful OI change data
-          const hasInstitutionalSignificance = (
-            item.whaleRating === 'mega' || 
-            item.whaleRating === 'large' || 
-            item.openInterestValue > 50000000 || // >$50M OI value
-            volumeOiRatio < 2 || // Very low turnover (potential institutional accumulation)
-            abnormality > 1.5 // High statistical anomaly
-          );
-          
-          // Skip only if no OI change AND no institutional significance
-          if (!hasRealOIData && !hasInstitutionalSignificance) {
-            return false; // Skip coins with neither OI movement nor institutional indicators
-          }
-          
-          // Check coin detection criteria
-          
-          // 🎯 HIGH PRIORITY: Dramatic OI changes (the main focus)
-          if (oiChange > 10) { // Lowered from 15 to 10
-            return true;
-          }
-          
-          // 🔥 MEDIUM-HIGH PRIORITY: Significant OI changes with supporting signals
-          if (oiChange > 5 && ( // Lowered from 8 to 5
-            abnormality > 0.5 || // Lowered from 1.0 to 0.5
-            volumeOiRatio < 3 || // Increased from 2 to 3
-            (item.whaleRating === 'mega' || item.whaleRating === 'large') // Whale activity
-          )) {
-            return true;
-          }
-          
-          // 🎯 MEDIUM PRIORITY: Moderate OI changes in low volume (institutional stealth)
-          if (isLowVolume && oiChange > 3 && ( // Lowered from 5 to 3
-            abnormality > 0.5 || // Lowered from 0.8 to 0.5
-            volumeOiRatio < 4 // Increased from 3 to 4
-          )) {
-            return true;
-          }
-          
-          // 🐋 WHALE PRIORITY: Large whales with any meaningful OI movement
-          if ((item.whaleRating === 'mega' || item.whaleRating === 'large') && oiChange > 2) { // Lowered from 3 to 2
-            return true;
-          }
-          
-          // 📊 STATISTICAL PRIORITY: Extreme statistical anomalies even with smaller OI changes
-          if (abnormality > 1.5 && oiChange > 1) { // Lowered thresholds
-            return true;
-          }
-          
-          // 🏦 INSTITUTIONAL PRIORITY: Coins with institutional significance even without OI movement
-          if (hasInstitutionalSignificance && !hasRealOIData) {
-            // Include mega/large whales, high OI value coins, or low turnover coins even without OI change data
-            if (item.whaleRating === 'mega' || item.whaleRating === 'large') {
-              return true;
-            }
-            if (item.openInterestValue > 100000000) { // >$100M OI value
-              return true;
-            }
-            if (volumeOiRatio < 1.5 && abnormality > 1.0) { // Very low turnover + statistical anomaly
-              return true;
-            }
-          }
-          
-          return false;
-        })
-                 .map(item => ({
-           ...item,
-           // Add priority scoring for better sorting
-           priorityScore: calculatePriorityScore(item, lowVolumeThreshold, mediumVolumeThreshold),
-           volumeCategory: item.volume24h < lowVolumeThreshold ? 'low' as const : 
-                          item.volume24h < mediumVolumeThreshold ? 'medium' as const : 'high' as const
-         }));
-      
-            // 🎯 SMART TRACKER: Update every 5 minutes to match scan frequency
+      // 🎯 SMART TRACKER: Update Redis DB every 5 minutes
       const lastEdgeUpdate = localStorage.getItem('lastEdgeDetectorUpdate');
-      const shouldUpdateEdgeDetector = !lastEdgeUpdate || (now - parseInt(lastEdgeUpdate)) > 5 * 60 * 1000; // Match scan frequency
+      const shouldUpdateEdgeDetector = !lastEdgeUpdate || (Date.now() - parseInt(lastEdgeUpdate)) > 5 * 60 * 1000;
       
-      if (shouldUpdateEdgeDetector) {
-        
-        // Get all coins that meet threshold criteria
-        const qualifyingCoins = currentSuspicious
-          .filter(item => {
-            // ENHANCED CRITERIA for institutional detection - OI movement OR institutional significance
-            const abnormality = item.abnormalityScore || 0;
-            const oiChange = Math.abs(item.oiChangePercent);
-            const volumeOiRatio = item.volume24h / item.openInterestValue;
-            const priorityScore = item.priorityScore || 0;
-            
-            // Allow coins without OI change if they have institutional significance
-            const hasOIMovement = oiChange >= 0.1;
-            const hasInstitutionalValue = (
-              item.whaleRating === 'mega' || 
-              item.whaleRating === 'large' || 
-              item.openInterestValue > 50000000 || // >$50M OI
-              volumeOiRatio < 2 || // Low turnover
-              abnormality > 1.5 // High statistical anomaly
-            );
-            
-            // Require either OI movement OR institutional significance
-            if (!hasOIMovement && !hasInstitutionalValue) return false;
-            
-            // Include coins with significant institutional activity
-            return (
-              oiChange > 5 || // Significant OI movement
-              (abnormality > 1.0 && oiChange > 3) || // Statistical anomaly + moderate OI movement
-              (volumeOiRatio < 3.0 && oiChange > 2) || // Low turnover + moderate OI movement
-              (priorityScore > 50 && oiChange > 2) || // High priority + any meaningful OI movement
-              (item.whaleRating === 'mega' && oiChange > 2) || // Mega whale activity
-              (item.whaleRating === 'large' && oiChange > 3) || // Large whale activity
-              (item.whaleRating === 'medium' && oiChange > 5) || // Medium whale activity
-              // NEW: Include institutional significance without OI movement requirement
-              (hasInstitutionalValue && !hasOIMovement && (
-                item.whaleRating === 'mega' || // Always include mega whales
-                item.whaleRating === 'large' || // Always include large whales  
-                (item.openInterestValue > 100000000 && volumeOiRatio < 1.5) || // >$100M OI + low turnover
-                (abnormality > 2.0 && volumeOiRatio < 2.0) // High anomaly + low turnover
-              ))
-            );
-          })
-          .map(item => ({
-            ...item,
-            timestamp: now,
-            manipulationConfidence: calculateManipulationConfidence(item)
-          }))
-          .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0)); // Sort by priority score descending
-        
-        // 🎯 SMART PRIORITY-BASED REDIS LOGIC
-        if (qualifyingCoins.length > 0) {
-           // Get current database coins to implement smart replacement logic
-           const currentDbCoins = suspiciousMovements;
-           const replacementAnalysis = shouldReplaceDbCoins(currentDbCoins, qualifyingCoins);
-           
-           if (replacementAnalysis.shouldReplace) {
-             const isAtLimit = currentDbCoins.length >= 10;
-             await saveInstitutionalFlows(qualifyingCoins, isAtLimit);
-             
-             if (isAtLimit) {
-               // Smart replacement logic - priority-based coin replacement
-               const protectedCoins = currentDbCoins
-                 .filter(coin => (coin.priorityScore || 0) >= replacementAnalysis.maxNewPriority)
-                 .map(coin => `${coin.symbol}(${(coin.priorityScore || 0).toFixed(0)})`);
-             } else {
-               // Database has space for new flows
-             }
-           } else {
-             // No replacement warranted - existing DB coins have higher priority
-           }
-        } else {
-          // No coins currently match institutional criteria
-        }
-        
-        localStorage.setItem('lastEdgeDetectorUpdate', now.toString());
-              } else {
-          // Waiting for next update cycle
-        }
+      if (shouldUpdateEdgeDetector && sortedBySuspicion.length > 0) {
+        // Save the top 16 coins to Redis
+        await saveInstitutionalFlows(sortedBySuspicion);
+        localStorage.setItem('lastEdgeDetectorUpdate', Date.now().toString());
+      }
       
-      setOpenInterestData(sortedByValue.slice(0, 200)); // Reduced to 200 for API optimization
+      setOpenInterestData(allUsdtTickers); // Keep full data for other potential uses
       
       // 🎯 REDIS FRONTEND UPDATE - Load latest data from store after database update
       if (shouldUpdateEdgeDetector) {
@@ -1097,30 +841,6 @@ const InstitutionalActivity: React.FC = () => {
         await loadInstitutionalFlows(false); // Use cached data if recent enough
       }
       
-      // Processed tickers
-      
-      // Count how many coins have meaningful OI change data
-      const coinsWithOIData = allUsdtTickers.filter((t: OpenInterestData) => Math.abs(t.oiChangePercent) >= 0.1).length;
-      const coinsWithDramaticChanges = allUsdtTickers.filter((t: OpenInterestData) => Math.abs(t.oiChangePercent) > 10).length;
-      const coinsWithExtremeChanges = allUsdtTickers.filter((t: OpenInterestData) => Math.abs(t.oiChangePercent) > 20).length;
-      
-      // Analysis statistics calculated
-      
-      // L/S Ratio Coverage Summary
-      const totalWithLS = allUsdtTickers.filter(t => t.longShortRatio).length;
-      const binanceLS = allUsdtTickers.filter(t => t.longShortRatio?.source === 'binance').length;
-      const bybitLS = allUsdtTickers.filter(t => t.longShortRatio?.source === 'bybit').length;
-      // L/S ratio coverage analysis completed
-      
-      if (isFirstLoad) {
-        setLoadingProgress(90);
-        setLoadingMessage('Generating institutional signals...');
-      }
-      
-      // Enhanced institutional signal detection - run on every scan for real-time signals
-      setSignalsLoading(true);
-      detectAdvancedInstitutionalActivity(allUsdtTickers);
-      setSignalsLoading(false);
       
       if (isFirstLoad) {
         setLoadingProgress(100);
@@ -1143,181 +863,6 @@ const InstitutionalActivity: React.FC = () => {
       setLoading(false);
     }
   }, [historicalOIData, isFirstLoad, saveInstitutionalFlows, loadInstitutionalFlows]);
-
-  // 🚀 ADVANCED INSTITUTIONAL EDGE DETECTION - Spots moves before they're obvious
-  const detectAdvancedInstitutionalActivity = useCallback((oiData: OpenInterestData[]) => {
-    const whaleSignals: InstitutionalSignal[] = [];
-    const squeezeSignals: InstitutionalSignal[] = [];
-    const anomalySignals: InstitutionalSignal[] = [];
-    const now = Date.now();
-    
-    // Running advanced institutional detection algorithms
-
-    oiData.forEach((coin) => {
-      const abnormality = coin.abnormalityScore || 0;
-      const oiChange = coin.oiChangePercent;
-      const oiVelocity = coin.oiVelocity || 0;
-      const oiAcceleration = coin.oiAcceleration || 0;
-      
-      // 1. 🎯 STATISTICAL ANOMALY DETECTION (More stable with higher thresholds)
-      if (abnormality > 1.5 && coin.openInterestValue > 5000000) { // Higher threshold for stability, minimum OI value
-        anomalySignals.push({
-          symbol: coin.symbol,
-          type: 'oi_spike',
-          severity: abnormality > 4.0 ? 'critical' : abnormality > 2.5 ? 'high' : 'medium',
-          message: `Statistical OI anomaly: ${abnormality.toFixed(1)}σ deviation (${coin.whaleRating?.toUpperCase()})`,
-          value: abnormality,
-          timestamp: now,
-          confidence: Math.min(95, 60 + abnormality * 6) // More conservative confidence
-        });
-      }
-      
-      // 2. 🚀 VELOCITY & ACCELERATION DETECTION (Early whale entry detection)
-      if (Math.abs(oiVelocity) > coin.openInterest * 0.05 && coin.openInterestValue > 1000000) { // Lowered thresholds
-        anomalySignals.push({
-          symbol: coin.symbol,
-          type: 'oi_spike',
-          severity: Math.abs(oiVelocity) > coin.openInterest * 0.2 ? 'critical' : 'high',
-          message: `Rapid OI buildup: ${oiVelocity > 0 ? '+' : ''}${((oiVelocity/coin.openInterest)*100).toFixed(1)}% velocity`,
-          value: (oiVelocity/coin.openInterest)*100,
-          timestamp: now,
-          confidence: Math.min(92, 60 + Math.abs(oiVelocity/coin.openInterest)*200)
-        });
-      }
-      
-      // 3. 🎢 ACCELERATION PATTERNS (Institutional momentum detection)
-      if (Math.abs(oiAcceleration) > coin.openInterest * 0.02 && coin.openInterestValue > 5000000) { // Lowered thresholds
-        anomalySignals.push({
-          symbol: coin.symbol,
-          type: 'oi_spike',
-          severity: Math.abs(oiAcceleration) > coin.openInterest * 0.1 ? 'high' : 'medium',
-          message: `OI acceleration: ${oiAcceleration > 0 ? 'Accelerating' : 'Decelerating'} institutional flow`,
-          value: (oiAcceleration/coin.openInterest)*100,
-          timestamp: now,
-          confidence: Math.min(88, 50 + Math.abs(oiAcceleration/coin.openInterest)*150)
-        });
-      }
-
-      // 4. 🔥 DIRECTIONAL BIAS DETECTION (Smart money positioning)
-      if (coin.longShortRatio) {
-        const { bias, biasStrength, buyRatio, sellRatio } = coin.longShortRatio;
-        const extremeRatio = Math.max(buyRatio, sellRatio);
-        
-        // Strong directional bias with significant OI changes
-        if (biasStrength === 'strong' && oiChange > 5) {
-          anomalySignals.push({
-            symbol: coin.symbol,
-            type: 'oi_spike',
-            severity: extremeRatio > 0.7 ? 'critical' : 'high',
-            message: `Strong ${bias} bias: ${(extremeRatio * 100).toFixed(0)}% positioning with ${oiChange.toFixed(1)}% OI change`,
-            value: extremeRatio,
-            timestamp: now,
-            confidence: Math.min(96, 70 + (extremeRatio - 0.5) * 100)
-          });
-        }
-        
-        // Divergence between directional bias and funding rate (manipulation signal)
-        if (biasStrength !== 'weak' && Math.abs(coin.fundingRate) > 0.0001) {
-          const fundingBullish = coin.fundingRate > 0;
-          const biasBullish = bias === 'bullish';
-          
-          if (fundingBullish !== biasBullish && oiChange > 3) {
-            anomalySignals.push({
-              symbol: coin.symbol,
-              type: 'oi_divergence',
-              severity: 'high',
-              message: `Bias/Funding divergence: ${bias} bias vs ${fundingBullish ? 'long' : 'short'} funding pressure`,
-              value: Math.abs(coin.fundingRate * 10000),
-              timestamp: now,
-              confidence: Math.min(92, 60 + extremeRatio * 40)
-            });
-          }
-        }
-      }
-      
-      // 5. 🔥 STEALTH ACCUMULATION (OI growing faster than price)
-      const oiPriceDivergence = Math.abs(oiChange - coin.priceChange24h);
-      if (oiChange > 2 && coin.priceChange24h < 5 && oiPriceDivergence > 3) { // Lowered thresholds
-        anomalySignals.push({
-          symbol: coin.symbol,
-          type: 'oi_divergence',
-          severity: oiPriceDivergence > 15 ? 'critical' : 'high',
-          message: `Stealth accumulation: OI +${oiChange.toFixed(1)}% while price only +${coin.priceChange24h.toFixed(1)}%`,
-          value: oiPriceDivergence,
-          timestamp: now,
-          confidence: Math.min(95, 65 + oiPriceDivergence * 2)
-        });
-      }
-      
-      // 5. 🐋 MEGA WHALE DETECTION (Extreme OI concentrations)
-      if (coin.whaleRating === 'mega' || coin.whaleRating === 'large' || coin.openInterestValue > 10000000) { // Lowered threshold for better detection
-        whaleSignals.push({
-          symbol: coin.symbol,
-          type: 'large_liquidation',
-          severity: 'critical',
-          message: `$${(coin.openInterestValue / 1e9).toFixed(2)}B open interest`,
-          value: coin.openInterestValue / 1e9,
-          timestamp: now,
-          confidence: 99
-        });
-      }
-      
-      // 6. ⚡ FUNDING RATE PRESSURE COOKER
-      const fundingExtreme = Math.abs(coin.fundingRate * 100);
-      if (fundingExtreme > 0.01) { // >0.01% is pressure (lowered threshold for better detection)
-        squeezeSignals.push({
-          symbol: coin.symbol,
-          type: 'funding_anomaly',
-          severity: fundingExtreme > 0.15 ? 'critical' : 'high',
-          message: `${(coin.fundingRate * 100).toFixed(3)}% (${coin.fundingRate > 0 ? 'Shorts squeezed' : 'Longs squeezed'})`,
-          value: fundingExtreme,
-          timestamp: now,
-          confidence: Math.min(94, 55 + fundingExtreme * 200)
-        });
-      }
-      
-      // 7. 💨 VOLUME-OI EXPLOSION (Smart money moving fast)
-      const volumeOiRatio = coin.volume24h / coin.openInterestValue;
-      if (volumeOiRatio > 5 && coin.openInterestValue > 1000000) { // Lowered thresholds for better detection
-        anomalySignals.push({
-          symbol: coin.symbol,
-          type: 'volume_oi_surge',
-          severity: volumeOiRatio > 15 ? 'critical' : volumeOiRatio > 12 ? 'high' : 'medium',
-          message: `Volume explosion: ${volumeOiRatio.toFixed(1)}x OI turnover (Smart money active)`,
-          value: volumeOiRatio,
-          timestamp: now,
-          confidence: Math.min(89, 40 + volumeOiRatio * 4)
-        });
-      }
-    });
-
-    // 🧠 ADVANCED SORTING: Prioritize by confidence, severity, and whale size
-    const sortSignals = (signals: InstitutionalSignal[]) => signals.sort((a, b) => {
-      const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-      const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
-      if (severityDiff !== 0) return severityDiff;
-      
-      const confidenceDiff = b.confidence - a.confidence;
-      if (confidenceDiff !== 0) return confidenceDiff;
-      
-      // Prioritize larger OI values as tie-breaker
-      const aOI = oiData.find(d => d.symbol === a.symbol)?.openInterestValue || 0;
-      const bOI = oiData.find(d => d.symbol === b.symbol)?.openInterestValue || 0;
-      return bOI - aOI;
-    });
-
-    const sortedWhaleSignals = sortSignals(whaleSignals).slice(0, 10);
-    const sortedSqueezeSignals = sortSignals(squeezeSignals).slice(0, 10);
-    const sortedAnomalySignals = sortSignals(anomalySignals).slice(0, 10);
-    const allSignals = [...sortedWhaleSignals, ...sortedSqueezeSignals, ...sortedAnomalySignals];
-
-    setWhaleSignals(sortedWhaleSignals);
-    setSqueezeSignals(sortedSqueezeSignals);
-    setAnomalySignals(sortedAnomalySignals);
-    setInstitutionalSignals(allSignals.slice(0, 25)); // Top 25 high-confidence signals
-    
-    // Institutional signals detected and analyzed
-  }, []);
 
   // Initial load from Redis and then fetch new data
   useEffect(() => {
@@ -1398,119 +943,14 @@ const InstitutionalActivity: React.FC = () => {
     return () => clearInterval(interval);
   }, [lastUpdated]);
 
-  // Enhanced signal sentiment detection using directional bias
-  const getSignalSentiment = (signal: InstitutionalSignal): 'bullish' | 'bearish' | 'neutral' => {
-    // Extract directional bias from message if available
-    if (signal.message.includes('bullish bias')) {
-      return 'bullish';
-    }
-    if (signal.message.includes('bearish bias')) {
-      return 'bearish';
-    }
-    
-    // Whale activity - generally bullish when accumulating
-    if (signal.type === 'large_liquidation') {
-      return 'bullish'; // Large OI usually indicates accumulation
-    }
-    
-    // Funding rate analysis
-    if (signal.type === 'funding_anomaly') {
-      // Extract funding rate from message to determine direction
-      if (signal.message.includes('Shorts squeezed')) {
-        return 'bullish'; // Shorts being squeezed = bullish
-      } else if (signal.message.includes('Longs squeezed')) {
-        return 'bearish'; // Longs being squeezed = bearish
-      }
-    }
-    
-    // OI and volume analysis with directional bias consideration
-    if (signal.type === 'oi_spike' || signal.type === 'volume_oi_surge') {
-      // Check for directional bias indicators in message
-      if (signal.message.includes('Strong bullish') || signal.message.includes('bullish bias')) {
-        return 'bullish';
-      }
-      if (signal.message.includes('Strong bearish') || signal.message.includes('bearish bias')) {
-        return 'bearish';
-      }
-      
-      // Check if it's accumulation (stealth) or aggressive buying
-      if (signal.message.includes('Stealth accumulation') || 
-          signal.message.includes('Rapid OI buildup') ||
-          signal.message.includes('Volume explosion')) {
-        return 'bullish'; // Accumulation patterns are generally bullish
-      }
-      if (signal.message.includes('Decelerating')) {
-        return 'bearish'; // Decelerating flow could be bearish
-      }
-      return 'bullish'; // Default OI increases to bullish
-    }
-    
-    // Divergence analysis with bias consideration
-    if (signal.type === 'oi_divergence') {
-      // Check for bias/funding divergence
-      if (signal.message.includes('Bias/Funding divergence')) {
-        if (signal.message.includes('bullish bias')) {
-          return 'bullish'; // Bullish bias despite contrary funding
-        }
-        if (signal.message.includes('bearish bias')) {
-          return 'bearish'; // Bearish bias despite contrary funding
-        }
-      }
-      return 'bullish'; // Default OI growing faster than price = accumulation = bullish
-    }
-    
-    return 'neutral';
-  };
-
-  const getSentimentColors = (sentiment: 'bullish' | 'bearish' | 'neutral', baseColor: string) => {
-    if (sentiment === 'bullish') {
-      return {
-        bg: 'bg-green-50 dark:bg-green-900/10',
-        border: 'border-green-500',
-        text: 'text-green-900 dark:text-green-300',
-        badge: 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
-      };
-    } else if (sentiment === 'bearish') {
-      return {
-        bg: 'bg-red-50 dark:bg-red-900/10',
-        border: 'border-red-500',
-        text: 'text-red-900 dark:text-red-300',
-        badge: 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
-      };
-    } else {
-      // Neutral - use base color
-      const colorMap: { [key: string]: any } = {
-        purple: {
-          bg: 'bg-purple-50 dark:bg-purple-900/10',
-          border: 'border-purple-500',
-          text: 'text-purple-900 dark:text-purple-300',
-          badge: 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
-        },
-        orange: {
-          bg: 'bg-orange-50 dark:bg-orange-900/10',
-          border: 'border-orange-500',
-          text: 'text-orange-900 dark:text-orange-300',
-          badge: 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200'
-        },
-        blue: {
-          bg: 'bg-blue-50 dark:bg-blue-900/10',
-          border: 'border-blue-500',
-          text: 'text-blue-900 dark:text-blue-300',
-          badge: 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
-        }
-      };
-      return colorMap[baseColor] || colorMap.blue;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
           <AlertCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }} />
-          <span className="hidden sm:inline">Institutional Activity Detection</span>
-          <span className="sm:hidden">Institutional Activity</span>
+          <span className="hidden sm:inline">Big Move Detector</span>
+          <span className="sm:hidden">Move Detector</span>
         </h2>
         <div className="flex items-center gap-3">
           {lastUpdated && (
@@ -1533,8 +973,8 @@ const InstitutionalActivity: React.FC = () => {
           }}
         >
           <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            <span className="hidden sm:inline">Institutional Inflows</span>
-            <span className="sm:hidden">Inflows</span>
+            <span className="hidden sm:inline">Total Suspicion Value</span>
+            <span className="sm:hidden">Suspicion</span>
           </div>
           <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
             ${suspiciousMovements.reduce((sum, coin) => sum + coin.openInterestValue, 0) > 1e9 
@@ -1552,11 +992,11 @@ const InstitutionalActivity: React.FC = () => {
           }}
         >
           <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            <span className="hidden sm:inline">High Priority Alerts</span>
+            <span className="hidden sm:inline">High-Conviction Alerts</span>
             <span className="sm:hidden">Alerts</span>
           </div>
           <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            {suspiciousMovements.filter(coin => (coin.priorityScore || 0) > 80).length}
+            {suspiciousMovements.filter(coin => (coin.suspicion.bullishScore + coin.suspicion.bearishScore) > 80).length}
           </div>
         </div>
         <div 
@@ -1568,11 +1008,11 @@ const InstitutionalActivity: React.FC = () => {
           }}
         >
           <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            <span className="hidden sm:inline">Manipulation Detected</span>
-            <span className="sm:hidden">Manipulation</span>
+            <span className="hidden sm:inline">Bullish Signals</span>
+            <span className="sm:hidden">Bullish</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            {suspiciousMovements.filter(coin => (coin.manipulationConfidence || 0) > 70).length}
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: 'rgb(34, 197, 94)' }}>
+            {suspiciousMovements.filter(coin => coin.suspicion.bullishScore > coin.suspicion.bearishScore).length}
           </div>
         </div>
         <div 
@@ -1584,11 +1024,11 @@ const InstitutionalActivity: React.FC = () => {
           }}
         >
           <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            <span className="hidden sm:inline">Monitored Assets</span>
-            <span className="sm:hidden">Assets</span>
+            <span className="hidden sm:inline">Bearish Signals</span>
+            <span className="sm:hidden">Bearish</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            {openInterestData.length}
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: 'rgb(248, 113, 113)' }}>
+            {suspiciousMovements.filter(coin => coin.suspicion.bearishScore > coin.suspicion.bullishScore).length}
           </div>
         </div>
       </div>
@@ -1597,7 +1037,7 @@ const InstitutionalActivity: React.FC = () => {
       <div className="min-h-[600px] sm:min-h-[800px] rounded-lg border-2 p-4 sm:p-6 backdrop-blur-[2.5px]" style={{  borderColor: '#2d5a31', border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
           <h3 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-            <span className="hidden sm:inline">MANIPULATION DETECTOR</span>
+            <span className="hidden sm:inline">BIG MOVE DETECTOR</span>
             <span className="sm:hidden">DETECTOR</span>
           </h3>
           <div className="flex items-center gap-3">
@@ -1616,9 +1056,9 @@ const InstitutionalActivity: React.FC = () => {
           <>
 
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-full overflow-y-auto py-4 sm:py-6 px-1 sm:px-2 overflow-x-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6 max-h-full overflow-y-auto py-4 sm:py-6 px-1 sm:px-2 overflow-x-hidden">
               {suspiciousMovements.map((coin, index) => (
-                <TickerCard key={`${coin.symbol}-${theme}`} coin={coin} index={index} theme={theme} />
+                <TickerCard key={coin.symbol} coin={coin} theme={theme} />
               ))}
             </div>
           </>
@@ -1650,21 +1090,21 @@ const InstitutionalActivity: React.FC = () => {
             </div>
             
             <p className="text-sm" style={{ color: '#4a7c59' }}>
-              Optimized for speed - analyzing top 200 institutional flows
+              Analyzing top 200 assets for precursors to large moves.
             </p>
           </div>
         ) : !isFirstLoad && !loading ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-6">🔍</div>
             <h4 className="text-2xl font-bold mb-4" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-              No Coins Found
+              No Signals Found
             </h4>
             <p className="text-lg mb-4" style={{ color: '#4a7c59' }}>
-              No coins are currently stored in the database
+              No assets currently meet the criteria for a high-conviction move.
             </p>
             <div className="rounded-lg p-4 max-w-md mx-auto mb-4" style={{ backgroundColor: 'rgba(74, 124, 89, 0.2)', border: '1px solid rgba(74, 124, 89, 0.3)' }}>
               <p className="text-sm font-medium mb-2" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-                💾 Database Status: Empty (0/10 coins)
+                💾 Database Status: Empty
               </p>
               <div className="flex items-center justify-center gap-4 text-sm">
                 <span style={{ color: '#4a7c59' }}>
@@ -1681,7 +1121,7 @@ const InstitutionalActivity: React.FC = () => {
               )}
             </div>
             <p className="text-xs" style={{ color: '#4a7c59' }}>
-              Detection thresholds: &gt;5% OI change, &gt;1.5σ anomalies, smart priority replacement
+              Detection thresholds: &gt;20 total suspicion score (Max 16 coins)
             </p>
           </div>
         ) : (
@@ -1712,352 +1152,13 @@ const InstitutionalActivity: React.FC = () => {
             </div>
             
             <p className="text-sm" style={{ color: '#4a7c59' }}>
-              Optimized for speed - analyzing top 200 institutional flows
+              Analyzing top 200 assets for precursors to large moves.
             </p>
           </div>
         )}
       </div>
 
-      {/* Live Signals - Split into Three Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        
-        {/* WHALE ACTIVITY */}
-        <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
-          <div className="mb-4 sm:mb-5">
-            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-              <span className="hidden sm:inline">Whale Activity</span>
-              <span className="sm:hidden">Whales</span>
-            </h3>
-          </div>
-          <div className="max-h-[450px] sm:max-h-[600px] overflow-y-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-            {signalsLoading ? (
-              <div className="text-center py-8">
-                <div className="flex justify-center mb-4">
-                  <RefreshCwIcon className="h-12 w-12 text-purple-500 animate-spin" />
-                </div>
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Loading whale activity...</p>
-              </div>
-            ) : whaleSignals.length > 0 ? whaleSignals.map((signal, index) => {
-              const sentiment = getSignalSentiment(signal);
-              const colors = getSentimentColors(sentiment, 'purple');
-              return (
-                <div
-                  key={index}
-                  className="group relative p-3 sm:p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
-                  onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
-                  style={{
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    backgroundColor: 'rgba(30, 63, 32, 0.1)',
-                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400 overflow-hidden">
-                        <img 
-                          src={`https://assets.coincap.io/assets/icons/${signal.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
-                          alt={signal.symbol.replace('USDT', '')}
-                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
-                          onError={(e) => {
-                            // Fallback to letters if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="font-bold text-xs sm:text-sm text-purple-600 dark:text-purple-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
-                            }
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm sm:text-lg leading-none" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-                          {signal.symbol.replace('USDT', '')}
-                        </h4>
-                        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                          {new Date(signal.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metrics Row */}
-                  <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                        <span className="hidden sm:inline">Confidence</span>
-                        <span className="sm:hidden">Conf</span>
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>{signal.confidence.toFixed(1)}%</span>
-                    </div>
-                    
-                    {sentiment !== 'neutral' && (
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] sm:text-xs font-bold ${
-                          sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {sentiment === 'bullish' ? 'BULL' : 'BEAR'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Message */}
-                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 leading-relaxed line-clamp-3" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
-                    {signal.message}
-                  </p>
-
-                  {/* Action Button */}
-                  <div className="flex justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs transition-colors" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                      <span className="hidden sm:inline">View Chart</span>
-                      <span className="sm:hidden">Chart</span>
-                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="text-center py-8">
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>No whale activity detected</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* FUNDING SQUEEZES */}
-        <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
-          <div className="mb-4 sm:mb-5">
-            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-              <span className="hidden sm:inline">Funding Squeezes</span>
-              <span className="sm:hidden">Funding</span>
-            </h3>
-          </div>
-          <div className="max-h-[450px] sm:max-h-[600px] overflow-y-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-            {signalsLoading ? (
-              <div className="text-center py-8">
-                <div className="flex justify-center mb-4">
-                  <RefreshCwIcon className="h-12 w-12 text-orange-500 animate-spin" />
-                </div>
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Loading funding squeezes...</p>
-              </div>
-            ) : squeezeSignals.length > 0 ? squeezeSignals.map((signal, index) => {
-              const sentiment = getSignalSentiment(signal);
-              const colors = getSentimentColors(sentiment, 'orange');
-              return (
-                <div
-                  key={index}
-                  className="group relative p-3 sm:p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
-                  onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
-                  style={{
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    backgroundColor: 'rgba(30, 63, 32, 0.1)',
-                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center font-bold text-xs sm:text-sm text-orange-600 dark:text-orange-400 overflow-hidden">
-                        <img 
-                          src={`https://assets.coincap.io/assets/icons/${signal.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
-                          alt={signal.symbol.replace('USDT', '')}
-                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
-                          onError={(e) => {
-                            // Fallback to letters if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="font-bold text-xs sm:text-sm text-orange-600 dark:text-orange-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
-                            }
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm sm:text-lg leading-none" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-                          {signal.symbol.replace('USDT', '')}
-                        </h4>
-                        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                          {new Date(signal.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metrics Row */}
-                  <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                        <span className="hidden sm:inline">Confidence</span>
-                        <span className="sm:hidden">Conf</span>
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>{signal.confidence.toFixed(1)}%</span>
-                    </div>
-                    
-                    {sentiment !== 'neutral' && (
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] sm:text-xs font-bold ${
-                          sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {sentiment === 'bullish' ? ' BULL' : ' BEAR'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Message */}
-                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 leading-relaxed line-clamp-3" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
-                    {signal.message}
-                  </p>
-
-                  {/* Action Button */}
-                  <div className="flex justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs transition-colors" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                      <span className="hidden sm:inline">View Chart</span>
-                      <span className="sm:hidden">Chart</span>
-                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="text-center py-8">
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>No funding squeezes detected</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* STATISTICAL ANOMALIES */}
-        <div className="rounded-xl p-4 sm:p-6 backdrop-blur-[3px] max-h-[600px] sm:max-h-[800px] min-h-[500px] sm:min-h-[700px]" style={{ border: '1px solid rgba(255, 255, 255, 0.2)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', backgroundColor: 'rgba(30, 63, 32, 0.1)' }}>
-          <div className="mb-4 sm:mb-5">
-            <h3 className="text-lg sm:text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-              <span className="hidden sm:inline">Statistical Anomalies</span>
-              <span className="sm:hidden">Anomalies</span>
-            </h3>
-          </div>
-          <div className="max-h-[450px] sm:max-h-[600px] overflow-y-scroll space-y-3 sm:space-y-4 pr-1 sm:pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-            {signalsLoading ? (
-              <div className="text-center py-8">
-                <div className="flex justify-center mb-4">
-                  <RefreshCwIcon className="h-12 w-12 text-blue-500 animate-spin" />
-                </div>
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>Loading statistical anomalies...</p>
-              </div>
-            ) : anomalySignals.length > 0 ? anomalySignals.map((signal, index) => {
-              const sentiment = getSignalSentiment(signal);
-              const colors = getSentimentColors(sentiment, 'blue');
-              return (
-                <div
-                  key={index}
-                  className="group relative p-3 sm:p-4 rounded-lg backdrop-blur-[3px] hover:shadow-lg transition-all duration-300 cursor-pointer"
-                  onClick={() => window.open(`https://www.tradingview.com/chart/?symbol=BYBIT:${signal.symbol}.P`, '_blank')}
-                  style={{
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    backgroundColor: 'rgba(30, 63, 32, 0.1)',
-                    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-xs sm:text-sm text-blue-600 dark:text-blue-400 overflow-hidden">
-                        <img 
-                          src={`https://assets.coincap.io/assets/icons/${signal.symbol.replace('USDT', '').toLowerCase()}@2x.png`}
-                          alt={signal.symbol.replace('USDT', '')}
-                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
-                          onError={(e) => {
-                            // Fallback to letters if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="font-bold text-xs sm:text-sm text-blue-600 dark:text-blue-400">${signal.symbol.replace('USDT', '').slice(0, 2)}</span>`;
-                            }
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm sm:text-lg leading-none" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
-                          {signal.symbol.replace('USDT', '')}
-                        </h4>
-                        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                          {new Date(signal.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metrics Row */}
-                  <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] sm:text-xs" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                        <span className="hidden sm:inline">Confidence</span>
-                        <span className="sm:hidden">Conf</span>
-                      </span>
-                      <span className="text-[10px] sm:text-xs font-bold text-white">{signal.confidence.toFixed(1)}%</span>
-                    </div>
-                    
-                    {sentiment !== 'neutral' && (
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[10px] sm:text-xs font-bold ${
-                          sentiment === 'bullish' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {sentiment === 'bullish' ? ' BULL' : ' BEAR'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Message */}
-                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 leading-relaxed line-clamp-3" style={{ color: theme === 'dark' ? '#ffffff' : '#3c5d47' }}>
-                    {signal.message}
-                  </p>
-
-                  {/* Action Button */}
-                  <div className="flex justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs transition-colors" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>
-                      <span className="hidden sm:inline">View Chart</span>
-                      <span className="sm:hidden">Chart</span>
-                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="text-center py-8">
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : '#3c5d47' }}>No anomalies detected</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-
-
-
+      {/* Live Signals section removed as it's now integrated */}
     </div>
   );
 };

@@ -9,7 +9,7 @@ import InstitutionalActivity from './InstitutionalActivity';
 import OpenInterestChart from './OpenInterestChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon, ChartCandlestick } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon, ChartCandlestick, UserIcon } from 'lucide-react';
 import BtcPriceChange from './BtcPriceChange';
 import LiquidGlass from 'liquid-glass-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
       id: 'candlestick' as const,
       label: 'Candlestick Screener',
       icon: ChartCandlestick
-    }
+    },
   ];
 
   // Get all coins for the chart (trending coins)

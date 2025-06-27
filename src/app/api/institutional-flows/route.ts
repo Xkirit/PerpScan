@@ -20,9 +20,23 @@ interface InstitutionalFlow {
   priorityScore?: number;
   volumeCategory?: 'low' | 'medium' | 'high';
   manipulationConfidence?: number;
+  suspicion?: {
+    bullishScore: number;
+    bearishScore: number;
+    dominantSignal: string;
+    signalDetails: string[];
+  };
+  longShortRatio?: {
+    buyRatio: number;
+    sellRatio: number;
+    bias: 'bullish' | 'bearish' | 'neutral';
+    biasStrength: 'weak' | 'moderate' | 'strong';
+    timestamp: number;
+    source: 'binance' | 'bybit';
+  };
 }
 
-const MAX_FLOWS = 10;
+const MAX_FLOWS = 16;
 
 // Read flows from Redis
 async function readFlows(): Promise<InstitutionalFlow[]> {
@@ -76,17 +90,20 @@ export async function GET(request: NextRequest) {
     
     const flows = await readFlows();
     
-    // Sort by priority score descending
+    // Sort by suspicion score descending (total of bullish + bearish scores)
     const sortedFlows = flows.sort((a, b) => {
-      const priorityDiff = (b.priorityScore || 0) - (a.priorityScore || 0);
-      if (priorityDiff !== 0) return priorityDiff;
+      const totalScoreA = (a.suspicion?.bullishScore || 0) + (a.suspicion?.bearishScore || 0);
+      const totalScoreB = (b.suspicion?.bullishScore || 0) + (b.suspicion?.bearishScore || 0);
       
-      const manipulationDiff = (b.manipulationConfidence || 0) - (a.manipulationConfidence || 0);
-      if (manipulationDiff !== 0) return manipulationDiff;
+      // Primary sort: Total suspicion score
+      if (totalScoreB !== totalScoreA) return totalScoreB - totalScoreA;
       
-      const abnormalityDiff = (b.abnormalityScore || 0) - (a.abnormalityScore || 0);
-      if (abnormalityDiff !== 0) return abnormalityDiff;
+      // Secondary sort: Max individual score (bullish or bearish)
+      const maxScoreA = Math.max(a.suspicion?.bullishScore || 0, a.suspicion?.bearishScore || 0);
+      const maxScoreB = Math.max(b.suspicion?.bullishScore || 0, b.suspicion?.bearishScore || 0);
+      if (maxScoreB !== maxScoreA) return maxScoreB - maxScoreA;
       
+      // Tertiary sort: Open Interest Value
       return b.openInterestValue - a.openInterestValue;
     });
     
@@ -134,6 +151,24 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
+    // Handle clear request (empty flows array)
+    if (newFlows.length === 0) {
+      await writeFlows([]);
+      console.log('🗑️ All institutional flows cleared from Redis via POST');
+      
+      return NextResponse.json({
+        success: true,
+        totalFlows: 0,
+        addedCount: 0,
+        updatedCount: 0,
+        removedCount: 0,
+        lastUpdated: Date.now(),
+        maxFlows: MAX_FLOWS,
+        cleared: true,
+        priorityReplacement: false
+      });
+    }
+    
     // Read existing flows from Redis
     const existingFlows = await readFlows();
     const existingFlowsMap = new Map(existingFlows.map(flow => [flow.symbol, flow]));
@@ -173,11 +208,15 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    // Convert to array and sort by priority score
+    // Convert to array and sort by suspicion score
     let finalFlows = Array.from(updatedFlowsMap.values())
-      .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+      .sort((a, b) => {
+        const totalScoreA = (a.suspicion?.bullishScore || 0) + (a.suspicion?.bearishScore || 0);
+        const totalScoreB = (b.suspicion?.bullishScore || 0) + (b.suspicion?.bearishScore || 0);
+        return totalScoreB - totalScoreA;
+      });
     
-    // 🎯 PRIORITY-BASED REPLACEMENT LOGIC - Maximum 10 coins
+    // 🎯 SUSPICION-BASED REPLACEMENT LOGIC - Maximum 16 coins
     if (finalFlows.length > MAX_FLOWS) {
       const removedFlows = finalFlows.slice(MAX_FLOWS);
       finalFlows = finalFlows.slice(0, MAX_FLOWS);
@@ -218,6 +257,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Failed to update institutional flows'
+    }, { status: 500 });
+  }
+}
+
+// DELETE - Clear all institutional flows from Redis
+export async function DELETE(request: NextRequest) {
+  try {
+    // Clear all flows from Redis
+    await writeFlows([]);
+    
+    console.log('🗑️ All institutional flows cleared from Redis');
+    
+    return NextResponse.json({
+      success: true,
+      message: 'All institutional flows cleared successfully',
+      clearedAt: Date.now()
+    });
+  } catch (error) {
+    console.error('Error clearing institutional flows:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to clear institutional flows'
     }, { status: 500 });
   }
 } 

@@ -4,7 +4,7 @@
       "maxDuration": 60
     },
     "src/app/api/candlestick-screener/route.ts": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "src/app/api/candlestick-auto-update/route.ts": {
       "maxDuration": 60
