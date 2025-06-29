@@ -492,15 +492,15 @@ const InstitutionalActivity: React.FC = () => {
       }
     }
     
-    // 🟡 SECONDARY SOURCE: Bybit (backup) - Use internal API route
+    // 🟡 SECONDARY SOURCE: Bybit (backup)
     try {
-      const bybitResponse = await fetch(`/api/account-ratio?symbol=${symbol}&period=1h&limit=1`);
+      const bybitResponse = await fetch(`https://api.bybit.com/v5/market/account-ratio?symbol=${symbol}&period=1h&limit=1`);
       if (bybitResponse.ok) {
         const bybitData = await bybitResponse.json();
-        if (bybitData.success && bybitData.data && bybitData.data.list && bybitData.data.list.length > 0) {
-          const latestData = bybitData.data.list[0];
+        if (bybitData.result && bybitData.result.list && bybitData.result.list.length > 0) {
+          const latestData = bybitData.result.list[0];
           const buyRatio = parseFloat(latestData.buyRatio);
-          const sellRatio = parseFloat(latestData.sellRatio);
+          const sellRatio = 1 - buyRatio;
 
           const ratioDiff = buyRatio - sellRatio;
           let bias: 'bullish' | 'bearish' | 'neutral' = 'neutral';

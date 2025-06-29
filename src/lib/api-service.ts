@@ -128,7 +128,7 @@ class APIService {
 
   // Consolidated tickers endpoint - used by multiple components
   async getTickers(useCache: boolean = true): Promise<BybitTickerData[]> {
-    const cacheKey = this.getCacheKey('/api/tickers', {});
+    const cacheKey = this.getCacheKey('/v5/market/tickers', { category: 'linear' });
     
     if (useCache) {
       const cached = this.cache.get(cacheKey);
@@ -138,26 +138,14 @@ class APIService {
     }
 
     try {
-      // Use internal API route instead of direct external call to avoid CORS issues on Vercel
-      const url = '/api/tickers';
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const url = `${this.baseUrl}/v5/market/tickers?category=linear`;
+      const response = await this.makeRequest<BybitTickersResponse>(url);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (response.retCode !== 0) {
+        throw new Error(`API Error: ${response.retMsg}`);
       }
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(`API Error: ${data.error || 'Unknown error'}`);
-      }
-
-      const tickers = data.data || [];
+      const tickers = response.result?.list || [];
       this.setCache(cacheKey, tickers);
       return tickers;
     } catch (error) {
@@ -181,6 +169,7 @@ class APIService {
     useCache: boolean = true
   ): Promise<string[][]> {
     const params: Record<string, any> = {
+      category: 'linear',
       symbol,
       interval,
       limit,
@@ -189,7 +178,7 @@ class APIService {
     if (startTime) params.start = startTime;
     if (endTime) params.end = endTime;
 
-    const cacheKey = this.getCacheKey('/api/kline', params);
+    const cacheKey = this.getCacheKey('/v5/market/kline', params);
     
     if (useCache) {
       const cached = this.cache.get(cacheKey);
@@ -204,26 +193,14 @@ class APIService {
         queryParams.append(key, value.toString());
       });
 
-      // Use internal API route instead of direct external call to avoid CORS issues on Vercel
-      const url = `/api/kline?${queryParams.toString()}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const url = `${this.baseUrl}/v5/market/kline?${queryParams.toString()}`;
+      const response = await this.makeRequest<BybitKlineResponse>(url);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (response.retCode !== 0) {
+        throw new Error(`API Error: ${response.retMsg}`);
       }
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(`API Error: ${data.error || 'Unknown error'}`);
-      }
-
-      const klineData = data.data || [];
+      const klineData = response.result?.list || [];
       this.setCache(cacheKey, klineData);
       return klineData;
     } catch (error) {
@@ -254,6 +231,7 @@ class APIService {
     source: 'bybit';
   } | null> {
     const params: Record<string, any> = {
+      category: 'linear',
       symbol,
       period,
       limit,
@@ -262,7 +240,7 @@ class APIService {
     if (startTime) params.startTime = startTime;
     if (endTime) params.endTime = endTime;
 
-    const cacheKey = this.getCacheKey('/api/account-ratio', params);
+    const cacheKey = this.getCacheKey('/v5/market/account-ratio', params);
     
     if (useCache) {
       const cached = this.cache.get(cacheKey);
@@ -277,28 +255,15 @@ class APIService {
         queryParams.append(key, value.toString());
       });
 
-      // Use internal API route instead of direct external call to avoid CORS issues on Vercel
-      const url = `/api/account-ratio?${queryParams.toString()}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const url = `${this.baseUrl}/v5/market/account-ratio?${queryParams.toString()}`;
+      const response = await this.makeRequest<BybitAccountRatioResponse>(url);
 
-      if (!response.ok) {
+      if (response.retCode !== 0 || !response.result?.list?.length) {
         this.setCache(cacheKey, null);
         return null;
       }
 
-      const data = await response.json();
-
-      if (!data.success || !data.data?.list?.length) {
-        this.setCache(cacheKey, null);
-        return null;
-      }
-
-      const latestData = data.data.list[0];
+      const latestData = response.result.list[0];
       const buyRatio = parseFloat(latestData.buyRatio);
       const sellRatio = parseFloat(latestData.sellRatio);
 
