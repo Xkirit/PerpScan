@@ -424,7 +424,7 @@ const InstitutionalActivity: React.FC = () => {
     // 🚀 PRIMARY SOURCE: Binance (91% coverage - 3x better than Bybit)
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout (increased for Vercel)
       
       const binanceResponse = await fetch(
         `/api/binance-ls-ratio?symbol=${symbol}&period=1h&limit=1`,
@@ -485,18 +485,22 @@ const InstitutionalActivity: React.FC = () => {
         }
       }
     } catch (error) {
-      // Silent fallback to Bybit
+      // Silent fallback to Bybit - expected behavior for geographic restrictions
+      if (error instanceof Error && error.name !== 'AbortError') {
+        // Only log non-timeout errors for debugging
+        console.debug(`Binance API fallback for ${symbol}: ${error.message}`);
+      }
     }
     
-    // 🟡 SECONDARY SOURCE: Bybit (backup)
+    // 🟡 SECONDARY SOURCE: Bybit (backup) - Use internal API route
     try {
-      const bybitResponse = await fetch(`https://api.bybit.com/v5/market/account-ratio?symbol=${symbol}&period=1h&limit=1`);
+      const bybitResponse = await fetch(`/api/account-ratio?symbol=${symbol}&period=1h&limit=1`);
       if (bybitResponse.ok) {
         const bybitData = await bybitResponse.json();
-        if (bybitData.result && bybitData.result.list && bybitData.result.list.length > 0) {
-          const latestData = bybitData.result.list[0];
+        if (bybitData.success && bybitData.data && bybitData.data.list && bybitData.data.list.length > 0) {
+          const latestData = bybitData.data.list[0];
           const buyRatio = parseFloat(latestData.buyRatio);
-          const sellRatio = 1 - buyRatio;
+          const sellRatio = parseFloat(latestData.sellRatio);
 
           const ratioDiff = buyRatio - sellRatio;
           let bias: 'bullish' | 'bearish' | 'neutral' = 'neutral';
@@ -650,6 +654,10 @@ const InstitutionalActivity: React.FC = () => {
       
       // Get ALL tickers data (includes OI, funding, volume) from API service
       const allTickers = await apiService.getTickers();
+      
+      if (!allTickers || allTickers.length === 0) {
+        throw new Error('No ticker data received from API');
+      }
 
       if (isFirstLoad) {
         setLoadingProgress(20);
@@ -857,7 +865,19 @@ const InstitutionalActivity: React.FC = () => {
       }
 
     } catch (error) {
-      // //console.error('❌ Error in advanced OI scanning:', error);
+      console.error('❌ Error in advanced OI scanning:', error);
+      
+      // On error during scanning, try to load existing data from Redis
+      try {
+        await loadInstitutionalFlows(true);
+      } catch (redisError) {
+        console.warn('Failed to load data from Redis:', redisError);
+      }
+      
+      // Set loading message to indicate error
+      if (isFirstLoad) {
+        setLoadingMessage('Error occurred, retrying...');
+      }
     } finally {
       // Always hide loading after operation completes
       setLoading(false);

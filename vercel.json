@@ -8,6 +8,24 @@
     },
     "src/app/api/candlestick-auto-update/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/tickers/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/account-ratio/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/binance-ls-ratio/route.ts": {
+      "maxDuration": 20
+    },
+    "src/app/api/historical-oi/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/institutional-flows/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/kline/route.ts": {
+      "maxDuration": 15
     }
   }
 } 
