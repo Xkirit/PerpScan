@@ -297,12 +297,12 @@ const Dashboard: React.FC = () => {
       icon: ListIcon,
       param: 'watchlists'
     },
-    {
-      id: 'chat' as const,
-      label: 'Chat',
-      icon: UserIcon,
-      param: 'chat'
-    },
+    // {
+    //   id: 'chat' as const,
+    //   label: 'Chat',
+    //   icon: UserIcon,
+    //   param: 'chat'
+    // },
   ];
 
   // Set active tab based on URL search params
@@ -470,8 +470,9 @@ const Dashboard: React.FC = () => {
                          tab.id === 'institutional' ? 'Institutional' : 
                          tab.id === 'openinterest' ? 'OI' :
                          tab.id === 'watchlists' ? 'Lists' :
-                         tab.id === 'chat' ? 'Chat' :
-                         'Patterns'}
+                         // tab.id === 'chat' ? 'Chat' :
+                         'Patterns'
+                         }
                       </span>
                     </button>
                   );
@@ -712,9 +713,9 @@ const Dashboard: React.FC = () => {
               <WatchlistsManager />
             </div>
 
-            <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
+            {/* <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
               <TraderChatBot />
-            </div>
+            </div> */}
           </>
         ) : null}
       </div>

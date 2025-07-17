@@ -1,3 +1,5 @@
+// AI Chat API temporarily disabled
+/*
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 

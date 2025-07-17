@@ -44,7 +44,7 @@ next-env.d.ts
 .aider*
 
 # Additional pages (excluding main 6 tabs)
-/src/app/docs/
+
 /src/app/fibonacci/
 /src/app/onchain/
 /src/app/trading/
