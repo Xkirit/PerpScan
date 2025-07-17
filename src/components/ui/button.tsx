@@ -10,7 +10,7 @@ const buttonVariants = cva(
       variant: {
         default: "text-white hover:opacity-80" + " " + "[background-color:#1E3F20]",
         destructive: "text-white hover:opacity-80" + " " + "[background-color:#1A1F16]",
-        outline: "border hover:opacity-80" + " " + "[border-color:#2d5a31] [background-color:#1E3F20] [color:#ffffff]",
+        outline: "border border-3 border-solid hover:opacity-80" + " " + "[border-color:#2d5a31] [background-color:#1E3F20] [color:#ffffff]",
         secondary: "hover:opacity-80" + " " + "[background-color:#2d5a31] [color:#ffffff]",
         ghost: "hover:opacity-80" + " " + "[color:#4a7c59]",
         link: "underline-offset-4 hover:underline" + " " + "[color:#4a7c59]",

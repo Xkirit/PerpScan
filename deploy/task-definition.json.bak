@@ -1,0 +1,58 @@
+{
+  "family": "bybit-analyzer",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::941377122943:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::941377122943:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "bybit-analyzer",
+      "image": "941377122943.dkr.ecr.eu-north-1.amazonaws.com/bybit-analyzer:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "BYBIT_API_KEY",
+          "value": "0LoYVenmpZKnZye23G"
+        },
+        {
+          "name": "BYBIT_API_SECRET",
+          "value": "MN2QdXrTDy9oVZdA1QqyywoyJU9U20Eaj6i5"
+        },
+        {
+          "name": "UPSTASH_REDIS_REST_URL",
+          "value": "https://pleasing-redbird-50522.upstash.io"
+        },
+        {
+          "name": "UPSTASH_REDIS_REST_TOKEN",
+          "value": "AsVaAAIgcDGS2m_ttrEkdb_4SsOpMtfvA1En_WK2yVT2vBs1oJ_-9w"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/bybit-analyzer",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+} 

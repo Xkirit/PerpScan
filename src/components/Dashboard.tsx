@@ -9,12 +9,15 @@ import InstitutionalActivity from './InstitutionalActivity';
 import OpenInterestChart from './OpenInterestChart';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon, ChartCandlestick, UserIcon } from 'lucide-react';
+import { RefreshCwIcon, TrendingUpIcon, BarChart3Icon, ClockIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon, ChartCandlestick, UserIcon, ListIcon } from 'lucide-react';
 import BtcPriceChange from './BtcPriceChange';
-import LiquidGlass from 'liquid-glass-react';
 import { BybitClientService } from '@/lib/bybit-client-service';
 import { useTheme } from '@/contexts/ThemeContext';
 import CandlestickScreenerV2 from './CandlestickScreenerV2';
+import WatchlistsManager from './WatchlistsManager';
+import TraderChatBot from './Traderchatbot';
+import { useRouter, usePathname } from 'next/navigation';
+
 
 interface AnalysisResult {
   trending: CoinAnalysis[];
@@ -214,10 +217,14 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'chart' | 'institutional' | 'openinterest' | 'candlestick'>('analysis');
+  const [activeTab, setActiveTab] = useState<
+    'analysis' | 'chart' | 'institutional' | 'openinterest' | 'candlestick' | 'watchlists' | 'chat'
+  >('analysis');
   const [chartInterval, setChartInterval] = useState<'4h' | '1d'>('4h');
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const fetchData = useCallback(async (interval: '4h' | '1d' = chartInterval) => {
     setLoading(true);
@@ -257,32 +264,71 @@ const Dashboard: React.FC = () => {
     {
       id: 'analysis' as const,
       label: 'Trend Analysis',
-      icon: TrendingUpIcon
+      icon: TrendingUpIcon,
+      param: 'trendanalysis'
     },
     {
       id: 'chart' as const,
       label: 'Multi-Ticker Chart',
-      icon: BarChart3Icon
+      icon: BarChart3Icon,
+      param: 'multiticker'
     },
     {
       id: 'institutional' as const,
       label: 'Institutional Activity',
-      icon: EyeIcon
+      icon: EyeIcon,
+      param: 'institutional'
     },
     {
       id: 'openinterest' as const,
       label: 'Open Interest',
-      icon: BarChart3Icon
+      icon: BarChart3Icon,
+      param: 'openinterest'
     },
     {
       id: 'candlestick' as const,
       label: 'Candlestick Screener',
-      icon: ChartCandlestick
+      icon: ChartCandlestick,
+      param: 'candlestick'
+    },
+    {
+      id: 'watchlists' as const,
+      label: 'Watchlists',
+      icon: ListIcon,
+      param: 'watchlists'
+    },
+    {
+      id: 'chat' as const,
+      label: 'Chat',
+      icon: UserIcon,
+      param: 'chat'
     },
   ];
 
-  // Get all coins for the chart (trending coins)
-  const allCoins = data?.trending || [];
+  // Set active tab based on URL search params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tab = searchParams.get('tab');
+    
+    if (tab) {
+      const currentTab = tabs.find(t => t.param === tab);
+      if (currentTab) {
+        setActiveTab(currentTab.id);
+      }
+    } else {
+      setActiveTab('analysis');
+    }
+  }, [pathname]);
+
+  const handleTabClick = (tabId: typeof activeTab, param: string) => {
+    setActiveTab(tabId);
+    if (tabId === 'analysis') {
+      router.push('/');
+    } else {
+      router.push(`/?tab=${param}`);
+    }
+  };
+
 
   return (
     <div className="min-h-screen relative bg-background">
@@ -405,7 +451,7 @@ const Dashboard: React.FC = () => {
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabClick(tab.id, tab.param)}
                       className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap"
                       style={{
                         borderColor: activeTab === tab.id 
@@ -416,13 +462,15 @@ const Dashboard: React.FC = () => {
                           : (theme === 'dark' ? '#4a7c59' : '#76ba94')
                       }}
                     >
-                      <Icon className="hidden sm:block h-3 w-3 sm:h-4 sm:w-4" />
+                      {Icon && <Icon className="hidden sm:block h-3 w-3 sm:h-4 sm:w-4" />}
                       <span className="hidden sm:inline">{tab.label}</span>
                       <span className="sm:hidden">
                         {tab.id === 'analysis' ? 'Analysis' : 
                          tab.id === 'chart' ? 'Chart' : 
                          tab.id === 'institutional' ? 'Institutional' : 
                          tab.id === 'openinterest' ? 'OI' :
+                         tab.id === 'watchlists' ? 'Lists' :
+                         tab.id === 'chat' ? 'Chat' :
                          'Patterns'}
                       </span>
                     </button>
@@ -645,7 +693,7 @@ const Dashboard: React.FC = () => {
 
             {/* Other tabs - These maintain state when switching */}
             <div className={activeTab === 'chart' ? 'block' : 'hidden'}>
-              <MultiTickerChart data={allCoins} interval={chartInterval} />
+              <MultiTickerChart data={data.trending} interval={chartInterval} />
             </div>
 
             <div className={activeTab === 'institutional' ? 'block' : 'hidden'}>
@@ -658,6 +706,14 @@ const Dashboard: React.FC = () => {
 
             <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
               <CandlestickScreenerV2 />
+            </div>
+
+            <div className={activeTab === 'watchlists' ? 'block' : 'hidden'}>
+              <WatchlistsManager />
+            </div>
+
+            <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
+              <TraderChatBot />
             </div>
           </>
         ) : null}

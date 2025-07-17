@@ -1,17 +1,15 @@
 import type { NextConfig } from "next";
 
-module.exports={
-  compiler:{
-    removeConsole:{
-      exclude:['error','info','warn'],
+const nextConfig: NextConfig = {
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
+  
+  compiler: {
+    removeConsole: {
+      exclude: ['error', 'info', 'warn'],
     },
   },
-
-}
-
-const nextConfig: NextConfig = {
-
- 
+  
   /* config options here */
   logging: false,
   // Completely disable ALL logging
