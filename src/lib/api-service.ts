@@ -42,6 +42,18 @@ interface BybitAccountRatioResponse {
   };
 }
 
+interface BybitOpenInterestResponse {
+  retCode: number;
+  retMsg: string;
+  result: {
+    list: Array<{
+      symbol: string;
+      openInterest: string;
+      timestamp: string;
+    }>;
+  };
+}
+
 interface CachedData<T> {
   data: T;
   timestamp: number;
@@ -346,6 +358,65 @@ class APIService {
   // Clear cache manually if needed
   clearCache(): void {
     this.cache.clear();
+  }
+
+  // Consolidated open interest history endpoint
+  async getOpenInterestHistory(
+    symbol: string,
+    interval: string = '1h',
+    limit: number = 25,
+    startTime?: number,
+    endTime?: number,
+    useCache: boolean = true
+  ): Promise<Array<{
+    symbol: string;
+    openInterest: string;
+    timestamp: string;
+  }>> {
+    const params: Record<string, any> = {
+      category: 'linear',
+      symbol,
+      intervalTime: interval,
+      limit,
+    };
+
+    if (startTime) params.startTime = startTime;
+    if (endTime) params.endTime = endTime;
+
+    const cacheKey = this.getCacheKey('/v5/market/open-interest', params);
+    
+    if (useCache) {
+      const cached = this.cache.get(cacheKey);
+      if (this.isCacheValid(cached, this.CACHE_DURATION.OI_HISTORY)) {
+        return cached.data;
+      }
+    }
+
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        queryParams.append(key, value.toString());
+      });
+
+      const url = `${this.baseUrl}/v5/market/open-interest?${queryParams.toString()}`;
+      const response = await this.makeRequest<BybitOpenInterestResponse>(url);
+
+      if (response.retCode !== 0) {
+        throw new Error(`API Error: ${response.retMsg}`);
+      }
+
+      const oiData = response.result?.list || [];
+      this.setCache(cacheKey, oiData);
+      return oiData;
+    } catch (error) {
+      // If cache exists, return cached data as fallback
+      const cached = this.cache.get(cacheKey);
+      if (cached?.data) {
+        console.warn(`Using cached OI history for ${symbol} due to API error:`, error);
+        return cached.data;
+      }
+      return []; // Return empty array instead of throwing
+    }
   }
 
   // Get cache stats for debugging

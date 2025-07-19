@@ -492,28 +492,11 @@ const InstitutionalActivity: React.FC = () => {
       }
     }
     
-    // 🟡 SECONDARY SOURCE: Bybit (backup)
+    // 🟡 SECONDARY SOURCE: Bybit (backup) - Use centralized service
     try {
-      const bybitResponse = await fetch(`https://api.bybit.com/v5/market/account-ratio?symbol=${symbol}&period=1h&limit=1`);
-      if (bybitResponse.ok) {
-        const bybitData = await bybitResponse.json();
-        if (bybitData.result && bybitData.result.list && bybitData.result.list.length > 0) {
-          const latestData = bybitData.result.list[0];
-          const buyRatio = parseFloat(latestData.buyRatio);
-          const sellRatio = 1 - buyRatio;
-
-          const ratioDiff = buyRatio - sellRatio;
-          let bias: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-          let biasStrength: 'weak' | 'moderate' | 'strong' = 'weak';
-
-          if (Math.abs(ratioDiff) > 0.15) biasStrength = 'strong';
-          else if (Math.abs(ratioDiff) > 0.08) biasStrength = 'moderate';
-          
-          if (buyRatio > 0.55) bias = 'bullish';
-          else if (sellRatio > 0.55) bias = 'bearish';
-
-          return { buyRatio, sellRatio, bias, biasStrength, timestamp: Date.now(), source: 'bybit' };
-        }
+      const bybitData = await apiService.getAccountRatio(symbol, '1h', 1);
+      if (bybitData) {
+        return bybitData;
       }
     } catch(e) {
       // Both failed

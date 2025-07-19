@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { apiService } from '@/lib/api-service';
 
 // This endpoint is designed to get the Open Interest value from ~24 hours ago for a specific symbol.
 export async function GET(request: NextRequest) {
@@ -17,25 +17,13 @@ export async function GET(request: NextRequest) {
     const endTime = Date.now();
     const startTime = endTime - (limit * 60 * 60 * 1000);
 
-    const response = await axios.get('https://api.bybit.com/v5/market/open-interest', {
-      params: {
-        category: 'linear',
-        symbol,
-        intervalTime: interval,
-        startTime: startTime,
-        endTime: endTime,
-        limit: limit,
-      },
-      timeout: 4000, // 4-second timeout
-    });
-
-    if (response.data.retCode !== 0) {
-      // If Bybit returns an error, we log it and return null.
-      console.error(`Bybit API error for ${symbol}:`, response.data.retMsg);
-      return NextResponse.json({ oldOpenInterestValue: null });
-    }
-
-    const oiList: { openInterest: string; timestamp: string }[] = response.data.result.list;
+    const oiList = await apiService.getOpenInterestHistory(
+      symbol,
+      interval,
+      limit,
+      startTime,
+      endTime
+    );
 
     if (!oiList || oiList.length < 24) {
       // If we don't have enough data points, we can't reliably get the 24h old value.
@@ -49,12 +37,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ oldOpenInterestValue });
 
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-        // More specific error logging for network/API issues
-        console.error(`Axios error fetching historical OI: ${error.message}`);
-    } else {
-        console.error('Unknown error in historical-oi API:', error);
-    }
+    console.error('Error fetching historical OI:', error);
     // Return null in case of any exception
     return NextResponse.json({ oldOpenInterestValue: null }, { status: 500 });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { apiService } from '@/lib/api-service';
 
 interface KlineData {
   startTime: string;
@@ -39,21 +39,18 @@ export async function POST(request: NextRequest) {
     const endTime = Date.now();
     const startTime = endTime - (points * (interval === 'D' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
 
-    // Fetch historical data for each symbol
+    // Fetch historical data for each symbol using centralized service
     const historicalPromises = symbols.map(async (symbol: string) => {
       try {
-        const response = await axios.get('https://api.bybit.com/v5/market/kline', {
-          params: {
-            category: 'linear',
-            symbol: symbol,
-            interval: bybitInterval,
-            start: startTime,
-            end: endTime,
-            limit: points
-          }
-        });
+        const klineResult = await apiService.getKlineData(
+          symbol,
+          bybitInterval,
+          points,
+          startTime,
+          endTime
+        );
 
-        const klineData: KlineData[] = response.data.result.list.map((item: string[]) => ({
+        const klineData: KlineData[] = klineResult.map((item: string[]) => ({
           startTime: item[0],
           openPrice: item[1],
           highPrice: item[2],

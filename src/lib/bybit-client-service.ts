@@ -1,4 +1,5 @@
 import { BybitTicker, CoinAnalysis, AnalysisResult } from '@/types';
+import { apiService } from '@/lib/api-service';
 
 interface BybitTickerResponse {
   retCode: number;
@@ -26,25 +27,8 @@ export class BybitClientService {
 
   async getPerpetualFuturesTickers(): Promise<BybitTicker[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/v5/market/tickers?category=linear`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-cache',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: BybitTickerResponse = await response.json();
-
-      if (data.retCode !== 0) {
-        throw new Error(`API Error: ${data.retMsg}`);
-      }
-
-      return data.result?.list || [];
+      const tickers = await apiService.getTickers(false); // Don't use cache for client-side analysis
+      return tickers || [];
     } catch (error) {
       //console.error('Client-side error fetching tickers:', error);
       throw error;
@@ -53,28 +37,8 @@ export class BybitClientService {
 
   async getKlineData(symbol: string, interval: string = '1', limit: number = 240): Promise<string[][]> {
     try {
-      const url = `${this.baseUrl}/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=${limit}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-cache',
-      });
-
-      if (!response.ok) {
-        //console.error(`Failed to fetch kline for ${symbol}: ${response.status}`);
-        return [];
-      }
-
-      const data: KlineResponse = await response.json();
-
-      if (data.retCode !== 0) {
-        //console.error(`API Error for ${symbol}: ${data.retMsg}`);
-        return [];
-      }
-
-      return data.result?.list || [];
+      const klineData = await apiService.getKlineData(symbol, interval, limit, undefined, undefined, false); // Don't use cache for client-side analysis
+      return klineData || [];
     } catch (error) {
       //console.error(`Error fetching kline data for ${symbol}:`, error);
       return [];
