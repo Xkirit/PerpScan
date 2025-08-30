@@ -279,18 +279,7 @@ const Dashboard: React.FC = () => {
       icon: EyeIcon,
       param: 'institutional'
     },
-    {
-      id: 'openinterest' as const,
-      label: 'Open Interest',
-      icon: BarChart3Icon,
-      param: 'openinterest'
-    },
-    {
-      id: 'candlestick' as const,
-      label: 'Candlestick Screener',
-      icon: ChartCandlestick,
-      param: 'candlestick'
-    },
+    
     {
       id: 'watchlists' as const,
       label: 'Watchlists',
