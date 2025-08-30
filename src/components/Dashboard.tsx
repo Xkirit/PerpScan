@@ -468,7 +468,7 @@ const Dashboard: React.FC = () => {
                         {tab.id === 'analysis' ? 'Analysis' : 
                          tab.id === 'chart' ? 'Chart' : 
                          tab.id === 'institutional' ? 'Institutional' : 
-                         tab.id === 'openinterest' ? 'OI' :
+                        //  tab.id === 'openinterest' ? 'OI' :
                          tab.id === 'watchlists' ? 'Lists' :
                          // tab.id === 'chat' ? 'Chat' :
                          'Patterns'
@@ -701,13 +701,13 @@ const Dashboard: React.FC = () => {
               <InstitutionalActivity />
             </div>
 
-            <div className={activeTab === 'openinterest' ? 'block' : 'hidden'}>
+            {/* <div className={activeTab === 'openinterest' ? 'block' : 'hidden'}>
               <OpenInterestChart />
-            </div>
+            </div> */}
 
-            <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
+            {/* <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
               <CandlestickScreenerV2 />
-            </div>
+            </div> */}
 
             <div className={activeTab === 'watchlists' ? 'block' : 'hidden'}>
               <WatchlistsManager />

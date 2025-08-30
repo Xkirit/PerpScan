@@ -59,7 +59,7 @@ interface CachedData<T> {
   timestamp: number;
 }
 
-class APIService {
+class apiService {
   private baseUrl = 'https://api.bybit.com';
   private cache = new Map<string, CachedData<any>>();
   private readonly CACHE_DURATION = {
@@ -429,5 +429,6 @@ class APIService {
 }
 
 // Export singleton instance
-export const apiService = new APIService();
-export default apiService; 
+export const APIService = new apiService();
+export { APIService as apiService }; // Backward compatibility
+export default APIService; 

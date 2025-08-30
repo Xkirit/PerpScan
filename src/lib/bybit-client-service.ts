@@ -28,7 +28,20 @@ export class BybitClientService {
   async getPerpetualFuturesTickers(): Promise<BybitTicker[]> {
     try {
       const tickers = await apiService.getTickers(false); // Don't use cache for client-side analysis
-      return tickers || [];
+      // Map the API response to match expected interface
+      return (tickers || []).map(ticker => ({
+        symbol: ticker.symbol,
+        lastPrice: ticker.lastPrice,
+        priceChangePercent24h: ticker.price24hPcnt,
+        price24hPcnt: ticker.price24hPcnt, // Required field
+        volume24h: ticker.volume24h,
+        turnover24h: ticker.turnover24h,
+        openInterest: ticker.openInterest || '0',
+        openInterestValue: ticker.openInterestValue || '0',
+        fundingRate: ticker.fundingRate || '0',
+        highPrice24h: '0', // Not available in current API
+        lowPrice24h: '0'   // Not available in current API
+      }));
     } catch (error) {
       //console.error('Client-side error fetching tickers:', error);
       throw error;
