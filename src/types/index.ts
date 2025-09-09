@@ -29,6 +29,7 @@ export interface CoinAnalysis {
   trendScore: number;
   rank?: number;
   marketCap?: number;
+  newToTop10?: boolean;
 }
 
 export interface AnalysisResult {

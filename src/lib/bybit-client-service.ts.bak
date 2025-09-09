@@ -1,6 +1,5 @@
 import { BybitTicker, CoinAnalysis, AnalysisResult } from '@/types';
 import { apiService } from '@/lib/api-service';
-import { top10Tracker } from './top10-tracker';
 
 interface BybitTickerResponse {
   retCode: number;
@@ -292,22 +291,10 @@ export class BybitClientService {
       .slice(0, limit)
       .map((coin, index) => ({ ...coin, rank: index + 1 }));
 
-    // Mark coins as having been in top 10 and identify new entries
-    const allTop10Symbols = [
-      ...trending.map(c => c.symbol),
-      ...strongest.map(c => c.symbol),
-      ...weakest.map(c => c.symbol)
-    ];
-    top10Tracker.markAsTop10(allTop10Symbols);
-
-    // Add newToTop10 flag to coins
-    const markNewEntries = (coins: CoinAnalysis[]) => 
-      coins.map(coin => ({ ...coin, newToTop10: top10Tracker.isNewToTop10(coin.symbol) }));
-
     return {
-      trending: markNewEntries(trending),
-      strongest: markNewEntries(strongest),
-      weakest: markNewEntries(weakest),
+      trending,
+      strongest,
+      weakest,
       timestamp: new Date().toISOString(),
       totalCoins: analyses.length
     };
@@ -317,4 +304,4 @@ export class BybitClientService {
     const analyses = await this.analyzeCoins(interval);
     return this.getTopPerformers(analyses, limit, interval);
   }
-}
+} 

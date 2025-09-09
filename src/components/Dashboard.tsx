@@ -279,18 +279,18 @@ const Dashboard: React.FC = () => {
       icon: EyeIcon,
       param: 'institutional'
     },
-    {
-      id: 'openinterest' as const,
-      label: 'Open Interest',
-      icon: BarChart3Icon,
-      param: 'openinterest'
-    },
-    {
-      id: 'candlestick' as const,
-      label: 'Candlestick Screener',
-      icon: ChartCandlestick,
-      param: 'candlestick'
-    },
+    // {
+    //   id: 'openinterest' as const,
+    //   label: 'Open Interest',
+    //   icon: BarChart3Icon,
+    //   param: 'openinterest'
+    // },
+    // {
+    //   id: 'candlestick' as const,
+    //   label: 'Candlestick Screener',
+    //   icon: ChartCandlestick,
+    //   param: 'candlestick'
+    // },
     {
       id: 'watchlists' as const,
       label: 'Watchlists',
@@ -705,9 +705,9 @@ const Dashboard: React.FC = () => {
               <OpenInterestChart />
             </div> */}
 
-            <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
+            {/* <div className={activeTab === 'candlestick' ? 'block' : 'hidden'}>
               <CandlestickScreenerV2 />
-            </div>
+            </div> */}
 
             <div className={activeTab === 'watchlists' ? 'block' : 'hidden'}>
               <WatchlistsManager />
