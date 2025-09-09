@@ -117,6 +117,9 @@ export function DataTable({ data, title, category }: DataTableProps) {
               <th className=" sm:px-6 py-1.5 sm:py-3 text-right text-xs font-medium uppercase tracking-tight sm:tracking-wider" style={{ color: theme === 'dark' ? '#ffffff' : '#1A1F16' }}>
                 Price
               </th>
+              <th className="hidden md:table-cell px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: theme === 'dark' ? '#ffffff' : 'var(--foreground)' }}>
+                Market Cap
+              </th>
               <th className="hidden sm:table-cell px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: theme === 'dark' ? '#ffffff' : 'var(--foreground)' }}>
                 4H Change
               </th>
@@ -174,6 +177,11 @@ export function DataTable({ data, title, category }: DataTableProps) {
                 <td className="px-1 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right">
                   <div className="text-xs font-mono" style={{ color: theme === 'dark' ? '#ffffff' : 'var(--foreground)' }}>
                     {formatPrice(coin.currentPrice)}
+                  </div>
+                </td>
+                <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right">
+                  <div className="text-sm" style={{ color: theme === 'dark' ? '#4a7c59' : 'var(--light-text-secondary)' }}>
+                    {coin.marketCap != null ? formatVolume(coin.marketCap) : '-'}
                   </div>
                 </td>
                 

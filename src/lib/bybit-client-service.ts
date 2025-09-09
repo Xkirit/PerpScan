@@ -25,6 +25,58 @@ export class BybitClientService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  private async fetchMarketCapsBySymbolMap(symbols: string[]): Promise<Record<string, number>> {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_COINGECKO_API_KEY || process.env.COINGECKO_API_KEY;
+      const headers: Record<string, string> = { accept: 'application/json' };
+      if (apiKey) headers['x-cg-demo-api-key'] = apiKey as string;
+
+      const uniqueSymbols = Array.from(new Set(symbols.map(s => s.trim()).filter(Boolean)));
+      const chunks: string[][] = [];
+      for (let i = 0; i < uniqueSymbols.length; i += 50) {
+        chunks.push(uniqueSymbols.slice(i, i + 50));
+      }
+
+      const resultMap: Record<string, number> = {};
+
+      for (const chunk of chunks) {
+        if (chunk.length === 0) continue;
+        const symbolsParam = chunk.map(s => s.toLowerCase()).join(',');
+        const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&symbols=${encodeURIComponent(symbolsParam)}&include_tokens=all&per_page=${Math.min(50, chunk.length)}&page=1&sparkline=false&order=market_cap_desc`;
+        const resp = await fetch(url, { method: 'GET', headers });
+        if (!resp.ok) {
+          await this.delay(200);
+          continue;
+        }
+        const data = await resp.json() as Array<{ symbol: string; market_cap: number }>;
+
+        const rowsBySymbol = new Map<string, Array<{ symbol: string; market_cap: number }>>();
+        for (const row of data) {
+          if (!row?.symbol) continue;
+          const key = row.symbol.toLowerCase();
+          const list = rowsBySymbol.get(key) || [];
+          list.push(row);
+          rowsBySymbol.set(key, list);
+        }
+
+        for (const requested of chunk) {
+          const key = requested.toLowerCase();
+          const matches = rowsBySymbol.get(key);
+          if (matches && matches.length) {
+            const top = matches.reduce((a, b) => (a.market_cap || 0) >= (b.market_cap || 0) ? a : b);
+            resultMap[requested.toUpperCase()] = top.market_cap || 0;
+          }
+        }
+
+        await this.delay(250);
+      }
+
+      return resultMap;
+    } catch {
+      return {};
+    }
+  }
+
   async getPerpetualFuturesTickers(): Promise<BybitTicker[]> {
     try {
       const tickers = await apiService.getTickers(false); // Don't use cache for client-side analysis
@@ -133,6 +185,10 @@ export class BybitClientService {
       .sort((a, b) => parseFloat(b.volume24h) - parseFloat(a.volume24h))
       .slice(0, 50); // Limit to 50 for faster client-side processing
 
+    // Prepare base symbols and fetch market caps
+    const baseSymbols = filteredTickers.map(t => t.symbol.replace('USDT', ''));
+    const marketCapMap = await this.fetchMarketCapsBySymbolMap(baseSymbols);
+
     // console.log(`Analyzing top ${filteredTickers.length} coins by volume for ${interval} interval (client-side)...`);
     
     const coinAnalyses: CoinAnalysis[] = [];
@@ -175,6 +231,9 @@ export class BybitClientService {
               priceChange4h = ((priceEnd - priceStart) / priceStart) * 100;
             }
           }
+
+          const base = symbol.replace('USDT', '');
+          const marketCap = marketCapMap[base] ?? marketCapMap[base.toUpperCase()] ?? undefined;
           
           const trendScore = this.calculateTrendScore(ticker, priceChange4h, volumeChange4h);
           
@@ -187,7 +246,8 @@ export class BybitClientService {
             priceChange1d,
             volumeChange1d,
             currentPrice: parseFloat(ticker.lastPrice),
-            trendScore
+            trendScore,
+            marketCap
           };
         } catch (error) {
           //console.error(`Error analyzing ${ticker.symbol} (client-side):`, error);

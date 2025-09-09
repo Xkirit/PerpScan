@@ -150,6 +150,61 @@ export class BybitService {
     }, 2); // Fewer retries for kline data
   }
 
+  private async fetchMarketCapsBySymbolMap(symbols: string[]): Promise<Record<string, number>> {
+    try {
+      const apiKey = process.env.COINGECKO_API_KEY || process.env.NEXT_PUBLIC_COINGECKO_API_KEY;
+      const headers: Record<string, string> = { accept: 'application/json' };
+      if (apiKey) headers['x-cg-demo-api-key'] = apiKey as string;
+
+      const uniqueSymbols = Array.from(new Set(symbols.map(s => s.trim()).filter(Boolean)));
+      const chunks: string[][] = [];
+      for (let i = 0; i < uniqueSymbols.length; i += 50) {
+        chunks.push(uniqueSymbols.slice(i, i + 50));
+      }
+
+      const resultMap: Record<string, number> = {};
+
+      for (const chunk of chunks) {
+        if (chunk.length === 0) continue;
+        const symbolsParam = chunk.map(s => s.toLowerCase()).join(',');
+        const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&symbols=${encodeURIComponent(symbolsParam)}&include_tokens=all&per_page=${Math.min(50, chunk.length)}&page=1&sparkline=false&order=market_cap_desc`;
+        const resp = await fetch(url, { method: 'GET', headers });
+        if (!resp.ok) {
+          await this.delay(200);
+          continue;
+        }
+        const data = await resp.json() as Array<{ symbol: string; market_cap: number }>;
+
+        // Build index of rows by lowercased symbol
+        const rowsBySymbol = new Map<string, Array<{ symbol: string; market_cap: number }>>();
+        for (const row of data) {
+          if (!row?.symbol) continue;
+          const key = row.symbol.toLowerCase();
+          const list = rowsBySymbol.get(key) || [];
+          list.push(row);
+          rowsBySymbol.set(key, list);
+        }
+
+        // For each requested symbol, pick the highest market cap among exact matches
+        for (const requested of chunk) {
+          const key = requested.toLowerCase();
+          const matches = rowsBySymbol.get(key);
+          if (matches && matches.length) {
+            const top = matches.reduce((a, b) => (a.market_cap || 0) >= (b.market_cap || 0) ? a : b);
+            resultMap[requested.toUpperCase()] = top.market_cap || 0;
+          }
+        }
+
+        // Avoid hammering public API
+        await this.delay(250);
+      }
+
+      return resultMap;
+    } catch {
+      return {};
+    }
+  }
+
   calculate4hMetrics(klineData: KlineData[]): { priceChange4h: number; volumeChange4h: number } {
     if (klineData.length < 240) {
       return { priceChange4h: 0, volumeChange4h: 0 };
@@ -238,6 +293,11 @@ export class BybitService {
       .sort((a, b) => parseFloat(b.volume24h) - parseFloat(a.volume24h))
       .slice(0, 150);
     //console.log(`Analyzing top ${filteredTickers.length} coins by volume...`);
+
+    // Prepare symbol list for market cap enrichment (base symbols without USDT)
+    const baseSymbols = filteredTickers.map(t => t.symbol.replace('USDT', ''));
+    const marketCapMap = await this.fetchMarketCapsBySymbolMap(baseSymbols);
+
     const coinAnalyses: CoinAnalysis[] = [];
     let processed = 0;
     const batchSize = 10;
@@ -255,6 +315,8 @@ export class BybitService {
           if (!klineData.length) {
             return null;
           }
+          const base = symbol.replace('USDT', '');
+          const marketCap = marketCapMap[base] ?? marketCapMap[base.toUpperCase()] ?? undefined;
           if (interval === '1d') {
             const { priceChange1d, volumeChange1d } = this.calculate1dMetrics(klineData);
             return {
@@ -266,7 +328,8 @@ export class BybitService {
               priceChange1d,
               volumeChange1d,
               currentPrice: parseFloat(ticker.lastPrice),
-              trendScore: priceChange1d // For 1d, use priceChange1d as trendScore
+              trendScore: priceChange1d, // For 1d, use priceChange1d as trendScore
+              marketCap
             };
           } else {
             const { priceChange4h, volumeChange4h } = this.calculate4hMetrics(klineData);
@@ -280,7 +343,8 @@ export class BybitService {
               priceChange1d: 0,
               volumeChange1d: 0,
               currentPrice: parseFloat(ticker.lastPrice),
-              trendScore
+              trendScore,
+              marketCap
             };
           }
         } catch (error) {

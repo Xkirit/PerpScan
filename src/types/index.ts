@@ -28,6 +28,7 @@ export interface CoinAnalysis {
   currentPrice: number;
   trendScore: number;
   rank?: number;
+  marketCap?: number;
 }
 
 export interface AnalysisResult {
